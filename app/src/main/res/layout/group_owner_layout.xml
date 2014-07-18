@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1dp"
+            android:gravity="center_vertical"
+            android:background="@android:color/holo_blue_light" />
+
+        <fragment
+            class="fi.hiit.complesense.ui.SelfInfoFragment"
+            android:id="@+id/self_info_frag_group_owner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <!-- Preview: layout=@layout/row_devices -->
+        </fragment>
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1dp"
+            android:gravity="center_vertical"
+            android:background="@android:color/holo_blue_light" />
+
+        <fragment
+            class="fi.hiit.complesense.ui.ClientsListFragment"
+            android:id="@+id/connected_peers_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <!-- Preview: layout=@layout/row_devices -->
+        </fragment>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_marginTop="22dp"
+        android:text="dfsfdf"
+        android:maxLines = "15"
+        android:scrollbars = "vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"/>
+
+</FrameLayout>
