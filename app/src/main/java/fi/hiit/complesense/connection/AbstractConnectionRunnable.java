@@ -1,4 +1,4 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection;
 
 import android.os.Message;
 import android.os.Messenger;
@@ -12,7 +12,7 @@ import java.net.Socket;
 import java.util.Timer;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.SystemMessage;
+import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 7/14/14.
@@ -37,12 +37,25 @@ public abstract class AbstractConnectionRunnable implements Runnable
         remoteMessenger = messenger;
 
         oStream = new ObjectOutputStream(socket.getOutputStream());
-        oStream.flush();
+        write("");
         //Log.i(TAG,"Object output streams are initialized");
         iStream = new ObjectInputStream(socket.getInputStream());
         //Log.i(TAG,"Object input streams are initialized");
         Log.i(TAG,"Object streams are initialized");
 
+    }
+
+
+    public void write(String msg)
+    {
+        //Log.i(TAG, "write()");
+        try
+        {
+            oStream.write(msg.getBytes());
+            oStream.flush();
+        } catch (IOException e) {
+            Log.e(TAG, "Exception during write", e);
+        }
     }
 
 

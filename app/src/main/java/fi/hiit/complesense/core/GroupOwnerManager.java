@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import fi.hiit.complesense.SensorUtil;
+import fi.hiit.complesense.connection.remote.CloudSocketHandler;
+import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.connection.local.GroupOwnerSocketHandler;
 
 /**
  * Created by hxguo on 7/16/14.
@@ -28,9 +30,9 @@ public class GroupOwnerManager extends LocalManager
     private WifiP2pGroup clientsGroup = null;
 
 
-    public GroupOwnerManager(Messenger messenger, Context context)
+    public GroupOwnerManager(Messenger messenger, Context context, boolean connect2Cloud)
     {
-        super(messenger, true, context);
+        super(messenger, true, connect2Cloud, context);
 
         selectedSensorsDict = new TreeMap<String, Integer>();
         availabeSensors = new TreeMap<String, List<Integer>>();
@@ -41,7 +43,9 @@ public class GroupOwnerManager extends LocalManager
     }
 
     @Override
-    public void start(InetAddress ownerAddr, int delay) throws IOException{
+    public void start(InetAddress ownerAddr, int delay)
+            throws IOException
+    {
         Log.e(TAG,"This is server, cannot be started as client!! ");
     }
 
@@ -51,6 +55,12 @@ public class GroupOwnerManager extends LocalManager
         {
             abstractSocketHandler = new GroupOwnerSocketHandler(remoteMessenger, this);
             abstractSocketHandler.start();
+        }
+
+        if(connect2Cloud)
+        {
+            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, this);
+            cloudSocketHandler.start();
         }
     }
 

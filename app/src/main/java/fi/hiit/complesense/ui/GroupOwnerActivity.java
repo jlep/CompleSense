@@ -19,7 +19,7 @@ import java.io.Serializable;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.SystemUtil;
+import fi.hiit.complesense.util.SystemUtil;
 import fi.hiit.complesense.service.GroupOwnerService;
 
 /**

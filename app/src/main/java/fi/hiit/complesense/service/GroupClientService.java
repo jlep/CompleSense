@@ -19,7 +19,7 @@ import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.SystemUtil;
+import fi.hiit.complesense.util.SystemUtil;
 import fi.hiit.complesense.core.ClientManager;
 
 /**
@@ -49,7 +49,7 @@ public class GroupClientService extends AbstractGroupService
                     if(!isInitialized)
                     {
                         uiMessenger = msg.replyTo;
-                        clientManager = new ClientManager(mMessenger, context);
+                        clientManager = new ClientManager(mMessenger, context,false);
                         isInitialized = true;
                         sendServiceInitComplete();
                     }

@@ -1,4 +1,4 @@
-package fi.hiit.complesense;
+package fi.hiit.complesense.core;
 
 import android.hardware.Sensor;
 import android.util.Log;

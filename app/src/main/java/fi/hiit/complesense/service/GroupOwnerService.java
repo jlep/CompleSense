@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.SystemUtil;
+import fi.hiit.complesense.util.SystemUtil;
 import fi.hiit.complesense.core.GroupOwnerManager;
 
 /**
@@ -44,7 +44,7 @@ public class GroupOwnerService extends AbstractGroupService
                     if(!isInitialized)
                     {
                         uiMessenger = msg.replyTo;
-                        serverManager = new GroupOwnerManager(mMessenger, context);
+                        serverManager = new GroupOwnerManager(mMessenger, context, true);
                         isInitialized = true;
                         sendServiceInitComplete();
                     }

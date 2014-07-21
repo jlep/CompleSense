@@ -1,4 +1,4 @@
-package fi.hiit.complesense;
+package fi.hiit.complesense.util;
 
 import android.content.Context;
 import android.hardware.Sensor;

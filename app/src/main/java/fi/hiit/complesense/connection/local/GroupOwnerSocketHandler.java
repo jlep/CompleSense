@@ -1,4 +1,4 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection.local;
 
 import android.os.Messenger;
 import android.util.Log;
@@ -13,6 +13,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AbstractConnectionRunnable;
+import fi.hiit.complesense.connection.AbstractSocketHandler;
+import fi.hiit.complesense.connection.local.GroupOwnerConnectionRunnable;
+import fi.hiit.complesense.core.GroupOwnerManager;
 
 /**
  * Created by hxguo on 7/14/14.

@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import fi.hiit.complesense.SensorUtil;
-import fi.hiit.complesense.SensorValues;
+import fi.hiit.complesense.connection.AbstractSocketHandler;
+import fi.hiit.complesense.connection.remote.CloudSocketHandler;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 7/16/14.
@@ -35,7 +36,9 @@ public class LocalManager
     protected WifiP2pDevice selfDevice = null;
 
     protected AbstractSocketHandler abstractSocketHandler;
+    protected CloudSocketHandler cloudSocketHandler;
     protected final Messenger remoteMessenger;
+    protected boolean connect2Cloud;
 
     // All sensor values stored by local device, values can be retrieved from
     // server too
@@ -43,7 +46,7 @@ public class LocalManager
 
     protected SensorUtil sensorUtil;
 
-    public LocalManager(Messenger messenger, boolean isServer, Context context)
+    public LocalManager(Messenger messenger, boolean isServer, boolean connect2Cloud, Context context)
     {
         remoteMessenger = messenger;
         this.isServer = isServer;
@@ -51,7 +54,8 @@ public class LocalManager
         sensorValues = new ConcurrentHashMap<String, SensorValues>();
         sensorUtil = new SensorUtil(context);
         abstractSocketHandler = null;
-
+        cloudSocketHandler = null;
+        this.connect2Cloud = connect2Cloud;
         isRunning = false;
     }
 
@@ -62,6 +66,10 @@ public class LocalManager
         if(abstractSocketHandler!=null)
         {
             abstractSocketHandler.stopHandler();
+        }
+        if(cloudSocketHandler !=null)
+        {
+            cloudSocketHandler.stopHandler();
         }
 
         sensorUtil.unregisterSensorListener();

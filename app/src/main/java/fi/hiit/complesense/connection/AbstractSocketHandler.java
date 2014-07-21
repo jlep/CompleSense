@@ -1,11 +1,9 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection;
 
 import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Timer;
@@ -19,9 +17,6 @@ public abstract class AbstractSocketHandler extends Thread
     private static final String TAG = AbstractSocketHandler.class.getSimpleName();
     protected final Timer timer;
     protected Messenger remoteMessenger;
-
-    protected ObjectInputStream iStream;
-    protected ObjectOutputStream oStream;
 
     protected AbstractSocketHandler(Messenger messenger)
     {

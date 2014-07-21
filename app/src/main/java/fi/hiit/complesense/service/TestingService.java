@@ -13,8 +13,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
-import fi.hiit.complesense.SensorUtil;
-import fi.hiit.complesense.SystemMessage;
+import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.core.SystemMessage;
 import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
 
@@ -94,7 +94,7 @@ public class TestingService extends Service
         Log.i(TAG,"Creating GroupOwner thread");
 
         serverManager = new GroupOwnerManager(uiMessenger,
-                getApplication() );
+                getApplication(), false);
         try {
             serverManager.start();
         } catch (IOException e) {
@@ -105,7 +105,7 @@ public class TestingService extends Service
         {
             Log.i(TAG,"Creating client thread");
             clientsList.add(new ClientManager(uiMessenger,
-                    getApplication() ));
+                    getApplication(), false ));
         }
 
         for(int i=0;i<NUM_CLIENTS;i++)

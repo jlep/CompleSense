@@ -1,4 +1,4 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection.local;
 
 import android.os.Messenger;
 import android.util.Log;
@@ -9,6 +9,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AbstractSocketHandler;
+import fi.hiit.complesense.connection.local.ClientConnectionRunnable;
+import fi.hiit.complesense.core.ClientManager;
 
 /**
  * Created by hxguo on 7/14/14.

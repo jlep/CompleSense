@@ -1,4 +1,4 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection.local;
 
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -9,7 +9,10 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.List;
 
-import fi.hiit.complesense.SystemMessage;
+import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.connection.AbstractConnectionRunnable;
+import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.ScheduledQueryTask;
 
 /**
  * Created by hxguo on 7/14/14.

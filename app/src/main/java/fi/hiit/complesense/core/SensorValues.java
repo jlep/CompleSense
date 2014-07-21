@@ -1,4 +1,4 @@
-package fi.hiit.complesense;
+package fi.hiit.complesense.core;
 
 /**
  * Created by hxguo on 7/16/14.

@@ -7,6 +7,9 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.InetAddress;
 
+import fi.hiit.complesense.connection.local.ClientSocketHandler;
+import fi.hiit.complesense.connection.remote.CloudSocketHandler;
+
 /**
  * Created by hxguo on 7/16/14.
  */
@@ -15,9 +18,9 @@ public class ClientManager extends LocalManager
 {
     private static final String TAG = "ClientManager";
 
-    public ClientManager(Messenger messenger, Context context)
+    public ClientManager(Messenger messenger, Context context, boolean connect2Cloud)
     {
-        super(messenger, false, context);
+        super(messenger, false, connect2Cloud, context);
     }
 
     @Override
@@ -27,6 +30,12 @@ public class ClientManager extends LocalManager
         {
             abstractSocketHandler = new ClientSocketHandler(remoteMessenger, this, ownerAddr, delay);
             abstractSocketHandler.start();
+        }
+
+        if(connect2Cloud)
+        {
+            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, this);
+            cloudSocketHandler.start();
         }
     }
 

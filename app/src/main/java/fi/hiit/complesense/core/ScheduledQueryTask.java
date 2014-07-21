@@ -2,7 +2,7 @@ package fi.hiit.complesense.core;
 
 import java.util.TimerTask;
 
-import fi.hiit.complesense.SystemMessage;
+import fi.hiit.complesense.connection.local.GroupOwnerConnectionRunnable;
 
 /**
  * Created by hxguo on 7/11/14.

@@ -1,4 +1,4 @@
-package fi.hiit.complesense;
+package fi.hiit.complesense.util;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -10,6 +10,8 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+
+import fi.hiit.complesense.Constants;
 
 /**
  * Created by hxguo on 7/14/14.
