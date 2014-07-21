@@ -1,16 +1,15 @@
 package fi.hiit.complesense.ui;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -23,58 +22,16 @@ import java.io.Serializable;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.util.SystemUtil;
+import fi.hiit.complesense.service.GroupOwnerService;
 import fi.hiit.complesense.service.TestingService;
+import fi.hiit.complesense.util.SystemUtil;
 
 
-public class DemoActivity extends Activity
+public class DemoActivity extends AbstractGroupActivity
 {
 
     public static final String TAG = "DemoActivity";
-
-    private TextView statusTxtView;
     private Button stopButton;
-    private final IntentFilter intentFilter = new IntentFilter();
-
-    private boolean mIsBound;
-    TestingService mService;
-
-    IncomingHandler uiHandler = new IncomingHandler();
-    Messenger uiMessenger = new Messenger(uiHandler);
-
-    /**
-     * Class for interacting with the main interface of the service.
-     */
-    private ServiceConnection mConnection = new ServiceConnection()
-    {
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service)
-        {
-            TestingService.LocalBinder binder = (TestingService.LocalBinder)service;
-            mService = binder.getService();
-            mIsBound = true;
-            Log.i(TAG, "onServiceConnected()");
-            appendStatus("Attached to TestingService");
-            //mService.startTesting(uiMessenger, TestingService.NUM_CLIENTS);
-            //mService.testSensorListParsing();
-        }
-
-        public void onServiceDisconnected(ComponentName className)
-        {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected -- that is, its process crashed.
-            mService = null;
-            mIsBound = false;
-            appendStatus("Disconnected from GroupClientService");
-
-            /**
-             // As part of the sample, tell the user what happened.
-             Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
-             Toast.LENGTH_SHORT).show();
-             */
-        }
-    };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -85,6 +42,7 @@ public class DemoActivity extends Activity
         statusTxtView = (TextView) findViewById(R.id.status_text);
         statusTxtView.setMovementMethod(new ScrollingMovementMethod());
         statusTxtView.setText("");
+        uiMessenger = new Messenger(new IncomingHandler());
 
         stopButton = (Button)findViewById(R.id.stop_app);
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -92,15 +50,66 @@ public class DemoActivity extends Activity
             public void onClick(View v) {
                 if(mService!=null)
                 {
-                    mService.stopTesting();
-                    mService.stopSelf();
+                    try
+                    {
+                        Message msg = Message.obtain(null,
+                                TestingService.STOP_TESTING);
+                        msg.replyTo = uiMessenger;
+                        mService.send(msg);
+                    }
+                    catch (RemoteException e)
+                    {
+                        // In this case the service has crashed before we could even
+                        // do anything with it; we can count on soon being
+                        // disconnected (and then reconnected if it can be restarted)
+                        // so there is no need to do anything here.
+                    }
                     finish();
                 }
             }
         });
 
-        intentFilter.addAction(Constants.SELF_INFO_UPDATE_ACTION);
-        intentFilter.addAction(Constants.STATUS_TEXT_UPDATE_ACTION);
+        /**
+         * Class for interacting with the main interface of the service.
+         */
+        mConnection = new ServiceConnection()
+        {
+            public void onServiceConnected(ComponentName className,
+                                           IBinder service)
+            {
+                mService = new Messenger(service);
+                Log.i(TAG, "onServiceConnected()");
+                try
+                {
+                    Message msg = Message.obtain(null,
+                            TestingService.START_TESTING);
+                    msg.replyTo = uiMessenger;
+                    mService.send(msg);
+                }
+                catch (RemoteException e)
+                {
+                    // In this case the service has crashed before we could even
+                    // do anything with it; we can count on soon being
+                    // disconnected (and then reconnected if it can be restarted)
+                    // so there is no need to do anything here.
+                }
+            }
+
+            public void onServiceDisconnected(ComponentName className)
+            {
+                // This is called when the connection with the service has been
+                // unexpectedly disconnected -- that is, its process crashed.
+                mService = null;
+                mIsBound = false;
+                appendStatus("Disconnected from GroupClientService");
+
+                /**
+                 // As part of the sample, tell the user what happened.
+                 Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
+                 Toast.LENGTH_SHORT).show();
+                 */
+            }
+        };
 
         Intent intent = new Intent(this, TestingService.class);
         String serviceName = TestingService.class.getCanonicalName();
@@ -115,25 +124,24 @@ public class DemoActivity extends Activity
         }
     }
 
-    void doBindService()
+    @Override
+    protected void onDestroy()
     {
-        Log.i(TAG, "doBindService()");
-        Intent intent =new Intent(getApplicationContext(),
-                TestingService.class);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-        mIsBound = true;
-        appendStatus("Binding to GroupOwnerService");
+        Log.i(TAG,"onDestroy()");
+
+        doUnbindService();
+        stopService(new Intent(this, GroupOwnerService.class));
+        super.onDestroy();
     }
 
-    void doUnbindService()
+    @Override
+    protected void doBindService()
     {
-        Log.i(TAG,"doUnbindService()");
-        if (mIsBound)
-        {
-            unbindService(mConnection);
-            mIsBound = false;
-            appendStatus("Unbinding from GroupOwnerService");
-        }
+        Log.i(TAG, "doBindService()");
+        bindService(new Intent(getApplicationContext(),
+                TestingService.class), mConnection, Context.BIND_AUTO_CREATE);
+        mIsBound = true;
+        appendStatus("Binding to GroupOwnerService");
     }
 
     @Override
