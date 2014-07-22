@@ -38,6 +38,7 @@ public class SystemMessage implements Serializable
     public static final short V = 0x56; //Sensor data response
     public static final short C = 0x43; //Discover sensors
     public static final short N = 0x4E; //Discover reply
+    public static final short INIT = 0x10; //Discover reply
 
 
 
@@ -45,8 +46,10 @@ public class SystemMessage implements Serializable
     {
         this.cmd = cmd;
         this.payload = payload;
-        this.lenPayload = this.payload.length;
-
+        if(payload!=null)
+            this.lenPayload = this.payload.length;
+        else
+            lenPayload = 0;
     }
 
 
@@ -117,6 +120,9 @@ public class SystemMessage implements Serializable
                 return str;
             case SystemMessage.N:
                 str += "Sensor Discovery reply";
+                return str;
+            case SystemMessage.INIT:
+                str += "Inintiate connection";
                 return str;
             default:
                 return null;
@@ -235,6 +241,35 @@ public class SystemMessage implements Serializable
         byte[] payload = bb.array();
         return new SystemMessage(SystemMessage.V, payload);
 
+    }
+
+    public byte[] toBytes()
+    {
+        int totalLen = Short.SIZE / 8 +
+                Integer.SIZE / 8 +
+                lenPayload;
+        ByteBuffer bb = ByteBuffer.allocate(totalLen);
+        bb.putShort(cmd);
+        bb.putInt(lenPayload);
+        bb.put(payload);
+
+        return bb.array();
+    }
+
+    public static SystemMessage getFromBytes(byte[] data)
+    {
+        Log.i(TAG,"getFromBytes: " + data.length);
+
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        bb.order(ByteOrder.BIG_ENDIAN);
+        short cmd = bb.getShort();
+        Log.i(TAG,"cmd: " + cmd);
+        int payloadLen = bb.getInt();
+        Log.i(TAG,"payloadLen: " + payloadLen);
+        byte[] payload = new byte[payloadLen];
+        bb.get(payload, 0, payloadLen);
+
+        return new SystemMessage(cmd, payload);
     }
 
 }

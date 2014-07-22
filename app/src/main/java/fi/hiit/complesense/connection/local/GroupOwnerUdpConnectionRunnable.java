@@ -5,33 +5,31 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.util.Date;
+import java.net.DatagramSocket;
+import java.net.SocketAddress;
 import java.util.List;
 
-import fi.hiit.complesense.core.SystemMessage;
-import fi.hiit.complesense.connection.AbstractConnectionRunnable;
+import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.core.GroupOwnerManager;
-import fi.hiit.complesense.core.ScheduledQueryTask;
+import fi.hiit.complesense.core.SystemMessage;
 
 /**
- * Created by hxguo on 7/14/14.
+ * Created by hxguo on 7/22/14.
  */
-public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
+public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnable
 {
-    private String TAG = "GroupOwnerConnectionRunnable";
+    private String TAG = "GroupOwnerUdpConnectionRunnable";
     private GroupOwnerManager groupOwnerManager;
-    private final String remoteSocketAddr;
+    private SocketAddress remoteSocketAddr;
 
-    public GroupOwnerConnectionRunnable(Socket s, GroupOwnerManager groupOwnerManager,
-                                        Messenger remoteHandler, String remoteSocketAddr)
+    public GroupOwnerUdpConnectionRunnable(DatagramSocket s,
+                                           GroupOwnerManager groupOwnerManager,
+                                           Messenger remoteHandler)
             throws IOException
     {
         super(s, remoteHandler);
         this.groupOwnerManager = groupOwnerManager;
-        this.remoteSocketAddr = remoteSocketAddr;
     }
-
 
     @Override
     public void run()
@@ -40,21 +38,16 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
         //requestBarometerValues();
 
         Log.i(TAG,"Query available sensors on the connected client");
-        write(SystemMessage.makeSensorsListQueryMessage() );
+
 
         while (!Thread.currentThread().isInterrupted())
         {
             try
             {
-                Object o = iStream.readObject();
-                if(o instanceof Date)
-                    Log.i(TAG,"Date: " + ((Date)o).toString());
-
-                if(o instanceof SystemMessage)
-                {
-                    //Log.i(TAG,"REC: " + o.toString() );
-                    parseSystemMessage((SystemMessage) o);
-                }
+                socket.receive(recPacket);
+                remoteSocketAddr = recPacket.getSocketAddress();
+                parseSystemMessage(SystemMessage.getFromBytes(
+                        recPacket.getData()));
 
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
@@ -67,11 +60,10 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
             {
                 Log.e(TAG, e.toString());
                 break;
-            } catch (ClassNotFoundException e) {
-                Log.i(TAG,e.toString());
             }
         }
-        Log.w(TAG,"Connection with "+ remoteSocketAddr +" Terminates!!!");
+
+        Log.w(TAG,"Group Owner UDP connection terminates..");
     }
 
     @Override
@@ -79,38 +71,38 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
     {
         float[] values;
         int type;
+        Log.i(TAG,sm.toString());
         switch (sm.getCmd())
         {
+            case SystemMessage.INIT:
+                write(SystemMessage.makeSensorsListQueryMessage(),remoteSocketAddr);
+                break;
             case SystemMessage.R:
                 break;
 
             case SystemMessage.V:
                 values = SystemMessage.parseSensorValues(sm);
                 type = SystemMessage.parseSensorType(sm);
-                groupOwnerManager.setSensorValues(values, type, remoteSocketAddr);
-                groupOwnerManager.sendSensorVals2Cloud(values);
+                groupOwnerManager.setSensorValues(values, type, remoteSocketAddr.toString());
                 try {
                     updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
                 } catch (RemoteException e) {
                     Log.i(TAG,e.toString());
                 }
-
-
-
                 break;
 
             case SystemMessage.N:
                 List<Integer> typeList = SystemMessage.parseSensorTypeList(sm);
 
-                groupOwnerManager.registerSensors(remoteSocketAddr, typeList);
+                groupOwnerManager.registerSensors(remoteSocketAddr.toString(), typeList);
                 Log.i(TAG,remoteSocketAddr + ":" +
-                        groupOwnerManager.getSensorsList(remoteSocketAddr).toString());
+                        groupOwnerManager.getSensorsList(remoteSocketAddr.toString()).toString());
                 //Log.i(TAG,SystemMessage.parseSensorTypeList(sm).toString() );
 
-                int sType = groupOwnerManager.randomlySelectSensor(typeList, remoteSocketAddr);
+                int sType = groupOwnerManager.randomlySelectSensor(typeList, remoteSocketAddr.toString());
 
-                ScheduledQueryTask sTask = new ScheduledQueryTask(this, groupOwnerManager);
-                timer.schedule(sTask, 0, 2000);
+                //ScheduledQueryTask sTask = new ScheduledQueryTask(this, groupOwnerManager);
+                //timer.schedule(sTask, 0, 2000);
 
                 //SystemMessage queryMessage = SystemMessage.makeSensorDataQueryMessage(sType);
                 //write(queryMessage);
@@ -122,8 +114,6 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
     }
 
     public String getRemoteSocketAddr() {
-        return remoteSocketAddr;
+        return remoteSocketAddr.toString();
     }
-
-
 }

@@ -8,6 +8,7 @@ public class Constants
     public static final int SERVER_PORT = 30243; // group owner port
     public static final int CLOUD_SERVER_PORT = 10002; // cloud server port
     public static final String URL = "universe.hiit.fi";// server url
+    public static final int MAX_BUF = 1024;
 
     public static final String SELF_INFO_UPDATE_ACTION = "fi.hiit.complesense.ui.SELF_INFO_UPDATE_ACTION";
     public static final String STATUS_TEXT_UPDATE_ACTION = "fi.hiit.complesense.ui.STATUS_TEXT";
@@ -47,5 +48,5 @@ public class Constants
     public static final int SERVICE_MSG_STOP_CLIENT_SERVICE = 40;
 
 
-
+    public static final String INIT_CONNECTION = "INIT";
 }

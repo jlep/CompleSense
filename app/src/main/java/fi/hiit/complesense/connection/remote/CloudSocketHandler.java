@@ -12,41 +12,37 @@ import fi.hiit.complesense.connection.AbstractSocketHandler;
 import fi.hiit.complesense.core.LocalManager;
 
 /**
- * Created by hxguo on 7/21/14.
+ * Created by hxguo on 7/22/14.
  */
 public class CloudSocketHandler extends AbstractSocketHandler
 {
     private static final String TAG = "CloudSocketHandler";
     private final LocalManager localManager;
-    private boolean running;
-
     private CloudConnectionRunnable cloudConnectionRunnable;
     private Thread mThread;
 
 
-    public CloudSocketHandler(Messenger remoteMessenger, LocalManager localManager)
-            throws IOException
+    public CloudSocketHandler(Messenger remoteMessenger,
+                              LocalManager localManager)
     {
         super(remoteMessenger);
         this.localManager = localManager;
-
-        running = false;
     }
 
     @Override
     public void run()
     {
-        Log.i(TAG,"run()");
         Socket socket = new Socket();
+        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL,
+                Constants.CLOUD_SERVER_PORT);
         try
         {
             socket.bind(null);
-            socket.connect(new InetSocketAddress(Constants.URL,
-                    Constants.CLOUD_SERVER_PORT), 5000);
+            socket.connect(cloudSocketAddr,5000);
             Log.i(TAG, "Connecting to cloud...");
 
-            cloudConnectionRunnable = new CloudConnectionRunnable(socket, localManager,
-                    remoteMessenger);
+            cloudConnectionRunnable = new CloudConnectionRunnable(socket,
+                    localManager, remoteMessenger);
             mThread = new Thread(cloudConnectionRunnable);
             mThread.start();
         }
@@ -56,6 +52,7 @@ public class CloudSocketHandler extends AbstractSocketHandler
             AbstractSocketHandler.closeSocket(socket);
             return;
         }
+
     }
 
     @Override
@@ -64,6 +61,11 @@ public class CloudSocketHandler extends AbstractSocketHandler
         Log.i(TAG, "stopHandler()");
         cloudConnectionRunnable.signalStop();
         mThread.interrupt();
+
     }
 
+    public CloudConnectionRunnable getCloudConnection()
+    {
+        return cloudConnectionRunnable;
+    }
 }

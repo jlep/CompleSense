@@ -26,10 +26,9 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 1;
+    public static final int NUM_CLIENTS = 4;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
-    public static String UI_HANDLER ="fi.hiit.complesense.service.TestingService.UI_HANDLER";
     private ArrayList<ClientManager> clientsList;
     private GroupOwnerManager serverManager;
 
@@ -131,7 +130,7 @@ public class TestingService extends AbstractGroupService
         Log.i(TAG,"Creating GroupOwner thread");
 
         serverManager = new GroupOwnerManager(uiMessenger,
-                getApplication(), false);
+                getApplication(), true);
         try {
             serverManager.start();
         } catch (IOException e) {

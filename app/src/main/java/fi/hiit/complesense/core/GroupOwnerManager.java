@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import fi.hiit.complesense.connection.local.GroupOwnerSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
-import fi.hiit.complesense.connection.local.GroupOwnerSocketHandler;
 
 /**
  * Created by hxguo on 7/16/14.
@@ -95,5 +95,22 @@ public class GroupOwnerManager extends LocalManager
     public int getSelectedSensor(String socketAddr)
     {
         return selectedSensorsDict.get(socketAddr);
+    }
+
+    public void sendSensorVals2Cloud(float[] values)
+    {
+        if(cloudSocketHandler!=null)
+        {
+            String str = "";
+            for(float f:values)
+            {
+                str += Float.toString(f);
+                str +=", ";
+            }
+
+            if(cloudSocketHandler.getCloudConnection()!=null)
+                cloudSocketHandler.getCloudConnection().write(str);
+        }
+
     }
 }
