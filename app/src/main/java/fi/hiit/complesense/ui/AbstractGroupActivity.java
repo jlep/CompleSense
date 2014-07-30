@@ -20,7 +20,7 @@ public abstract class AbstractGroupActivity extends Activity
 
     protected TextView statusTxtView;
     protected boolean mIsBound;
-    protected SelfInfoFragment selfInfoFragment;
+    protected SelfInfoFragment selfInfoFragment = null;
     protected Messenger uiMessenger = null;
 
     /** Messenger for communicating with service. */
@@ -65,6 +65,7 @@ public abstract class AbstractGroupActivity extends Activity
 
     protected void updateSelfInfoFragment(Message msg)
     {
+        Log.i(TAG, "updateSelfInfoFragment()");
         WifiP2pDevice device = (WifiP2pDevice)msg.obj;
         selfInfoFragment.updateUI(device);
     }
@@ -83,5 +84,4 @@ public abstract class AbstractGroupActivity extends Activity
         {
         }
     }
-
 }

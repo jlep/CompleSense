@@ -14,7 +14,6 @@ import fi.hiit.complesense.connection.remote.CloudSocketHandler;
  * Created by hxguo on 7/16/14.
  */
 public class ClientManager extends LocalManager
-        implements LocalManager.startInterface
 {
     private static final String TAG = "ClientManager";
 

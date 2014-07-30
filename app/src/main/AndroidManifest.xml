@@ -27,12 +27,15 @@
         <service android:name="fi.hiit.complesense.service.TestingService"/>
         <service android:name="fi.hiit.complesense.service.GroupClientService"/>
         <service android:name="fi.hiit.complesense.service.GroupOwnerService"/>
+        <service android:name="fi.hiit.complesense.service.ClientOwnerService"/>
 
+        <!--
         <activity android:name=".ui.GroupClientActivity" android:label="@string/app_name"/>
         <activity android:name=".ui.GroupOwnerActivity" android:label="@string/app_name"/>
+        -->
 
         <activity
-            android:name=".ui.DemoActivity"
+            android:name=".ui.ClientOwnerActivity"
             android:label="@string/app_name"
             android:noHistory="true">
             <intent-filter>

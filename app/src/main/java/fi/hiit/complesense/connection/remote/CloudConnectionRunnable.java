@@ -60,8 +60,7 @@ public class CloudConnectionRunnable implements Runnable
                     break;
                 }
 
-                // Send the obtained bytes to the UI Activity
-                Log.d(TAG, "Rec:" + String.valueOf(buffer));
+                Log.i(TAG, "Rec:" + String.valueOf(buffer));
 
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();

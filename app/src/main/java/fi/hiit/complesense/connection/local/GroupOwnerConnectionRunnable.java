@@ -24,10 +24,10 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
     private final String remoteSocketAddr;
 
     public GroupOwnerConnectionRunnable(Socket s, GroupOwnerManager groupOwnerManager,
-                                        Messenger remoteHandler, String remoteSocketAddr)
+                                        Messenger remoteMessenger, String remoteSocketAddr)
             throws IOException
     {
-        super(s, remoteHandler);
+        super(s, remoteMessenger);
         this.groupOwnerManager = groupOwnerManager;
         this.remoteSocketAddr = remoteSocketAddr;
     }
@@ -94,9 +94,6 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
                 } catch (RemoteException e) {
                     Log.i(TAG,e.toString());
                 }
-
-
-
                 break;
 
             case SystemMessage.N:

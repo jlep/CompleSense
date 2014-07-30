@@ -51,7 +51,7 @@ public class GroupBroadcastReceiver extends BroadcastReceiver
             else
             {
                 service.setIsWifiP2pEnabled(false);
-                service.resetData();
+                //service.resetData();
             }
             switch (state)
             {
@@ -101,7 +101,7 @@ public class GroupBroadcastReceiver extends BroadcastReceiver
             } else {
                 // It's a disconnect
                 Log.i(TAG,"Network is disconnected");
-                service.resetData();
+                //service.resetData();
 
             }
         }

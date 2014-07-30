@@ -19,7 +19,6 @@ import fi.hiit.complesense.util.SensorUtil;
  * Created by hxguo on 7/16/14.
  */
 public class GroupOwnerManager extends LocalManager
-        implements LocalManager.startInterface
 {
     private static final String TAG = "GroupOwnerManager";
 

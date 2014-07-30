@@ -59,9 +59,11 @@ public class CloudSocketHandler extends AbstractSocketHandler
     public void stopHandler()
     {
         Log.i(TAG, "stopHandler()");
-        cloudConnectionRunnable.signalStop();
-        mThread.interrupt();
-
+        if(cloudConnectionRunnable!=null)
+        {
+            cloudConnectionRunnable.signalStop();
+            mThread.interrupt();
+        }
     }
 
     public CloudConnectionRunnable getCloudConnection()

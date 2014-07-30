@@ -21,9 +21,9 @@ public class CloudUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     private final LocalManager localManager;
 
     public CloudUdpConnectionRunnable(DatagramSocket socket, LocalManager localManager,
-                                   Messenger remoteHandler) throws IOException
+                                   Messenger uiMessenger) throws IOException
     {
-        super(socket, remoteHandler);
+        super(socket, uiMessenger);
         this.localManager = localManager;
     }
 
@@ -39,7 +39,6 @@ public class CloudUdpConnectionRunnable extends AbstractUdpConnectionRunnable
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        /*
         while (!Thread.currentThread().isInterrupted())
         {
             try
@@ -62,7 +61,6 @@ public class CloudUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 break;
             }
         }
-        */
         AbstractUdpSocketHandler.closeSocket(socket);
         Log.w(TAG,"Cloud connection closed!!!");
 

@@ -5,19 +5,16 @@ import android.content.Intent;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.util.SystemUtil;
 import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/16/14.
@@ -44,7 +41,7 @@ public class GroupOwnerService extends AbstractGroupService
                     if(!isInitialized)
                     {
                         uiMessenger = msg.replyTo;
-                        serverManager = new GroupOwnerManager(mMessenger, context, true);
+                        serverManager = new GroupOwnerManager(mMessenger, getApplicationContext(), true);
                         isInitialized = true;
                         sendServiceInitComplete();
                     }
@@ -188,48 +185,7 @@ public class GroupOwnerService extends AbstractGroupService
         clientsList = null;
     }
 
-    /**
-     * Register a local service, waiting for service discovery initiated by other nearby devices
-     */
-    private void registerService()
-    {
-        Log.i(TAG,"registerService()");
-        Map<String, String> record = new HashMap<String, String>();
-        record.put(TXTRECORD_PROP_AVAILABLE, "visible");
 
-        WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
-                SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
-        manager.addLocalService(channel, service, new WifiP2pManager.ActionListener() {
-
-            @Override
-            public void onSuccess() {
-                Log.i(TAG,"Added Local Service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
-
-                manager.createGroup(channel, new WifiP2pManager.ActionListener()
-                {
-                    @Override
-                    public void onSuccess(){
-                        SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                "Group creation succeed");
-                    }
-
-                    @Override
-                    public void onFailure(int reason){
-                        SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                "Group creation failed: " + SystemUtil.parseErrorCode(reason));
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(int error) {
-                Log.i(TAG,"Failed to add a service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Group creation failed: " + SystemUtil.parseErrorCode(error));
-            }
-        });
-    }
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo p2pInfo)

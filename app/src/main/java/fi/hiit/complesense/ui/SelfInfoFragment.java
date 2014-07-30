@@ -63,7 +63,6 @@ public class SelfInfoFragment extends Fragment
         if(device!=null)
         {
             this.device = device;
-            Log.i(TAG, "updateUI()");
             TextView text = (TextView) contentView.findViewById(R.id.me_name);
             text.setText(device.deviceName);
 

@@ -18,14 +18,8 @@ import fi.hiit.complesense.util.SensorUtil;
 /**
  * Created by hxguo on 7/16/14.
  */
-public class LocalManager
+public abstract class LocalManager
 {
-    public interface startInterface
-    {
-        public void start() throws IOException;
-        public void start(InetAddress ownerAddr, int delay) throws IOException;
-    }
-
     public static final String KEY_LOCAL_SOCKET = "/0.0.0.0";
     public static final String TAG = "LocalManager";
 
@@ -102,6 +96,8 @@ public class LocalManager
     }
 
 
+    public abstract void start() throws IOException;
+    public abstract void start(InetAddress ownerAddr, int delay) throws IOException;
 
     public boolean getIsServer()
     {
