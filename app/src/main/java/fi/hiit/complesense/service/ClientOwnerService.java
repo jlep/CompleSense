@@ -8,23 +8,19 @@ import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.ComleSenseDevice;
 import fi.hiit.complesense.core.GroupOwnerManager;
-import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -36,6 +32,67 @@ public class ClientOwnerService extends AbstractGroupService
 
     private boolean retryChannel = false;
     private Context context;
+
+    WifiP2pManager.DnsSdTxtRecordListener txtListener =
+            new WifiP2pManager.DnsSdTxtRecordListener()
+            {
+                @Override
+                public void onDnsSdTxtRecordAvailable(
+                        String fullDomain, Map record, WifiP2pDevice device)
+                {
+                    Log.i(TAG, "DnsSdTxtRecord available -" + record.toString());
+                    //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, (String)record.get(
+                            WifiConnectionManager.TXTRECORD_SENSOR_TYPE_LIST));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, (String)record.get(
+                            WifiConnectionManager.TXTRECORD_NETWORK_INFO));
+                    //Log.i(TAG,"available sensors: " + record.get(TXTRECORD_SENSOR_TYPE_LIST));
+                    //Log.i(TAG, "available networks: " + record.get(TXTRECORD_NETWORK_INFO));
+
+                    nearbyDevices.put(device.deviceAddress, new ComleSenseDevice(device, record) );
+                    Log.i(TAG,"compleSenseDevices.size():" + nearbyDevices.size() );
+
+                    if(nearbyDevices.size()>1)
+                    {
+                        mWifiConnManager.stopFindingService();
+
+                        groupOwner = mWifiConnManager.decideGroupOnwer(nearbyDevices);
+                        if(groupOwner == null)
+                        {
+                            Log.i(TAG,"groupOwner is null");
+                            return;
+                        }
+                        Log.i(TAG,"Group Owner Addr: " + groupOwner.deviceAddress );
+
+                        if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
+                            mWifiConnManager.connectP2p(device, 14);
+                        else
+                        {
+                            mWifiConnManager.connectP2p(groupOwner, 1);
+                            mWifiConnManager.clearServiceAdvertisement();
+                        }
+                    }
+                }
+            };
+
+    WifiP2pManager.DnsSdServiceResponseListener servListener
+            = new WifiP2pManager.DnsSdServiceResponseListener()
+    {
+        @Override
+        public void onDnsSdServiceAvailable(String instanceName, String registrationType,
+                                            WifiP2pDevice srcDevice)
+        {
+            // A service has been discovered. Is this our app?
+            if (instanceName.equalsIgnoreCase(WifiConnectionManager.SERVICE_INSTANCE))
+            {
+                Log.i(TAG, "onDnsSdServiceAvailable()");
+                // update the UI and add the item the discovered device.
+                if(uiMessenger!=null)
+                    SystemUtil.sendDnsFoundUpdate(uiMessenger, srcDevice,
+                            instanceName);
+            }
+        }
+    };
 
     /**
      * Handler of incoming messages from clients.
@@ -52,6 +109,8 @@ public class ClientOwnerService extends AbstractGroupService
                     {
                         uiMessenger = msg.replyTo;
                         SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
+                        mWifiConnManager.setUiMessenger(uiMessenger);
+
                         //clientManager = new ClientManager(mMessenger, context,false);
                         isInitialized = true;
                         sendServiceInitComplete();
@@ -64,17 +123,17 @@ public class ClientOwnerService extends AbstractGroupService
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_CONNECT:
-                    connectP2p((WifiP2pDevice)msg.obj);
+                    mWifiConnManager.connectP2p((WifiP2pDevice)msg.obj, 1);
                     break;
                 case Constants.SERVICE_MSG_FIND_SERVICE:
-                    findService();
+                    mWifiConnManager.findService(servListener, txtListener);
                     break;
                 case Constants.SERVICE_MSG_STOP_CLIENT_SERVICE:
-                    stopFindingService();
+                    mWifiConnManager.stopFindingService();
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_CANCEL_CONNECT:
-                    cancelConnect();
+                    mWifiConnManager.cancelConnect();
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_STATUS_TXT_UPDATE:
@@ -95,8 +154,11 @@ public class ClientOwnerService extends AbstractGroupService
         super.onCreate();
         mMessenger = new Messenger(new IncomingHandler());
         receiver = new GroupBroadcastReceiver(manager, channel, this);
-        context = getApplicationContext();
         registerReceiver(receiver,intentFilter);
+        context = getApplicationContext();
+
+        mWifiConnManager = new WifiConnectionManager(ClientOwnerService.this,
+                manager, channel);
     }
 
     @Override
@@ -112,74 +174,13 @@ public class ClientOwnerService extends AbstractGroupService
     protected void start()
     {
         Log.i(TAG,"start()");
-        if(context!=null)
-            startRegistrationAndDiscovery();
+        if(mWifiConnManager!=null)
+            mWifiConnManager.startRegistrationAndDiscovery(servListener, txtListener);
         else
-            Log.e(TAG,"context is null");
+            Log.e(TAG,"mWifiConnManager is null");
 
     }
 
-    private void startRegistrationAndDiscovery()
-    {
-        Log.i(TAG,"startRegistrationAndDiscovery()");
-
-        Map<String, String> record = generateTxtRecord();
-        compleSenseDevices.put(mDevice.deviceAddress, new ComleSenseDevice(mDevice, record));
-
-        WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
-                SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
-
-        manager.addLocalService(channel, service, new WifiP2pManager.ActionListener()
-        {
-            @Override
-            public void onSuccess() {
-                Log.i(TAG, "Added Local Service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
-            }
-
-            @Override
-            public void onFailure(int error) {
-                Log.i(TAG, "Failed to add a service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Adding Service failed: " + SystemUtil.parseErrorCode(error));
-            }
-        });
-
-
-        findService();
-    }
-
-    private Map<String, String> generateTxtRecord()
-    {
-        Log.i(TAG,"generateTxtRecord()");
-
-        Map<String, String> record = new HashMap<String, String>();
-        record.put(TXTRECORD_PROP_AVAILABLE, "visible");
-        record.put(TXTRECORD_SENSOR_TYPE_LIST,
-                SensorUtil.getLocalSensorTypeList(context).toString());
-        Log.i(TAG,SensorUtil.getLocalSensorTypeList(context).toString());
-
-        // network connections
-        List<Integer> availableConns = new ArrayList<Integer>();
-        ConnectivityManager connMgr =
-                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
-        for(NetworkInfo ni:networkInfos)
-        {
-            if(ni !=null)
-            {
-                //Log.i(TAG, ni.getTypeName());
-                if(ni.isConnectedOrConnecting())
-                    availableConns.add(ni.getType());
-            }
-
-        }
-        if(availableConns.size()>0)
-            record.put(TXTRECORD_NETWORK_INFO, availableConns.toString() );
-        //Log.i(TAG, availableConns.toString());
-
-        return record;
-    }
 
     @Override
     protected void stop()
@@ -190,25 +191,8 @@ public class ClientOwnerService extends AbstractGroupService
 
         if (manager != null && channel != null)
         {
-            manager.removeGroup(channel, new WifiP2pManager.ActionListener()
-            {
-                @Override
-                public void onFailure(int reasonCode)
-                {
-                    Log.e(TAG, "Server stop failed. Reason :" + reasonCode);
-                    SystemUtil.sendStatusTextUpdate(uiMessenger,
-                            "Group removal stop failed. Reason :" + reasonCode);
-                }
-
-                @Override
-                public void onSuccess() {
-                    Log.i(TAG, "Group removal completes");
-                    SystemUtil.sendStatusTextUpdate(uiMessenger,
-                            "Group removal completes");
-                }
-
-            });
-            clearServiceAdvertisement();
+            mWifiConnManager.stopGroupOwner();
+            mWifiConnManager.clearServiceAdvertisement();
         }
 
     }
@@ -255,7 +239,7 @@ public class ClientOwnerService extends AbstractGroupService
                     "Device connected as Client");
             if(localManager == null)
             {
-                clearServiceAdvertisement();
+                mWifiConnManager.clearServiceAdvertisement();
 
                 localManager = new ClientManager(mMessenger, context, false);
                 try {

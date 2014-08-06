@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
+import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
 
 /**
@@ -20,6 +21,8 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
 
     private final DatagramSocket socket;
     private final GroupOwnerManager groupOwnerManager;
+    GroupOwnerUdpConnectionRunnable cr = null;
+    Thread audioShareThread = null;
     private volatile boolean running = false;
 
     private final Messenger remoteMessenger;
@@ -44,16 +47,18 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
         Log.i(TAG,"run()");
         running = true;
 
-        while(running)
+        if(running)
         {
             try
             {
                 groupOwnerManager.setIsRunning(running);
 
-                GroupOwnerUdpConnectionRunnable cr = new GroupOwnerUdpConnectionRunnable(socket,
+                cr= new GroupOwnerUdpConnectionRunnable(socket,
                         groupOwnerManager, remoteMessenger);
+                new Thread(cr).start();
 
-                new Thread(cr).run();
+                audioShareThread = AudioShareManager.receiveAudio();
+                audioShareThread.start();
             }
             catch (IOException e)
             {
@@ -68,6 +73,11 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
     {
         Log.i(TAG, "stopHandler()");
         running = false;
+        if(cr != null)
+            cr.signalStop();
+        if(audioShareThread!=null)
+            audioShareThread.interrupt();
+
         AbstractUdpSocketHandler.closeSocket(socket);
     }
 

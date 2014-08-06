@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import fi.hiit.complesense.connection.AbstractSocketHandler;
+import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -29,7 +29,7 @@ public abstract class LocalManager
 
     protected WifiP2pDevice selfDevice = null;
 
-    protected AbstractSocketHandler abstractSocketHandler;
+    protected AbstractUdpSocketHandler abstractSocketHandler;
     protected CloudSocketHandler cloudSocketHandler;
     protected final Messenger remoteMessenger;
     protected boolean connect2Cloud;

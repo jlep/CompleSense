@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.util.Timer;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
@@ -29,12 +30,14 @@ public abstract class AbstractConnectionRunnable implements Runnable
     // Messenger points to Remote service
     protected Messenger remoteMessenger;
     private String remoteSocketAddr;
+    protected AudioShareManager audioShareManager; // initialized in sub-classes
 
     public AbstractConnectionRunnable(Socket socket, Messenger messenger) throws IOException
     {
         timer = new Timer();
         this.socket = socket;
         remoteMessenger = messenger;
+        audioShareManager = null;
 
         oStream = new ObjectOutputStream(socket.getOutputStream());
         write("");

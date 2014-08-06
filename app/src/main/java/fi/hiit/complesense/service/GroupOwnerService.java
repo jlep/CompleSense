@@ -14,6 +14,7 @@ import java.io.IOException;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -41,7 +42,11 @@ public class GroupOwnerService extends AbstractGroupService
                     if(!isInitialized)
                     {
                         uiMessenger = msg.replyTo;
+                        SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
+                        mWifiConnManager.setUiMessenger(uiMessenger);
+
                         serverManager = new GroupOwnerManager(mMessenger, getApplicationContext(), true);
+
                         isInitialized = true;
                         sendServiceInitComplete();
                     }
@@ -53,7 +58,7 @@ public class GroupOwnerService extends AbstractGroupService
                     stop();
                     break;
                 case Constants.SERVICE_MSG_REGISTER_SERVICE:
-                    registerService();
+                    mWifiConnManager.registerService();
                     break;
                 case Constants.SERVICE_MSG_STATUS_TXT_UPDATE:
                     SystemUtil.sendStatusTextUpdate(uiMessenger,
@@ -74,6 +79,9 @@ public class GroupOwnerService extends AbstractGroupService
         mMessenger = new Messenger(new IncomingHandler());
         receiver = new GroupBroadcastReceiver(manager, channel, this);
         registerReceiver(receiver, intentFilter);
+
+        mWifiConnManager = new WifiConnectionManager(GroupOwnerService.this,
+                manager, channel);
     }
 
     @Override
@@ -99,7 +107,7 @@ public class GroupOwnerService extends AbstractGroupService
     protected void start()
     {
         Log.i(TAG,"start()");
-        registerService();
+        mWifiConnManager.registerService();
 
         if(uiMessenger!=null && serverManager!=null)
         {

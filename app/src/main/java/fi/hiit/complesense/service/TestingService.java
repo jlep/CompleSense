@@ -26,7 +26,7 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 4;
+    public static final int NUM_CLIENTS = 1;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
     private ArrayList<ClientManager> clientsList;
@@ -62,7 +62,7 @@ public class TestingService extends AbstractGroupService
                     SystemUtil.sendStatusTextUpdate(uiMessenger,
                             (String) msg.obj);
                     break;
-                default:
+               default:
                     super.handleMessage(msg);
             }
         }
@@ -129,8 +129,8 @@ public class TestingService extends AbstractGroupService
         this.uiMessenger = uiMessenger;
         Log.i(TAG,"Creating GroupOwner thread");
 
-        serverManager = new GroupOwnerManager(uiMessenger,
-                getApplication(), true);
+        serverManager = new GroupOwnerManager(mMessenger,
+                getApplication(), false);
         try {
             serverManager.start();
         } catch (IOException e) {
@@ -140,7 +140,7 @@ public class TestingService extends AbstractGroupService
         for(int i=0;i<NUM_CLIENTS;i++)
         {
             Log.i(TAG,"Creating client thread");
-            clientsList.add(new ClientManager(uiMessenger,
+            clientsList.add(new ClientManager(mMessenger,
                     getApplication(), false ));
         }
 

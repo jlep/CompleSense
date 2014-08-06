@@ -7,7 +7,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.InetAddress;
 
-import fi.hiit.complesense.connection.local.ClientSocketHandler;
+import fi.hiit.complesense.connection.local.ClientUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 
 /**
@@ -27,7 +27,7 @@ public class ClientManager extends LocalManager
     {
         if(!isServer && ownerAddr!=null)
         {
-            abstractSocketHandler = new ClientSocketHandler(remoteMessenger, this, ownerAddr, delay);
+            abstractSocketHandler = new ClientUdpSocketHandler(remoteMessenger, this, ownerAddr, delay);
             abstractSocketHandler.start();
         }
 

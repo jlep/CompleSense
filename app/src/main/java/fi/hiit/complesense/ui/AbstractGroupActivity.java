@@ -7,6 +7,8 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import fi.hiit.complesense.Constants;
@@ -19,6 +21,7 @@ public abstract class AbstractGroupActivity extends Activity
     private static final String TAG = "AbstractGroupActivity";
 
     protected TextView statusTxtView;
+    protected ScrollView scrollView;
     protected boolean mIsBound;
     protected SelfInfoFragment selfInfoFragment = null;
     protected Messenger uiMessenger = null;
@@ -57,10 +60,34 @@ public abstract class AbstractGroupActivity extends Activity
         }
     }
 
+    /**
     protected void appendStatus(String status)
     {
         String current = statusTxtView.getText().toString();
         statusTxtView.setText(current + "\n" + status);
+    }
+    */
+    protected void appendStatus (String txt)
+    {
+        int maxLines = statusTxtView.getMaxLines();
+        if(statusTxtView.getLineCount() >= maxLines)
+        {
+            StringBuffer sb = new StringBuffer(statusTxtView.getText());
+            // delete lines
+            int numLinesDel = (int)(maxLines*0.3);
+            int offset = 0;
+            for(int i=0;i<numLinesDel;++i)
+            {
+                //Log.i(TAG, "offset: " + offset);
+                offset = sb.indexOf("\n",offset)+1;
+            }
+            //Log.i(TAG,"offset: " + sb.substring(0,offset));
+            statusTxtView.setText(sb.subSequence(offset, sb.length()));
+        }
+
+
+        statusTxtView.append(txt + "\n");
+        scrollView.fullScroll(View.FOCUS_DOWN);
     }
 
     protected void updateSelfInfoFragment(Message msg)

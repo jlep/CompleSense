@@ -1,5 +1,6 @@
 package fi.hiit.complesense.connection.local;
 
+import android.os.Environment;
 import android.os.Messenger;
 import android.util.Log;
 
@@ -9,6 +10,7 @@ import java.net.InetSocketAddress;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
+import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.SystemMessage;
 
@@ -20,6 +22,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     private static final String TAG = "ClientUdpConnectionRunnable";
     private final ClientManager clientManager;
     private final InetSocketAddress remoteSocketAddr;
+    public Thread audioStreamThread;
 
     public ClientUdpConnectionRunnable(DatagramSocket socket,
                                        ClientManager clientManager,
@@ -30,6 +33,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
         super(socket, messenger);
         this.remoteSocketAddr = remoteSocketAddr;
         this.clientManager = clientManager;
+        audioStreamThread = null;
     }
 
     @Override
@@ -75,8 +79,20 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     {
         float[] values;
         Log.i(TAG,sm.toString());
+
         switch (sm.getCmd())
         {
+            case SystemMessage.O:
+                //wait for a while
+                String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+                Log.i(TAG,rootDir);
+                String audioFilePath = rootDir + "/Music/romance.wav";
+                Log.i(TAG,audioFilePath);
+
+                //audioStreamThread = AudioShareManager.sendAudioThread(audioFilePath, remoteSocketAddr.getAddress() );
+                audioStreamThread = AudioShareManager.sendMicAudioThread(remoteSocketAddr.getAddress() );
+                audioStreamThread.start();
+                break;
             case SystemMessage.R:
                 // Sensor data request
                 int sensorType = SystemMessage.parseSensorType(sm);

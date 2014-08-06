@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import fi.hiit.complesense.connection.local.GroupOwnerSocketHandler;
+import fi.hiit.complesense.connection.local.GroupOwnerUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -52,7 +52,7 @@ public class GroupOwnerManager extends LocalManager
     public void start() throws IOException {
         if(isServer)
         {
-            abstractSocketHandler = new GroupOwnerSocketHandler(remoteMessenger, this);
+            abstractSocketHandler = new GroupOwnerUdpSocketHandler(remoteMessenger, this);
             abstractSocketHandler.start();
         }
 

@@ -16,6 +16,7 @@ import java.io.IOException;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientManager;
+import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -46,6 +47,9 @@ public class GroupClientService extends AbstractGroupService
                     if(!isInitialized)
                     {
                         uiMessenger = msg.replyTo;
+                        SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
+                        mWifiConnManager.setUiMessenger(uiMessenger);
+
                         clientManager = new ClientManager(mMessenger, context,false);
                         isInitialized = true;
                         sendServiceInitComplete();
@@ -58,17 +62,17 @@ public class GroupClientService extends AbstractGroupService
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_CONNECT:
-                    connectP2p((WifiP2pDevice)msg.obj);
+                    mWifiConnManager.connectP2p((WifiP2pDevice)msg.obj,1);
                     break;
                 case Constants.SERVICE_MSG_FIND_SERVICE:
-                    findService();
+                    mWifiConnManager.findService();
                     break;
                 case Constants.SERVICE_MSG_STOP_CLIENT_SERVICE:
-                    stopFindingService();
+                    mWifiConnManager.stopFindingService();
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_CANCEL_CONNECT:
-                    cancelConnect();
+                    mWifiConnManager.cancelConnect();
                     stopSelf();
                     break;
                 case Constants.SERVICE_MSG_STATUS_TXT_UPDATE:
@@ -91,6 +95,9 @@ public class GroupClientService extends AbstractGroupService
         receiver = new GroupBroadcastReceiver(manager, channel, this);
         context = getApplicationContext();
         registerReceiver(receiver, intentFilter);
+
+        mWifiConnManager = new WifiConnectionManager(GroupClientService.this,
+                manager, channel);
     }
 
     @Override
@@ -176,8 +183,7 @@ public class GroupClientService extends AbstractGroupService
     protected void start()
     {
         Log.i(TAG,"start()");
-
-        findService();
+        mWifiConnManager.findService();
     }
 
     @Override

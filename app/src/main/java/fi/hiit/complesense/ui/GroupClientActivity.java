@@ -11,9 +11,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.Serializable;
@@ -39,8 +39,10 @@ public class GroupClientActivity extends AbstractGroupActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.group_client_layout);
         statusTxtView = (TextView) findViewById(R.id.status_text);
-        statusTxtView.setMovementMethod(new ScrollingMovementMethod());
+        scrollView = (ScrollView) findViewById(R.id.scroll_text);
+        //statusTxtViewView.setMovementMethod(new ScrollingMovementMethod());
         statusTxtView.setText("");
+
         selfInfoFragment = (SelfInfoFragment)getFragmentManager().
                 findFragmentById(R.id.self_info_frag_group_client);
 
@@ -256,4 +258,5 @@ public class GroupClientActivity extends AbstractGroupActivity
         }
 
     }
+
 }

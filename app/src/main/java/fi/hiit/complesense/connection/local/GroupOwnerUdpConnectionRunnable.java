@@ -11,6 +11,7 @@ import java.util.List;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.ScheduledUdpQueryTask;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
@@ -24,10 +25,10 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
     public GroupOwnerUdpConnectionRunnable(DatagramSocket s,
                                            GroupOwnerManager groupOwnerManager,
-                                           Messenger remoteHandler)
+                                           Messenger remoteMessenger)
             throws IOException
     {
-        super(s, remoteHandler);
+        super(s, remoteMessenger);
         this.groupOwnerManager = groupOwnerManager;
     }
 
@@ -38,8 +39,6 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
         //requestBarometerValues();
 
         Log.i(TAG,"Query available sensors on the connected client");
-
-
         while (!Thread.currentThread().isInterrupted())
         {
             try
@@ -75,14 +74,19 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
         switch (sm.getCmd())
         {
             case SystemMessage.INIT:
-                write(SystemMessage.makeSensorsListQueryMessage(),remoteSocketAddr);
+                write(SystemMessage.makeAudioStreamingRequest(),remoteSocketAddr);
+                break;
+            case SystemMessage.Y:
+
                 break;
             case SystemMessage.R:
                 break;
 
             case SystemMessage.V:
-                values = SystemMessage.parseSensorValues(sm);
+
                 type = SystemMessage.parseSensorType(sm);
+                values = SystemMessage.parseSensorValues(sm);
+
                 groupOwnerManager.setSensorValues(values, type, remoteSocketAddr.toString());
                 try {
                     updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
@@ -101,11 +105,11 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
                 int sType = groupOwnerManager.randomlySelectSensor(typeList, remoteSocketAddr.toString());
 
-                //ScheduledQueryTask sTask = new ScheduledQueryTask(this, groupOwnerManager);
-                //timer.schedule(sTask, 0, 2000);
+                write(SystemMessage.makeAudioStreamingRequest(), remoteSocketAddr);
 
-                //SystemMessage queryMessage = SystemMessage.makeSensorDataQueryMessage(sType);
-                //write(queryMessage);
+                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager);
+                timer.schedule(sTask, 0, 2000);
+
                 break;
             default:
                 break;
@@ -113,7 +117,7 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
     }
 
-    public String getRemoteSocketAddr() {
-        return remoteSocketAddr.toString();
+    public SocketAddress getRemoteSocketAddr() {
+        return remoteSocketAddr;
     }
 }

@@ -48,6 +48,7 @@
 
     </LinearLayout>
 
+    <!--
     <TextView
         android:id="@+id/status_text"
         android:layout_marginTop="22dp"
@@ -57,4 +58,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"/>
+    -->
+    <ScrollView
+        android:id="@+id/scroll_text"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_gravity="bottom">
+        <TextView
+            android:id="@+id/status_text"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minLines="25"
+            android:maxLines="40"
+            android:layout_gravity="bottom"/>
+    </ScrollView>
 </FrameLayout>

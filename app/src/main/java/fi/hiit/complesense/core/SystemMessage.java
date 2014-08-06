@@ -21,6 +21,7 @@ public class SystemMessage implements Serializable
 {
 
     private static final String TAG = "SystemMessage";
+
     /**
      * Fields of SystemMessage class
      */
@@ -38,7 +39,18 @@ public class SystemMessage implements Serializable
     public static final short V = 0x56; //Sensor data response
     public static final short C = 0x43; //Discover sensors
     public static final short N = 0x4E; //Discover reply
+
+    // Streaming Commands
+    public static final short L = 0x4C; //Request sensor listener
+    public static final short J = 0x4A; //Sensor listener created
+    public static final short O = 0x4F; //create sensor observer
+    public static final short Y = 0x59; //observer created
+
     public static final short INIT = 0x10; //Discover reply
+
+
+
+    public static final int TYPE_AUDIO_STREAM = 30;
 
 
 
@@ -107,14 +119,23 @@ public class SystemMessage implements Serializable
             case SystemMessage.V:
                 int pos = 0;
                 str += "Reply Sensor data: ";
-                str += "Sensor Type=" + byteArray2Int(payload,pos,Integer.SIZE / 8);
-                pos += Integer.SIZE / 8;
-                str += " x=" + byteArray2Float(payload, pos, Float.SIZE / 8);
-                pos += Float.SIZE / 8;
-                str += " y=" + byteArray2Float(payload, pos, Float.SIZE / 8);
-                pos += Float.SIZE / 8;
-                str += " z=" + byteArray2Float(payload, pos,Float.SIZE / 8);
+                int sType = byteArray2Int(payload,pos,Integer.SIZE / 8);
+                str += "Sensor Type=" + sType;
+
+                if(sType < TYPE_AUDIO_STREAM)
+                {
+                    // sensor values
+                    pos += Integer.SIZE / 8;
+                    str += " x=" + byteArray2Float(payload, pos, Float.SIZE / 8);
+                    pos += Float.SIZE / 8;
+                    str += " y=" + byteArray2Float(payload, pos, Float.SIZE / 8);
+                    pos += Float.SIZE / 8;
+                    str += " z=" + byteArray2Float(payload, pos,Float.SIZE / 8);
+                    return str;
+                }
+                str = "Streaming data";
                 return str;
+
             case SystemMessage.C:
                 str += "Sensor Discovery request";
                 return str;
@@ -123,6 +144,9 @@ public class SystemMessage implements Serializable
                 return str;
             case SystemMessage.INIT:
                 str += "Inintiate connection";
+                return str;
+            case SystemMessage.O:
+                str += "Streaming request";
                 return str;
             default:
                 return null;
@@ -148,6 +172,26 @@ public class SystemMessage implements Serializable
         byte[] payload = sensorTypeList2Bytes(sensorList);
         return new SystemMessage(SystemMessage.N, payload);
     }
+
+    public static SystemMessage makeAudioStreamingRequest()
+    {
+        byte[] payload = (new String("MIC")).getBytes();
+        return new SystemMessage(SystemMessage.O, payload);
+    }
+
+    public static SystemMessage makeAudioStreamingReply(byte[] bytes, int bytes_read)
+    {
+        int totalLen = (Integer.SIZE + bytes_read * Byte.SIZE) / 8;
+        final ByteBuffer bb = ByteBuffer.allocate(totalLen);
+
+        bb.putInt(0,TYPE_AUDIO_STREAM);
+        bb.put(bytes);
+
+        return new SystemMessage(SystemMessage.V, bb.array());
+
+
+    }
+
 
     private static byte[] sensorTypeList2Bytes(List<Integer> sensorList)
     {
@@ -222,25 +266,18 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.R, payload);
     }
 
+
     public static SystemMessage makeSensorValuesReplyMessage(int sensorType, float[] values)
     {
         int totalLen = (Integer.SIZE + values.length * Float.SIZE) / 8;
-        int offset = 0;
         final ByteBuffer bb = ByteBuffer.allocate(totalLen);
-        bb.putInt(0,sensorType);
-        offset += Integer.SIZE / 8;
 
-        bb.putFloat(offset, values[0]);
-        offset += Float.SIZE / 8;
+        bb.putInt(sensorType);
+        bb.putFloat(values[0]);
+        bb.putFloat(values[1]);
+        bb.putFloat(values[2]);
 
-        bb.putFloat(offset, values[1]);
-        offset += Float.SIZE / 8;
-
-        bb.putFloat(offset, values[2]);
-
-        byte[] payload = bb.array();
-        return new SystemMessage(SystemMessage.V, payload);
-
+        return new SystemMessage(SystemMessage.V, bb.array() );
     }
 
     public byte[] toBytes()
@@ -258,14 +295,14 @@ public class SystemMessage implements Serializable
 
     public static SystemMessage getFromBytes(byte[] data)
     {
-        Log.i(TAG,"getFromBytes: " + data.length);
+        //Log.i(TAG,"getFromBytes: " + data.length);
 
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(ByteOrder.BIG_ENDIAN);
         short cmd = bb.getShort();
-        Log.i(TAG,"cmd: " + cmd);
+        //Log.i(TAG,"cmd: " + cmd);
         int payloadLen = bb.getInt();
-        Log.i(TAG,"payloadLen: " + payloadLen);
+        //Log.i(TAG,"payloadLen: " + payloadLen);
         byte[] payload = new byte[payloadLen];
         bb.get(payload, 0, payloadLen);
 

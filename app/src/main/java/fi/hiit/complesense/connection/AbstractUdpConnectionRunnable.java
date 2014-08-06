@@ -53,11 +53,25 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
     public void write(byte[] bytes, SocketAddress remoteSocketAddr)
     {
         Log.i(TAG,"write()" + remoteSocketAddr.toString());
-        sendBuf = bytes;
+        //sendBuf = bytes;
         try
         {
-            DatagramPacket out = new DatagramPacket(sendBuf,
-                    sendBuf.length, remoteSocketAddr);
+            DatagramPacket out = new DatagramPacket(bytes,
+                    bytes.length, remoteSocketAddr);
+            socket.send(out);
+        } catch (IOException e)
+        {
+            Log.e(TAG, "Exception during write", e);
+        }
+    }
+
+    public void write(byte[] bytes, int bytesLen, SocketAddress remoteSocketAddr)
+    {
+        Log.i(TAG,"write()" + remoteSocketAddr.toString());
+        try
+        {
+            DatagramPacket out = new DatagramPacket(bytes,
+                    bytesLen, remoteSocketAddr);
             socket.send(out);
         } catch (IOException e)
         {
@@ -80,6 +94,8 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
         timer.cancel();
         socket.close();
     }
+
+
 
     @Override
     public abstract void run();

@@ -16,6 +16,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.Serializable;
@@ -42,8 +43,8 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.demo_activity_main);
         statusTxtView = (TextView) findViewById(R.id.status_text);
-        statusTxtView.setMovementMethod(new ScrollingMovementMethod());
         statusTxtView.setText("");
+        scrollView = (ScrollView) findViewById(R.id.scroll_text);
 
         stopButton = (Button)findViewById(R.id.stop_app);
         stopButton.setOnClickListener(new View.OnClickListener() {

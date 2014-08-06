@@ -68,6 +68,7 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
         Log.i(TAG, "stopHandler()");
         clientConnectionRunnable.signalStop();
         mThread.interrupt();
-
+        if(clientConnectionRunnable.audioStreamThread!=null)
+            clientConnectionRunnable.audioStreamThread.interrupt();
     }
 }
