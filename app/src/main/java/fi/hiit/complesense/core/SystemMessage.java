@@ -148,6 +148,12 @@ public class SystemMessage implements Serializable
             case SystemMessage.O:
                 str += "Streaming request";
                 return str;
+            case SystemMessage.L:
+                str += "Relay request";
+                return str;
+            case SystemMessage.J:
+                str += "Relay response";
+                return str;
             default:
                 return null;
         }
@@ -173,9 +179,10 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.N, payload);
     }
 
-    public static SystemMessage makeAudioStreamingRequest()
+    public static SystemMessage makeAudioStreamingRequest( int relayPort)
     {
-        byte[] payload = (new String("MIC")).getBytes();
+        byte[] payload = int2Bytes( relayPort);
+
         return new SystemMessage(SystemMessage.O, payload);
     }
 
@@ -190,6 +197,18 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.V, bb.array());
 
 
+    }
+
+    public static SystemMessage makeRelayListenerRequest()
+    {
+        byte[] payload = int2Bytes( 0);
+        return new SystemMessage(SystemMessage.L, payload);
+    }
+
+    public static SystemMessage makeRelayListenerReply()
+    {
+        byte[] payload = (new String("")).getBytes();
+        return new SystemMessage(SystemMessage.J, payload);
     }
 
 
@@ -308,5 +327,6 @@ public class SystemMessage implements Serializable
 
         return new SystemMessage(cmd, payload);
     }
+
 
 }

@@ -42,9 +42,8 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.demo_activity_main);
-        statusTxtView = (TextView) findViewById(R.id.status_text);
-        statusTxtView.setText("");
-        scrollView = (ScrollView) findViewById(R.id.scroll_text);
+        initUi((TextView) findViewById(R.id.status_text),
+                (ScrollView) findViewById(R.id.scroll_text));
 
         stopButton = (Button)findViewById(R.id.stop_app);
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -110,6 +109,14 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         }
         else
             Log.d(TAG,"service is running");
+    }
+
+    @Override
+    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
+    {
+        this.statusTxtView = statusTxtView;
+        statusTxtView.setText("");
+        this.scrollView = statusTxtScroll;
     }
 
     @Override

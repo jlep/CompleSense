@@ -5,6 +5,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.SocketAddress;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
@@ -67,7 +68,8 @@ public class CloudUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     }
 
     @Override
-    protected void parseSystemMessage(SystemMessage sm) {
+    protected void parseSystemMessage(SystemMessage sm, SocketAddress remoteSocketAddr)
+    {
 
     }
 }

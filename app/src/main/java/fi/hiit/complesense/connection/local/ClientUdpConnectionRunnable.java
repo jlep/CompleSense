@@ -2,17 +2,20 @@ package fi.hiit.complesense.connection.local;
 
 import android.os.Environment;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
 import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/22/14.
@@ -22,7 +25,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     private static final String TAG = "ClientUdpConnectionRunnable";
     private final ClientManager clientManager;
     private final InetSocketAddress remoteSocketAddr;
-    public Thread audioStreamThread;
+
 
     public ClientUdpConnectionRunnable(DatagramSocket socket,
                                        ClientManager clientManager,
@@ -52,7 +55,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
             {
                 socket.receive(recPacket);
                 parseSystemMessage(SystemMessage.getFromBytes(
-                        recPacket.getData()));
+                        recPacket.getData()), remoteSocketAddr);
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
 
@@ -75,7 +78,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
     }
 
     @Override
-    protected void parseSystemMessage(SystemMessage sm)
+    protected void parseSystemMessage(SystemMessage sm, SocketAddress remoteSocketAddr)
     {
         float[] values;
         Log.i(TAG,sm.toString());
@@ -83,15 +86,34 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
         switch (sm.getCmd())
         {
             case SystemMessage.O:
-                //wait for a while
-                String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
-                Log.i(TAG,rootDir);
-                String audioFilePath = rootDir + "/Music/romance.wav";
-                Log.i(TAG,audioFilePath);
-
+                // receive Audio Streaming request
+                //String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+                //Log.i(TAG,rootDir);
+                //String audioFilePath = rootDir + "/Music/romance.wav";
+                //Log.i(TAG,audioFilePath);
+                updateStatusTxt(remoteSocketAddr.toString() + "->" + sm.toString());
+                // request send audio streaming
                 //audioStreamThread = AudioShareManager.sendAudioThread(audioFilePath, remoteSocketAddr.getAddress() );
-                audioStreamThread = AudioShareManager.sendMicAudioThread(remoteSocketAddr.getAddress() );
+                int relayPort = SystemMessage.byteArray2Int(sm.getPayload());
+                Log.i(TAG,"remote relay port is " + relayPort);
+                String socketAddrStr = remoteSocketAddr.toString();
+
+                String host = socketAddrStr.substring(socketAddrStr.indexOf("/")+1, socketAddrStr.indexOf(":"));
+                Log.i(TAG,"remote host is " + host);
+
+                audioStreamThread = AudioShareManager.getSendMicAudioThread(new InetSocketAddress(host, relayPort));
                 audioStreamThread.start();
+
+                break;
+
+            case SystemMessage.L:
+                // relay sender is ready
+                updateStatusTxt(remoteSocketAddr.toString() + "->" + sm.toString());
+
+                audioStreamThread = AudioShareManager.getReceiveAudioThread();
+                audioStreamThread.start();
+                write(SystemMessage.makeRelayListenerReply(), remoteSocketAddr);
+
                 break;
             case SystemMessage.R:
                 // Sensor data request
@@ -116,5 +138,10 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 break;
         }
 
+    }
+
+
+    public InetSocketAddress getRemoteSocketAddr() {
+        return remoteSocketAddr;
     }
 }

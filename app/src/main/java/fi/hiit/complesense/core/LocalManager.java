@@ -7,8 +7,11 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
@@ -46,6 +49,7 @@ public abstract class LocalManager
         this.isServer = isServer;
         this.context = context;
         sensorValues = new ConcurrentHashMap<String, SensorValues>();
+
         sensorUtil = new SensorUtil(context);
         abstractSocketHandler = null;
         cloudSocketHandler = null;
@@ -118,4 +122,6 @@ public abstract class LocalManager
     {
         return SensorUtil.getLocalSensorTypeList(context);
     }
+
+
 }

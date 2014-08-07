@@ -13,6 +13,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.Serializable;
@@ -35,9 +36,8 @@ public class GroupOwnerActivity extends AbstractGroupActivity
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.group_owner_layout);
-        statusTxtView = (TextView) findViewById(R.id.status_text);
-        statusTxtView.setMovementMethod(new ScrollingMovementMethod());
-        statusTxtView.setText("");
+        initUi((TextView) findViewById(R.id.status_text),
+                (ScrollView) findViewById(R.id.scroll_text));
         selfInfoFragment = (SelfInfoFragment)getFragmentManager().
                 findFragmentById(R.id.self_info_frag_group_owner);
 
@@ -94,6 +94,14 @@ public class GroupOwnerActivity extends AbstractGroupActivity
         }
         else
             Log.d(TAG,"service is running");
+    }
+
+    @Override
+    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
+    {
+        this.statusTxtView = statusTxtView;
+        statusTxtView.setText("");
+        this.scrollView = statusTxtScroll;
     }
 
     @Override

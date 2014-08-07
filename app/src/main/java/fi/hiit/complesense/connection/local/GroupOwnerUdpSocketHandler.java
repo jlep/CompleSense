@@ -22,7 +22,6 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
     private final DatagramSocket socket;
     private final GroupOwnerManager groupOwnerManager;
     GroupOwnerUdpConnectionRunnable cr = null;
-    Thread audioShareThread = null;
     private volatile boolean running = false;
 
     private final Messenger remoteMessenger;
@@ -56,9 +55,6 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
                 cr= new GroupOwnerUdpConnectionRunnable(socket,
                         groupOwnerManager, remoteMessenger);
                 new Thread(cr).start();
-
-                audioShareThread = AudioShareManager.receiveAudio();
-                audioShareThread.start();
             }
             catch (IOException e)
             {
@@ -75,8 +71,6 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
         running = false;
         if(cr != null)
             cr.signalStop();
-        if(audioShareThread!=null)
-            audioShareThread.interrupt();
 
         AbstractUdpSocketHandler.closeSocket(socket);
     }

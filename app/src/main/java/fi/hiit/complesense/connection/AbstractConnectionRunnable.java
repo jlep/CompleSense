@@ -73,13 +73,17 @@ public abstract class AbstractConnectionRunnable implements Runnable
         }
     }
 
-    protected void updateStatusTxt(String str) throws RemoteException
+    protected void updateStatusTxt(String str)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
         msg.what = Constants.SERVICE_MSG_STATUS_TXT_UPDATE;
         msg.obj = str;
-        remoteMessenger.send(msg);
+        try {
+            remoteMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     public void signalStop()

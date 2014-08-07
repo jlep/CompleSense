@@ -7,8 +7,12 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.connection.local.GroupOwnerUdpSocketHandler;
@@ -25,6 +29,8 @@ public class GroupOwnerManager extends LocalManager
     // Sensors selected by the server
     private Map<String, Integer> selectedSensorsDict;
     private Map<String, List<Integer>> availabeSensors;
+    private Map<String, Integer> relayReceivers; // relay data receiver
+
 
     private WifiP2pGroup clientsGroup = null;
 
@@ -35,6 +41,7 @@ public class GroupOwnerManager extends LocalManager
 
         selectedSensorsDict = new TreeMap<String, Integer>();
         availabeSensors = new TreeMap<String, List<Integer>>();
+        relayReceivers = new TreeMap<String, Integer>();
 
         // Register local sensors
         registerSensors(LocalManager.KEY_LOCAL_SOCKET,
@@ -80,6 +87,14 @@ public class GroupOwnerManager extends LocalManager
         availabeSensors.put(socketAddr, typeList);
     }
 
+    public synchronized int addRelayListenor(String remoteSocketAddrStr, int sensorType)
+    {
+        if(relayReceivers==null)
+            return -1;
+        relayReceivers.put(remoteSocketAddrStr, sensorType);
+        return relayReceivers.size();
+    }
+
     /**
      * Get a list of available sensors on a device
      * @param socketAddr
@@ -91,25 +106,59 @@ public class GroupOwnerManager extends LocalManager
         return availabeSensors.get(socketAddr);
     }
 
-    public int getSelectedSensor(String socketAddr)
+    public Integer getSelectedSensor(String socketAddrStr)
     {
-        return selectedSensorsDict.get(socketAddr);
+        return selectedSensorsDict.get(socketAddrStr);
+    }
+    public Integer getRelayReceiver(String socketAddrStr)
+    {
+        return selectedSensorsDict.get(socketAddrStr);
     }
 
-    public void sendSensorVals2Cloud(float[] values)
+    public void sendSensorVals2Cloud(String srcAddr, float[] values)
     {
         if(cloudSocketHandler!=null)
         {
-            String str = "";
-            for(float f:values)
+            if(cloudSocketHandler.getCloudConnection()!=null)
             {
-                str += Float.toString(f);
-                str +=", ";
+                String str = srcAddr + "->";
+                for(float f:values)
+                {
+                    str += Float.toString(f);
+                    str +=", ";
+                }
+                cloudSocketHandler.getCloudConnection().write(str);
             }
 
-            if(cloudSocketHandler.getCloudConnection()!=null)
-                cloudSocketHandler.getCloudConnection().write(str);
         }
 
+    }
+
+    public synchronized SocketAddress selectAudioStreamSender()
+    {
+        Log.i(TAG,"selectAudioStreamSender()");
+        String sender;
+        int count = 0, maxCount = 100;
+
+        while(count<maxCount)
+        {
+            int idx = (int)(Math.random() * selectedSensorsDict.size());
+
+            sender = (String)(selectedSensorsDict.keySet().toArray()[idx]);
+            //Log.i(TAG,"sender: "+ sender);
+            String senderAddrStr = sender.substring(sender.indexOf("/")+1, sender.indexOf(":"));
+            //Log.i(TAG,"sender addr: "+ senderAddrStr);
+
+            String portStr = sender.substring(sender.indexOf(":")+1);
+            //Log.i(TAG,"sender port: "+ portStr);
+            if(relayReceivers.get(sender)==null)
+                return new InetSocketAddress(senderAddrStr, Integer.parseInt(portStr));
+        }
+        return null;
+    }
+
+    public synchronized Set<String> getConnectedClients()
+    {
+        return selectedSensorsDict.keySet();
     }
 }

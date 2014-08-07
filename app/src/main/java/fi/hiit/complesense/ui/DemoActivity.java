@@ -16,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.Serializable;
@@ -39,9 +40,10 @@ public class DemoActivity extends AbstractGroupActivity
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.demo_activity_main);
-        statusTxtView = (TextView) findViewById(R.id.status_text);
-        statusTxtView.setMovementMethod(new ScrollingMovementMethod());
-        statusTxtView.setText("");
+
+        initUi((TextView) findViewById(R.id.status_text),
+                (ScrollView) findViewById(R.id.scroll_text));
+
         uiMessenger = new Messenger(new IncomingHandler());
 
         stopButton = (Button)findViewById(R.id.stop_app);
@@ -122,6 +124,14 @@ public class DemoActivity extends AbstractGroupActivity
         {
             Log.d(TAG,"service is running");
         }
+    }
+
+    @Override
+    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
+    {
+        this.statusTxtView = statusTxtView;
+        statusTxtView.setText("");
+        this.scrollView = statusTxtScroll;
     }
 
     @Override

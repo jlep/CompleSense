@@ -48,6 +48,7 @@ public abstract class AbstractGroupActivity extends Activity
     }
 
     protected abstract void doBindService();
+    protected abstract void initUi(TextView statusTxtView, ScrollView statusTxtScroll);
 
     protected void doUnbindService()
     {

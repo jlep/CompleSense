@@ -8,6 +8,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Timer;
 
@@ -25,6 +26,8 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
     protected byte[] sendBuf = new byte[Constants.MAX_BUF];
     protected byte[] recBuf = new byte[Constants.MAX_BUF];
     protected DatagramPacket recPacket = new DatagramPacket(recBuf, recBuf.length);
+
+    protected Thread audioStreamThread;
 
 
     // Messenger points to Remote service
@@ -65,6 +68,7 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
         }
     }
 
+
     public void write(byte[] bytes, int bytesLen, SocketAddress remoteSocketAddr)
     {
         Log.i(TAG,"write()" + remoteSocketAddr.toString());
@@ -79,18 +83,24 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
         }
     }
 
-    protected void updateStatusTxt(String str) throws RemoteException
+    protected void updateStatusTxt(String str)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
         msg.what = Constants.SERVICE_MSG_STATUS_TXT_UPDATE;
         msg.obj = str;
-        remoteMessenger.send(msg);
+        try {
+            remoteMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     public void signalStop()
     {
         Log.i(TAG, "signalStop()");
+        if(audioStreamThread!=null)
+            audioStreamThread.interrupt();
         timer.cancel();
         socket.close();
     }
@@ -100,6 +110,6 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
     @Override
     public abstract void run();
 
-    protected abstract void parseSystemMessage(SystemMessage sm);
+    protected abstract void parseSystemMessage(SystemMessage sm, SocketAddress remoteSocketAddr);
 
 }

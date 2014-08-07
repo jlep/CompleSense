@@ -88,12 +88,9 @@ public class GroupOwnerConnectionRunnable extends AbstractConnectionRunnable
                 values = SystemMessage.parseSensorValues(sm);
                 type = SystemMessage.parseSensorType(sm);
                 groupOwnerManager.setSensorValues(values, type, remoteSocketAddr);
-                groupOwnerManager.sendSensorVals2Cloud(values);
-                try {
-                    updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
-                } catch (RemoteException e) {
-                    Log.i(TAG,e.toString());
-                }
+                groupOwnerManager.sendSensorVals2Cloud(remoteSocketAddr.toString(), values);
+
+                updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
                 break;
 
             case SystemMessage.N:

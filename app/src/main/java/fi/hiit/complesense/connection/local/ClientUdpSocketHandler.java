@@ -46,7 +46,7 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
             socket = new DatagramSocket();
             socket.connect(ownerAddr);
             Log.i(TAG, ownerAddr.toString());
-            Log.i(TAG, "Launching the I/O handler");
+            Log.i(TAG, "Launching the I/O handler at: " + socket.getLocalSocketAddress().toString());
 
             clientConnectionRunnable = new ClientUdpConnectionRunnable(socket,
                     clientManager, ownerAddr, remoteMessenger);
@@ -68,7 +68,10 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
         Log.i(TAG, "stopHandler()");
         clientConnectionRunnable.signalStop();
         mThread.interrupt();
-        if(clientConnectionRunnable.audioStreamThread!=null)
-            clientConnectionRunnable.audioStreamThread.interrupt();
+    }
+
+    public ClientUdpConnectionRunnable getConnectionRunnable()
+    {
+        return clientConnectionRunnable;
     }
 }

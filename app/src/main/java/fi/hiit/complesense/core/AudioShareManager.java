@@ -14,8 +14,11 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+
+import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 
 /**
  * Created by hxguo on 8/4/14.
@@ -28,8 +31,9 @@ public class AudioShareManager
     static final int SAMPLE_INTERVAL = 20; // milliseconds
     static final int SAMPLE_SIZE = 2; // bytes per sample
     static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 2;
+    private static Thread receiveAudioStreamThread;
 
-    public static Thread receiveAudio()
+    public static Thread getReceiveAudioThread()
     {
         Thread thrd = new Thread(new Runnable() {
 
@@ -76,7 +80,7 @@ public class AudioShareManager
         return thrd;
     }
 
-    public static Thread sendAudioThread(String audioFilePath, final InetAddress remoteSocketAddr)
+    public static Thread getSendAudioThread(String audioFilePath, final InetAddress remoteSocketAddr)
     {
         final File audio = new File(audioFilePath);
 
@@ -143,13 +147,13 @@ public class AudioShareManager
         return thrd;
     }
 
-    public static Thread sendMicAudioThread(final InetAddress remoteSocketAddr)
+    public static Thread getSendMicAudioThread(final SocketAddress remoteSocketAddr)
     {
         Thread thrd = new Thread(new Runnable() {
             @Override
             public void run()
             {
-                Log.e(TAG, "start sendMicAudioThread() thread, thread id: "
+                Log.e(TAG, "start getSendMicAudioThread() thread, thread id: "
                         + Thread.currentThread().getId());
                 AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SAMPLE_RATE,
                         AudioFormat.CHANNEL_CONFIGURATION_MONO,
@@ -172,10 +176,10 @@ public class AudioShareManager
                     {
                         bytes_read = audio_recorder.read(buf, 0, BUF_SIZE);
                         DatagramPacket pack = new DatagramPacket(buf, bytes_read,
-                                remoteSocketAddr, AUDIO_PORT);
+                                remoteSocketAddr);
                         sock.send(pack);
                         bytes_count += bytes_read;
-                        Log.i(TAG, "bytes_count : " + bytes_count);
+                        Log.i(TAG, "send_bytes_count : " + bytes_count);
                         Thread.sleep(SAMPLE_INTERVAL, 0);
                     }
                 }
@@ -202,6 +206,63 @@ public class AudioShareManager
                 }
             } // end run
         });
+        return thrd;
+    }
+
+
+    public static Thread getRelayAudioThread(final SocketAddress senderSocketAddr,
+                                             final SocketAddress receiverSocketAddr,
+                                             final AbstractUdpConnectionRunnable parentThread)
+    {
+        Thread thrd = new Thread(new Runnable() {
+
+            @Override
+            public void run()
+            {
+                Log.e(TAG, "start getRelayAudioThread() thread, thread id: "
+                        + Thread.currentThread().getId());
+                DatagramSocket sendSocket = null, recvSocket = null;
+
+                try
+                {
+                    sendSocket = new DatagramSocket();
+                    recvSocket = new DatagramSocket();
+                    byte[] buf = new byte[BUF_SIZE];
+                    parentThread.write(SystemMessage.makeAudioStreamingRequest(recvSocket.getLocalPort()),
+                            senderSocketAddr);
+
+
+                    while(!Thread.currentThread().isInterrupted())
+                    {
+                        DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
+                        recvSocket.receive(pack);
+                        Log.i(TAG, "Relay recv pack: " + pack.getLength());
+
+                        pack.setSocketAddress(receiverSocketAddr);
+                        pack.setPort(AUDIO_PORT);
+                        sendSocket.send(pack);
+                    }
+                    Log.e(TAG, "receiveAudio() exits loop");
+                }
+                catch (SocketException se)
+                {
+                    Log.e(TAG, "receiveAudio(): " + se.toString());
+                }
+                catch (IOException ie)
+                {
+                    Log.e(TAG, "receiveAudio(): " + ie.toString());
+                }
+                finally
+                {
+                    if(recvSocket!=null)
+                        recvSocket.close();
+
+                    if(sendSocket!=null)
+                        sendSocket.close();
+                }
+            } // end run
+        });
+//        thrd.start();
         return thrd;
     }
 

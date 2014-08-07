@@ -1,5 +1,6 @@
 package fi.hiit.complesense.core;
 
+import java.net.SocketAddress;
 import java.util.TimerTask;
 
 import fi.hiit.complesense.connection.local.GroupOwnerUdpConnectionRunnable;
@@ -13,12 +14,15 @@ public class ScheduledUdpQueryTask extends TimerTask
     private static final String TAG = "ScheduledQueryTask";
     private final GroupOwnerUdpConnectionRunnable runnable;
     private final GroupOwnerManager groupOwnerManager;
+    private final SocketAddress remoteSocketAddr;
 
     public ScheduledUdpQueryTask(GroupOwnerUdpConnectionRunnable runnable,
-                              GroupOwnerManager groupOwnerManager)
+                              GroupOwnerManager groupOwnerManager,
+                              SocketAddress remoteSocketAddr)
     {
         this.runnable = runnable;
         this.groupOwnerManager = groupOwnerManager;
+        this.remoteSocketAddr = remoteSocketAddr;
     }
 
     @Override
@@ -30,9 +34,8 @@ public class ScheduledUdpQueryTask extends TimerTask
 
     private void sendSensorQueryMessage()
     {
-        int sType = groupOwnerManager.getSelectedSensor(runnable.getRemoteSocketAddr().toString());
+        int sType = groupOwnerManager.getSelectedSensor(remoteSocketAddr.toString());
         //Log.i(TAG, "sType: " + sType);
-        runnable.write(SystemMessage.makeSensorDataQueryMessage(sType),
-                runnable.getRemoteSocketAddr());
+        runnable.write(SystemMessage.makeSensorDataQueryMessage(sType), remoteSocketAddr);
     }
 }

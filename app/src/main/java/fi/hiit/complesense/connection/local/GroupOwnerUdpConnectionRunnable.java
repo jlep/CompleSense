@@ -6,13 +6,18 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.util.List;
+import java.util.Set;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
+import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
 import fi.hiit.complesense.core.ScheduledUdpQueryTask;
 import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/22/14.
@@ -21,7 +26,7 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 {
     private String TAG = "GroupOwnerUdpConnectionRunnable";
     private GroupOwnerManager groupOwnerManager;
-    private SocketAddress remoteSocketAddr;
+//    private SocketAddress remoteSocketAddr;
 
     public GroupOwnerUdpConnectionRunnable(DatagramSocket s,
                                            GroupOwnerManager groupOwnerManager,
@@ -44,9 +49,9 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
             try
             {
                 socket.receive(recPacket);
-                remoteSocketAddr = recPacket.getSocketAddress();
+                //remoteSocketAddr = recPacket.getSocketAddress();//todo: remoteSocketAddr is not synchronized
                 parseSystemMessage(SystemMessage.getFromBytes(
-                        recPacket.getData()));
+                        recPacket.getData()),recPacket.getSocketAddress() );
 
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
@@ -66,20 +71,31 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
     }
 
     @Override
-    protected void parseSystemMessage(SystemMessage sm)
+    protected void parseSystemMessage(SystemMessage sm, SocketAddress remoteSocketAddr)
     {
         float[] values;
         int type;
         Log.i(TAG,sm.toString());
         switch (sm.getCmd())
         {
-            case SystemMessage.INIT:
-                write(SystemMessage.makeAudioStreamingRequest(),remoteSocketAddr);
-                break;
             case SystemMessage.Y:
 
                 break;
             case SystemMessage.R:
+                break;
+
+            case SystemMessage.J:
+                updateStatusTxt(remoteSocketAddr.toString() + "->" + sm.toString());
+                //create a relay listener
+                SocketAddress senderAddr = groupOwnerManager.selectAudioStreamSender();
+                Log.i(TAG,"Relay sender Addr: " + senderAddr.toString());
+
+                if(senderAddr!=null)
+                {
+                    audioStreamThread = AudioShareManager.getRelayAudioThread(senderAddr, remoteSocketAddr,
+                            GroupOwnerUdpConnectionRunnable.this);
+                    audioStreamThread.start();
+                }
                 break;
 
             case SystemMessage.V:
@@ -88,11 +104,9 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
                 values = SystemMessage.parseSensorValues(sm);
 
                 groupOwnerManager.setSensorValues(values, type, remoteSocketAddr.toString());
-                try {
-                    updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
-                } catch (RemoteException e) {
-                    Log.i(TAG,e.toString());
-                }
+                groupOwnerManager.sendSensorVals2Cloud(remoteSocketAddr.toString(), values);
+
+                updateStatusTxt(remoteSocketAddr + "->: " + sm.toString());
                 break;
 
             case SystemMessage.N:
@@ -105,10 +119,18 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
                 int sType = groupOwnerManager.randomlySelectSensor(typeList, remoteSocketAddr.toString());
 
-                write(SystemMessage.makeAudioStreamingRequest(), remoteSocketAddr);
+                //write(SystemMessage.makeAudioStreamingRequest(false), remoteSocketAddr);
 
-                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager);
+                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
                 timer.schedule(sTask, 0, 2000);
+
+                if(groupOwnerManager.getConnectedClients().size() ==2 )
+                {
+                    Log.i(TAG,"client size = 2");
+                    groupOwnerManager.addRelayListenor(remoteSocketAddr.toString(),
+                            SystemMessage.TYPE_AUDIO_STREAM);
+                    write(SystemMessage.makeRelayListenerRequest(), remoteSocketAddr);
+                }
 
                 break;
             default:
@@ -117,7 +139,4 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
     }
 
-    public SocketAddress getRemoteSocketAddr() {
-        return remoteSocketAddr;
-    }
 }

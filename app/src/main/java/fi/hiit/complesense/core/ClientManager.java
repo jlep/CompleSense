@@ -7,6 +7,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.InetAddress;
 
+import fi.hiit.complesense.connection.local.ClientUdpConnectionRunnable;
 import fi.hiit.complesense.connection.local.ClientUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 
@@ -42,4 +43,6 @@ public class ClientManager extends LocalManager
     public void start() throws IOException{
         Log.e(TAG,"This is client cannot be run as Server!!");
     }
+
+
 }

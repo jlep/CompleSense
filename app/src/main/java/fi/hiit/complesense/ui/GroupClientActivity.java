@@ -38,10 +38,9 @@ public class GroupClientActivity extends AbstractGroupActivity
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.group_client_layout);
-        statusTxtView = (TextView) findViewById(R.id.status_text);
-        scrollView = (ScrollView) findViewById(R.id.scroll_text);
-        //statusTxtViewView.setMovementMethod(new ScrollingMovementMethod());
-        statusTxtView.setText("");
+
+        initUi((TextView) findViewById(R.id.status_text),
+                (ScrollView) findViewById(R.id.scroll_text));
 
         selfInfoFragment = (SelfInfoFragment)getFragmentManager().
                 findFragmentById(R.id.self_info_frag_group_client);
@@ -100,6 +99,14 @@ public class GroupClientActivity extends AbstractGroupActivity
         }
         else
             Log.d(TAG,"service is running");
+    }
+
+    @Override
+    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
+    {
+        this.statusTxtView = statusTxtView;
+        statusTxtView.setText("");
+        this.scrollView = statusTxtScroll;
     }
 
 
