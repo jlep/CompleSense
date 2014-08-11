@@ -4,9 +4,12 @@ import android.hardware.Sensor;
 import android.util.Log;
 
 import java.io.Serializable;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -22,6 +25,7 @@ public class SystemMessage implements Serializable
 
     private static final String TAG = "SystemMessage";
 
+
     /**
      * Fields of SystemMessage class
      */
@@ -34,7 +38,6 @@ public class SystemMessage implements Serializable
      * Commands
      */
 
-    public static final short QUERY = 0x51;
     public static final short R = 0x52; //Request sensor data
     public static final short V = 0x56; //Sensor data response
     public static final short C = 0x43; //Discover sensors
@@ -47,7 +50,7 @@ public class SystemMessage implements Serializable
     public static final short Y = 0x59; //observer created
 
     public static final short INIT = 0x10; //Discover reply
-
+    public static final short RTT = 0x51;
 
 
     public static final int TYPE_AUDIO_STREAM = 30;
@@ -142,8 +145,8 @@ public class SystemMessage implements Serializable
             case SystemMessage.N:
                 str += "Sensor Discovery reply";
                 return str;
-            case SystemMessage.INIT:
-                str += "Inintiate connection";
+            case SystemMessage.RTT:
+                str += "RTT Query";
                 return str;
             case SystemMessage.O:
                 str += "Streaming request";
@@ -329,4 +332,44 @@ public class SystemMessage implements Serializable
     }
 
 
+    public static SystemMessage makeRttQuery(long timeStamp, ArrayDeque<String> hops)
+    {
+        int len = Long.SIZE / 8;
+        Iterator<String> iter = hops.iterator();
+        while(iter.hasNext())
+            len += iter.next().toString().length() + 1;
+
+        ByteBuffer bb = ByteBuffer.allocate(len);
+        bb.order(ByteOrder.BIG_ENDIAN);
+
+        bb.putLong(timeStamp);
+        iter = hops.iterator();
+        while(iter.hasNext())
+        {
+            bb.put(iter.next().getBytes());
+            bb.put((new String(",")).getBytes());
+        }
+        return new SystemMessage(SystemMessage.RTT, bb.array());
+    }
+
+    public static ArrayDeque<String> parseRttQuery(byte[] payload)
+    {
+        ByteBuffer bb = ByteBuffer.wrap(payload);
+        bb.getLong();
+
+        byte[] hopsBytes = new byte[payload.length - Long.SIZE / 8];
+        bb.get(hopsBytes);
+        String hopsStr = new String(hopsBytes);
+        //Log.i(TAG,"hopsStr: " + hopsStr);
+        String[] socketAddrStrs = hopsStr.split(",");
+        ArrayDeque<String> hops = new ArrayDeque<String>(socketAddrStrs.length);
+        for(String s:socketAddrStrs)
+        {
+            Log.i(TAG,s);
+            hops.add(s);
+        }
+
+
+        return hops;
+    }
 }

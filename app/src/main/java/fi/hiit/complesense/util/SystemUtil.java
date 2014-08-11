@@ -128,4 +128,17 @@ public class SystemUtil {
         }
 
     }
+
+    public static String getHost(String socketAddrStr)
+    {
+        String host = socketAddrStr.substring(socketAddrStr.indexOf("/")+1,
+                socketAddrStr.lastIndexOf(":"));
+        return host;
+    }
+
+    public static int getPort(String socketAddrStr)
+    {
+        int port = Integer.parseInt(socketAddrStr.substring(socketAddrStr.lastIndexOf(":")+1));
+        return port;
+    }
 }

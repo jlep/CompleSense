@@ -7,6 +7,8 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -14,9 +16,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/16/14.

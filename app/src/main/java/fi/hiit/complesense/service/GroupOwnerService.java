@@ -99,7 +99,6 @@ public class GroupOwnerService extends AbstractGroupService
     {
         Log.i(TAG,"onDestroy()");
         unregisterReceiver(receiver);
-        stop();
         super.onDestroy();
     }
 

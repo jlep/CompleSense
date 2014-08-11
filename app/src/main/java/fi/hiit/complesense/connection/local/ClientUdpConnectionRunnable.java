@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayDeque;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AbstractUdpSocketHandler;
@@ -98,7 +99,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 Log.i(TAG,"remote relay port is " + relayPort);
                 String socketAddrStr = remoteSocketAddr.toString();
 
-                String host = socketAddrStr.substring(socketAddrStr.indexOf("/")+1, socketAddrStr.indexOf(":"));
+                String host = SystemUtil.getHost(socketAddrStr);
                 Log.i(TAG,"remote host is " + host);
 
                 audioStreamThread = AudioShareManager.getSendMicAudioThread(new InetSocketAddress(host, relayPort));
@@ -134,6 +135,11 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 write(SystemMessage.makeSensorsListReplyMessage(
                         clientManager.getLocalSensorList()), remoteSocketAddr);
                 break;
+            case SystemMessage.RTT:
+                forwardRttQuery(sm.getPayload(),remoteSocketAddr);
+                break;
+
+
             default:
                 break;
         }

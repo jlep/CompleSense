@@ -21,7 +21,6 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
 
     private final DatagramSocket socket;
     private final GroupOwnerManager groupOwnerManager;
-    GroupOwnerUdpConnectionRunnable cr = null;
     private volatile boolean running = false;
 
     private final Messenger remoteMessenger;
@@ -52,9 +51,9 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
             {
                 groupOwnerManager.setIsRunning(running);
 
-                cr= new GroupOwnerUdpConnectionRunnable(socket,
+                connectionRunnable= new GroupOwnerUdpConnectionRunnable(socket,
                         groupOwnerManager, remoteMessenger);
-                new Thread(cr).start();
+                new Thread(connectionRunnable).start();
             }
             catch (IOException e)
             {
@@ -69,8 +68,8 @@ public class GroupOwnerUdpSocketHandler extends AbstractUdpSocketHandler
     {
         Log.i(TAG, "stopHandler()");
         running = false;
-        if(cr != null)
-            cr.signalStop();
+        if(connectionRunnable != null)
+            connectionRunnable.signalStop();
 
         AbstractUdpSocketHandler.closeSocket(socket);
     }

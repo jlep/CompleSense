@@ -3,21 +3,27 @@ package fi.hiit.complesense.core;
 import android.content.Context;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.os.Messenger;
+import android.provider.Settings;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.security.auth.login.LoginException;
+
+import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.local.GroupOwnerUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/16/14.
@@ -52,7 +58,7 @@ public class GroupOwnerManager extends LocalManager
     public void start(InetAddress ownerAddr, int delay)
             throws IOException
     {
-        Log.e(TAG,"This is server, cannot be started as client!! ");
+        Log.e(TAG, "This is server, cannot be started as client!! ");
     }
 
     @Override
@@ -67,6 +73,25 @@ public class GroupOwnerManager extends LocalManager
         {
             cloudSocketHandler = new CloudSocketHandler(remoteMessenger, this);
             cloudSocketHandler.start();
+        }
+    }
+
+    /**
+     *
+     * @param hops: node1 -> node2 -> mode3 -> node2 -> node1
+     */
+    public void sendMeasureRTTRequest(ArrayDeque<String> hops)
+    {
+        Log.i(TAG,"sendMeasureRTTRequest()");
+        if(abstractSocketHandler!=null)
+        {
+            AbstractUdpConnectionRunnable runnable = abstractSocketHandler.getConnectionRunnable();
+            String socketAddrStr = hops.peek();
+            String nextHost = SystemUtil.getHost(socketAddrStr);
+            int nextPort = SystemUtil.getPort(socketAddrStr);
+            //Log.i(TAG,nextHost+":"+nextPort);
+            runnable.write(SystemMessage.makeRttQuery(0,hops),
+                    new InetSocketAddress(nextHost, nextPort));
         }
     }
 

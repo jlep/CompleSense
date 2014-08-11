@@ -1,6 +1,9 @@
 package fi.hiit.complesense.core;
 
+import android.util.Log;
+
 import java.net.SocketAddress;
+import java.util.ArrayDeque;
 import java.util.TimerTask;
 
 import fi.hiit.complesense.connection.local.GroupOwnerUdpConnectionRunnable;
@@ -29,7 +32,21 @@ public class ScheduledUdpQueryTask extends TimerTask
     public void run()
     {
         //Log.i(TAG, "run()");
-        sendSensorQueryMessage();
+        //sendSensorQueryMessage();
+        ArrayDeque<String> hops = selectHopsMeasureRtt();
+        //Log.i(TAG, "Selected hops: " + hops.toString());
+        groupOwnerManager.sendMeasureRTTRequest(hops);
+    }
+
+    private ArrayDeque<String> selectHopsMeasureRtt()
+    {
+        Object[] hopsStr = groupOwnerManager.getConnectedClients().toArray();
+        ArrayDeque<String> hops = new ArrayDeque<String>();
+        hops.add((String)hopsStr[0]);
+        hops.add((String)hopsStr[1]);
+        hops.add((String)hopsStr[0]);
+
+        return hops;
     }
 
     private void sendSensorQueryMessage()

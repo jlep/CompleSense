@@ -155,12 +155,6 @@ public class TestingService extends AbstractGroupService
         }
 
     }
-    @Override
-    public void onDestroy()
-    {
-        Log.i(TAG,"onDestroy()");
-        stop();
-    }
 
     @Override
     protected void start()

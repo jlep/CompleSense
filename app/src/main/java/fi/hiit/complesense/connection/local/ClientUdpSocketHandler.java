@@ -22,7 +22,6 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
     private final InetSocketAddress ownerAddr;
     private final int delay;
     private final ClientManager clientManager;
-    private ClientUdpConnectionRunnable clientConnectionRunnable;
     private Thread mThread;
 
 
@@ -48,9 +47,9 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
             Log.i(TAG, ownerAddr.toString());
             Log.i(TAG, "Launching the I/O handler at: " + socket.getLocalSocketAddress().toString());
 
-            clientConnectionRunnable = new ClientUdpConnectionRunnable(socket,
+            connectionRunnable = new ClientUdpConnectionRunnable(socket,
                     clientManager, ownerAddr, remoteMessenger);
-            mThread = new Thread(clientConnectionRunnable);
+            mThread = new Thread(connectionRunnable);
             mThread.start();
         }
         catch (IOException e)
@@ -66,12 +65,16 @@ public class ClientUdpSocketHandler extends AbstractUdpSocketHandler
     public void stopHandler()
     {
         Log.i(TAG, "stopHandler()");
-        clientConnectionRunnable.signalStop();
-        mThread.interrupt();
+        if(connectionRunnable!=null)
+        {
+            connectionRunnable.signalStop();
+            mThread.interrupt();
+        }
+
     }
 
     public ClientUdpConnectionRunnable getConnectionRunnable()
     {
-        return clientConnectionRunnable;
+        return (ClientUdpConnectionRunnable)connectionRunnable;
     }
 }

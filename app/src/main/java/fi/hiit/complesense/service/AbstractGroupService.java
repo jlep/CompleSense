@@ -95,6 +95,7 @@ public abstract class AbstractGroupService extends Service
     {
         Log.i(TAG,"onDestroy()");
         super.onDestroy();
+        stop();
         // Cancel the persistent notification.
         mNM.cancel(R.string.remote_service_started);
 

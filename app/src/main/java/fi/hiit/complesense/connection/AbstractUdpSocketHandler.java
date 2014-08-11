@@ -15,7 +15,7 @@ public abstract class AbstractUdpSocketHandler extends Thread
     private static final String TAG = "AbstractUDPSocketHandler";
     protected final Timer timer;
     protected Messenger remoteMessenger;
-    protected DatagramPacket initPacket;
+    protected AbstractUdpConnectionRunnable connectionRunnable;
 
     protected AbstractUdpSocketHandler(Messenger messenger)
     {
@@ -33,6 +33,11 @@ public abstract class AbstractUdpSocketHandler extends Thread
         Log.i(TAG, "closeSocket(DatagramSocket)");
         if (socket != null && !socket.isClosed())
             socket.close();
+    }
+
+    public AbstractUdpConnectionRunnable getConnectionRunnable()
+    {
+        return connectionRunnable;
     }
 
 
