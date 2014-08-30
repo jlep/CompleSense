@@ -1,4 +1,4 @@
-package fi.hiit.complesense.connection.local;
+package fi.hiit.complesense.connection;
 
 import android.os.Messenger;
 import android.util.Log;
@@ -13,17 +13,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AbstractConnectionRunnable;
-import fi.hiit.complesense.connection.AbstractSocketHandler;
-import fi.hiit.complesense.connection.local.GroupOwnerConnectionRunnable;
-import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 7/14/14.
  */
-public class GroupOwnerSocketHandler extends AbstractSocketHandler
+public class Acceptor extends AbstractSystemThread
 {
-    private static final String TAG = "GroupOwnerSocketHandler";
+    public static final String TAG = "Acceptor";
 
     // Sets the amount of time an idle thread will wait for a task before terminating
     private static final int KEEP_ALIVE_TIME = 1;
@@ -53,17 +52,15 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
     // A managed pool of background TCP connection threads
     private final ThreadPoolExecutor pool;
     private final ServerSocket socket;
-    private final GroupOwnerManager groupOwnerManager;
     private volatile boolean running = false;
 
     private final Messenger remoteMessenger;
 
 
-    public GroupOwnerSocketHandler(Messenger remoteMessenger,
-                                   GroupOwnerManager groupOwnerMananger) throws IOException
+    public Acceptor(Messenger remoteMessenger,
+                    ServiceHandler serviceHandler) throws IOException
     {
-        super(remoteMessenger);
-        this.groupOwnerManager = groupOwnerMananger;
+        super(serviceHandler);
 
         socket = new ServerSocket();
         socket.setReuseAddress(true);
@@ -93,18 +90,17 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
         {
             try
             {
-                groupOwnerManager.setIsRunning(running);
                 // A blocking operation. Initiate a CoSenseManager instance when
                 // there is a new connection
                 Socket s = socket.accept();
+
                 String remoteSocketAddr = s.getRemoteSocketAddress().toString();
-                //Log.i(TAG, "remote: " + s.getRemoteSocketAddress().toString());
-                //Log.i(TAG,"local: " + socket.getLocalSocketAddress().toString() );
-                GroupOwnerConnectionRunnable cr = new GroupOwnerConnectionRunnable(s,
-                        groupOwnerManager, remoteMessenger, remoteSocketAddr);
+                ConnectionRunnable cr = new ConnectionRunnable(serviceHandler, s);
+
 
                 pool.execute(cr);
                 mConnectionWorkQueue.add(cr);
+                cr.write(SystemMessage.makeSensorsListQueryMessage());
                 //pool.execute(new ConnectionRunnable(socket.accept(), mInstance));
                 Log.i(TAG,"Active threads: " + pool.getActiveCount() );
                 //pool.execute(new ChatManager(socket.accept(), handler));
@@ -119,21 +115,10 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
         Log.w(TAG,"Server Terminates!!!");
     }
 
-    @Override
-    public void stopHandler()
-    {
-        Log.i(TAG, "stopHandler()");
-        running = false;
-        cancelWaitingThreads();
-        cancelBlockedThreads();
-        pool.shutdownNow();
-        AbstractSocketHandler.closeSocket(socket);
-    }
-
     /**
      * Cancels all waiting Threads in the ThreadPool
      */
-    public void cancelWaitingThreads()
+    public synchronized void cancelWaitingThreads()
     {
         Log.i(TAG,"cancelWaitingThreads()");
 
@@ -141,7 +126,7 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
          * Creates an array of tasks that's the same size as the task work queue
          */
 
-        AbstractConnectionRunnable[] taskArray = new AbstractConnectionRunnable[
+        ConnectionRunnable[] taskArray = new ConnectionRunnable[
                 mPendingConnQueue.size()];
 
         // Populates the array with the task objects in the queue
@@ -155,28 +140,28 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
          * iterates over the array of tasks and interrupts the task's current Thread.
          */
 
-        synchronized (groupOwnerManager)
+        synchronized (serviceHandler)
         {
             Log.i(TAG,"pendingArraylen: " + taskArraylen);
             // Iterates over the array of tasks
             for (int taskArrayIndex = 0; taskArrayIndex < taskArraylen; taskArrayIndex++)
             {
                 // Gets the task's current thread
-                AbstractConnectionRunnable cRunnable = taskArray[taskArrayIndex];
+                ConnectionRunnable cRunnable = taskArray[taskArrayIndex];
 
                 // if the Runnable exists, post an interrupt to it
                 if (null != cRunnable) {
-                    cRunnable.signalStop();
+                    cRunnable.stopRunnable();
                 }else
                     Log.e(TAG,"thread is null");
             }
         }
     }
 
-    public void cancelBlockedThreads()
+    public synchronized void cancelBlockedThreads()
     {
         Log.i(TAG,"cancelBlockedThreads()");
-        AbstractConnectionRunnable[] taskArray = new AbstractConnectionRunnable[
+        ConnectionRunnable[] taskArray = new ConnectionRunnable[
                 mConnectionWorkQueue.size()];
         int taskArraylen = taskArray.length;
 
@@ -184,15 +169,35 @@ public class GroupOwnerSocketHandler extends AbstractSocketHandler
         // Populates the array with the task objects in the queue
         mConnectionWorkQueue.toArray(taskArray);
 
-        synchronized (groupOwnerManager)
+        synchronized (serviceHandler)
         {
             for(int i=0;i<taskArraylen;i++)
             {
-                AbstractConnectionRunnable cr = taskArray[i];
+                ConnectionRunnable cr = taskArray[i];
                 if(cr!=null)
-                    cr.signalStop();
+                    cr.stopRunnable();
             }
         }
+
+    }
+
+    @Override
+    public void stopThread()
+    {
+        Log.i(TAG, "stopHandler()");
+        running = false;
+        cancelWaitingThreads();
+        cancelBlockedThreads();
+        pool.shutdownNow();
+        try {
+            socket.close();
+        } catch (IOException e) {
+            Log.i(TAG,e.toString());
+        }
+    }
+
+    @Override
+    public void pauseThread() {
 
     }
 }

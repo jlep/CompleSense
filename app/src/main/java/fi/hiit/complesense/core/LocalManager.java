@@ -71,7 +71,7 @@ public abstract class LocalManager
         }
         if(cloudSocketHandler !=null)
         {
-            cloudSocketHandler.stopHandler();
+            cloudSocketHandler.stopThread();
         }
 
         sensorUtil.unregisterSensorListener();

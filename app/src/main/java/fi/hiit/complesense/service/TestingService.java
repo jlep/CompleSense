@@ -15,8 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.Acceptor;
+import fi.hiit.complesense.connection.Connector;
+import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.GroupOwnerServiceHandler;
+import fi.hiit.complesense.core.LocalDeviceManager;
+import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
@@ -26,11 +32,11 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 2;
+    public static final int NUM_CLIENTS = 1;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
-    private ArrayList<ClientManager> clientsList;
-    private GroupOwnerManager serverManager;
+    private ArrayList<LocalDeviceManager> clientsList;
+    private LocalDeviceManager serverManager;
 
     private static final String TAG = "TestingService";
     // Binder given to clients
@@ -74,7 +80,7 @@ public class TestingService extends AbstractGroupService
     public void onCreate()
     {
         Log.i(TAG,"onCreate()");
-        clientsList = new ArrayList<ClientManager>(NUM_CLIENTS);
+        clientsList = new ArrayList<LocalDeviceManager>(NUM_CLIENTS);
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -118,6 +124,7 @@ public class TestingService extends AbstractGroupService
 
     }
 
+    /*
     public void startTesting(Messenger uiMessenger, int numClients)
     {
         Log.i(TAG,"startTesting(client="+numClients+")");
@@ -129,8 +136,9 @@ public class TestingService extends AbstractGroupService
         this.uiMessenger = uiMessenger;
         Log.i(TAG,"Creating GroupOwner thread");
 
-        serverManager = new GroupOwnerManager(mMessenger,
-                getApplication(), false);
+        //serverManager = new GroupOwnerManager(mMessenger,
+        //        getApplication(), false);
+
         try {
             serverManager.start();
         } catch (IOException e) {
@@ -155,6 +163,41 @@ public class TestingService extends AbstractGroupService
         }
 
     }
+    */
+    public void startTesting(Messenger uiMessenger, int numClients)
+    {
+        Log.i(TAG,"startTesting(client="+numClients+")");
+
+
+        if(localHost==null)
+            return;
+
+        this.uiMessenger = uiMessenger;
+
+
+        //serverManager = new GroupOwnerManager(mMessenger,
+        //        getApplication(), false);
+        GroupOwnerServiceHandler ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger, "Testing Service Handler");
+        ServiceHandler clientServiceHanlder = new ServiceHandler(mMessenger, "Testing Service Handler");
+
+        Log.i(TAG,"Creating GroupOwner thread");
+        serverManager = new LocalDeviceManager(mMessenger, ownerServiceHanlder, null);
+        serverManager.start();
+
+        for(int i=0;i<NUM_CLIENTS;i++)
+        {
+            Log.i(TAG,"Creating client thread");
+            clientsList.add(new LocalDeviceManager(mMessenger, clientServiceHanlder, localHost));
+        }
+
+        for(int i=0;i<NUM_CLIENTS;i++)
+        {
+            Log.i(TAG, "Starting client thread");
+            clientsList.get(i).start();
+        }
+    }
+
+
 
     @Override
     protected void start()

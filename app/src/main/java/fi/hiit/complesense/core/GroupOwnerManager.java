@@ -20,6 +20,7 @@ import java.util.TreeMap;
 import javax.security.auth.login.LoginException;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
+import fi.hiit.complesense.connection.Acceptor;
 import fi.hiit.complesense.connection.local.GroupOwnerUdpSocketHandler;
 import fi.hiit.complesense.connection.remote.CloudSocketHandler;
 import fi.hiit.complesense.util.SensorUtil;
@@ -71,7 +72,7 @@ public class GroupOwnerManager extends LocalManager
 
         if(connect2Cloud)
         {
-            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, this);
+            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, null);
             cloudSocketHandler.start();
         }
     }

@@ -24,6 +24,7 @@ public class SystemMessage implements Serializable
 {
 
     private static final String TAG = "SystemMessage";
+    public static final int ID_SYSTEM_MESSAGE = 10245;
 
 
     /**
@@ -198,8 +199,6 @@ public class SystemMessage implements Serializable
         bb.put(bytes);
 
         return new SystemMessage(SystemMessage.V, bb.array());
-
-
     }
 
     public static SystemMessage makeRelayListenerRequest()

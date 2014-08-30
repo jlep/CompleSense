@@ -2,7 +2,7 @@ package fi.hiit.complesense.core;
 
 import java.util.TimerTask;
 
-import fi.hiit.complesense.connection.local.GroupOwnerConnectionRunnable;
+import fi.hiit.complesense.connection.ConnectionRunnable;
 
 /**
  * Created by hxguo on 7/11/14.
@@ -11,10 +11,10 @@ public class ScheduledQueryTask extends TimerTask
 {
 
     private static final String TAG = "ScheduledQueryTask";
-    private final GroupOwnerConnectionRunnable runnable;
+    private final ConnectionRunnable runnable;
     private final GroupOwnerManager groupOwnerManager;
 
-    public ScheduledQueryTask(GroupOwnerConnectionRunnable runnable,
+    public ScheduledQueryTask(ConnectionRunnable runnable,
                               GroupOwnerManager groupOwnerManager)
     {
         this.runnable = runnable;

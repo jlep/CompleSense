@@ -9,24 +9,25 @@ import java.net.Socket;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractSocketHandler;
+import fi.hiit.complesense.connection.ConnectionRunnable;
+import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.LocalManager;
+import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by hxguo on 7/22/14.
  */
-public class CloudSocketHandler extends AbstractSocketHandler
+public class CloudSocketHandler extends AbstractSystemThread
 {
     private static final String TAG = "CloudSocketHandler";
-    private final LocalManager localManager;
-    private CloudConnectionRunnable cloudConnectionRunnable;
+    private ConnectionRunnable cloudConnectionRunnable;
     private Thread mThread;
 
 
     public CloudSocketHandler(Messenger remoteMessenger,
-                              LocalManager localManager)
+                              ServiceHandler serviceHandler)
     {
-        super(remoteMessenger);
-        this.localManager = localManager;
+        super(serviceHandler);
     }
 
     @Override
@@ -41,33 +42,40 @@ public class CloudSocketHandler extends AbstractSocketHandler
             socket.connect(cloudSocketAddr,5000);
             Log.i(TAG, "Connecting to cloud...");
 
-            cloudConnectionRunnable = new CloudConnectionRunnable(socket,
-                    localManager, remoteMessenger);
+            cloudConnectionRunnable = new ConnectionRunnable(serviceHandler, socket);
             mThread = new Thread(cloudConnectionRunnable);
             mThread.start();
         }
         catch (IOException e)
         {
             Log.i(TAG, e.toString() );
-            AbstractSocketHandler.closeSocket(socket);
+            try {
+                socket.close();
+            } catch (IOException e1) {
+                Log.i(TAG,e.toString());
+            }
             return;
         }
 
     }
 
-    @Override
-    public void stopHandler()
+    public ConnectionRunnable getCloudConnection()
     {
-        Log.i(TAG, "stopHandler()");
+        return cloudConnectionRunnable;
+    }
+
+    @Override
+    public void stopThread() {
+        Log.i(TAG, "stopThread()");
         if(cloudConnectionRunnable!=null)
         {
-            cloudConnectionRunnable.signalStop();
+            cloudConnectionRunnable.stopRunnable();
             mThread.interrupt();
         }
     }
 
-    public CloudConnectionRunnable getCloudConnection()
-    {
-        return cloudConnectionRunnable;
+    @Override
+    public void pauseThread() {
+
     }
 }

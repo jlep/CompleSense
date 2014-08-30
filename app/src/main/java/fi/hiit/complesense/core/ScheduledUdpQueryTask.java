@@ -32,10 +32,10 @@ public class ScheduledUdpQueryTask extends TimerTask
     public void run()
     {
         //Log.i(TAG, "run()");
-        //sendSensorQueryMessage();
-        ArrayDeque<String> hops = selectHopsMeasureRtt();
+        sendSensorQueryMessage();
+        //ArrayDeque<String> hops = selectHopsMeasureRtt();
         //Log.i(TAG, "Selected hops: " + hops.toString());
-        groupOwnerManager.sendMeasureRTTRequest(hops);
+        //groupOwnerManager.sendMeasureRTTRequest(hops);
     }
 
     private ArrayDeque<String> selectHopsMeasureRtt()

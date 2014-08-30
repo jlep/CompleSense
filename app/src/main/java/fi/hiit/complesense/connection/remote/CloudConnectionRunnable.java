@@ -78,7 +78,6 @@ public class CloudConnectionRunnable implements Runnable
             }
         }
 
-        AbstractSocketHandler.closeSocket(socket);
         Log.w(TAG,"Terminates!!!");
     }
 

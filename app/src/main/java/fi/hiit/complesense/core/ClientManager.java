@@ -34,7 +34,7 @@ public class ClientManager extends LocalManager
 
         if(connect2Cloud)
         {
-            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, this);
+            cloudSocketHandler = new CloudSocketHandler(remoteMessenger, null);
             cloudSocketHandler.start();
         }
     }

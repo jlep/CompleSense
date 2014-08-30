@@ -1,57 +1,21 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Messenger;
-import android.util.Log;
-
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.Timer;
+import fi.hiit.complesense.core.ServiceHandler;
 
 /**
- * Created by hxguo on 7/14/14.
- * Abstract Class for handling socket connections
+ * Created by hxguo on 20.8.2014.
  */
 public abstract class AbstractSocketHandler extends Thread
 {
-    private static final String TAG = AbstractSocketHandler.class.getSimpleName();
-    protected final Timer timer;
-    protected Messenger remoteMessenger;
+    private static final String TAG = "AbstractSocketHandler";
+    protected ServiceHandler serviceHandler;
 
-    protected AbstractSocketHandler(Messenger messenger)
+    protected AbstractSocketHandler(ServiceHandler serviceHandler)
     {
-        remoteMessenger = messenger;
-        timer = new Timer();
+        this.serviceHandler = serviceHandler;
     }
-
 
     @Override
     public abstract void run();
     public abstract void stopHandler();
-
-    public static void closeSocket(ServerSocket socket)
-    {
-        Log.i(TAG, "closeSocket(ServerSocket)");
-        try
-        {
-            if (socket != null && !socket.isClosed())
-                socket.close();
-        } catch (IOException e)
-        {
-            Log.e(TAG, e.toString());
-        }
-    }
-
-    public static void closeSocket(Socket socket)
-    {
-        Log.i(TAG,"closeSocket(Socket)");
-        try
-        {
-            if (socket != null && !socket.isClosed())
-                socket.close();
-        } catch (IOException e)
-        {
-            Log.e(TAG, e.toString());
-        }
-    }
 }

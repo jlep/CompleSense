@@ -122,18 +122,18 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
                 //write(SystemMessage.makeAudioStreamingRequest(false), remoteSocketAddr);
 
-                //ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
-                //timer.schedule(sTask, 0, 2000);
+                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
+                timer.schedule(sTask, 0, 2000);
 
                 if(groupOwnerManager.getConnectedClients().size() ==2 )
                 {
                     Log.i(TAG,"client size = 2");
-                    //groupOwnerManager.addRelayListenor(remoteSocketAddr.toString(),
-                    //        SystemMessage.TYPE_AUDIO_STREAM);
-                    //write(SystemMessage.makeRelayListenerRequest(), remoteSocketAddr);
+                    groupOwnerManager.addRelayListenor(remoteSocketAddr.toString(),
+                            SystemMessage.TYPE_AUDIO_STREAM);
+                    write(SystemMessage.makeRelayListenerRequest(), remoteSocketAddr);
 
-                    ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
-                    timer.schedule(sTask, 0, 2000);
+                    //ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
+                    //timer.schedule(sTask, 0, 2000);
                 }
 
                 break;
