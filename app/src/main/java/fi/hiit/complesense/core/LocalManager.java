@@ -94,13 +94,13 @@ public abstract class LocalManager
 
     public float[] getSensorValues(int sensorType)
     {
-        if (null==sensorUtil.getLocalSensorValues(sensorType))
+        if (null==sensorUtil.getLocalSensorValue(sensorType))
         {
             // Sensor Listener not installed yet
             sensorUtil.registerSensorListener(sensorType);
         }
 
-        return sensorUtil.getLocalSensorValues(sensorType);
+        return sensorUtil.getLocalSensorValue(sensorType);
     }
 
 
@@ -124,7 +124,7 @@ public abstract class LocalManager
 
     public List<Integer> getLocalSensorList()
     {
-        return SensorUtil.getLocalSensorTypeList(context);
+        return sensorUtil.getLocalSensorTypeList();
     }
 
 

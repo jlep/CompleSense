@@ -183,9 +183,9 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.N, payload);
     }
 
-    public static SystemMessage makeAudioStreamingRequest( int relayPort)
+    public static SystemMessage makeAudioStreamingRequest(int port2send)
     {
-        byte[] payload = int2Bytes( relayPort);
+        byte[] payload = int2Bytes( port2send);
 
         return new SystemMessage(SystemMessage.O, payload);
     }

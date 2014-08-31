@@ -52,7 +52,7 @@ public class GroupOwnerManager extends LocalManager
 
         // Register local sensors
         registerSensors(LocalManager.KEY_LOCAL_SOCKET,
-                SensorUtil.getLocalSensorTypeList(context));
+                sensorUtil.getLocalSensorTypeList());
     }
 
     @Override

@@ -184,7 +184,7 @@ public class Acceptor extends AbstractSystemThread
     @Override
     public void stopThread()
     {
-        Log.i(TAG, "stopHandler()");
+        Log.i(TAG, "stopThread()");
         running = false;
         cancelWaitingThreads();
         cancelBlockedThreads();

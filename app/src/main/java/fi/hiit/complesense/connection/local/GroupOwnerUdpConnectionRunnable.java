@@ -1,24 +1,18 @@
 package fi.hiit.complesense.connection.local;
 
 import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.SocketException;
-import java.util.ArrayDeque;
 import java.util.List;
-import java.util.Set;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
 import fi.hiit.complesense.core.ScheduledUdpQueryTask;
 import fi.hiit.complesense.core.SystemMessage;
-import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 7/22/14.
@@ -122,7 +116,8 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
 
                 //write(SystemMessage.makeAudioStreamingRequest(false), remoteSocketAddr);
 
-                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
+                /*
+                ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr, sType);
                 timer.schedule(sTask, 0, 2000);
 
                 if(groupOwnerManager.getConnectedClients().size() ==2 )
@@ -135,7 +130,7 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
                     //ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(this, groupOwnerManager, remoteSocketAddr);
                     //timer.schedule(sTask, 0, 2000);
                 }
-
+*/
                 break;
             case SystemMessage.RTT:
                 forwardRttQuery(sm.getPayload(),remoteSocketAddr);

@@ -1,4 +1,4 @@
-package fi.hiit.complesense.connection.remote;
+package fi.hiit.complesense.connection;
 
 import android.os.Messenger;
 import android.util.Log;
@@ -11,37 +11,22 @@ import java.util.Timer;
 
 import fi.hiit.complesense.connection.AbstractSocketHandler;
 import fi.hiit.complesense.core.LocalManager;
+import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 7/22/14.
  */
-public class CloudConnectionRunnable implements Runnable
+public class CloudConnectionRunnable extends ConnectionRunnable
 {
     private static final String TAG = "CloudConnectionRunnable";
-    private final LocalManager localManager;
-    private final OutputStream oStream;
-    private final InputStream iStream;
-    private final Messenger remoteMessenger;
-    private final Socket socket;
-    private final Timer timer;
 
-    public CloudConnectionRunnable(Socket socket, LocalManager localManager,
-                                    Messenger  messenger) throws IOException
+    public CloudConnectionRunnable(ServiceHandler serviceHandler, Socket socket) throws IOException
     {
-        this.localManager = localManager;
-        timer = new Timer();
-        this.socket = socket;
-        remoteMessenger = messenger;
-
-        oStream = socket.getOutputStream();
-        //Log.i(TAG,"Object output streams are initialized");
-        iStream = socket.getInputStream();
-        //Log.i(TAG,"Object input streams are initialized");
-        Log.i(TAG,"Input/output streams are initialized");
+        super(serviceHandler, socket);
     }
 
-
+    @Override
     public void run()
     {
         Log.i(TAG, "run()");
@@ -81,17 +66,6 @@ public class CloudConnectionRunnable implements Runnable
         Log.w(TAG,"Terminates!!!");
     }
 
-    protected void parseSystemMessage(SystemMessage sm)
-    {
-        float[] values;
-        switch (sm.getCmd())
-        {
-            default:
-                break;
-        }
-
-    }
-
     public void write(String msg)
     {
         Log.i(TAG, "write("+msg+")");
@@ -103,15 +77,4 @@ public class CloudConnectionRunnable implements Runnable
         }
     }
 
-    public void signalStop()
-    {
-        Log.i(TAG,"signalStop()");
-        try {
-            timer.cancel();
-            iStream.close();
-            oStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

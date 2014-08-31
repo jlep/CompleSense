@@ -30,4 +30,8 @@ public class SensorValues
         this.values[1] = values[1];
         this.values[2] = values[2];
     }
+    public float[] getValues()
+    {
+        return values;
+    }
 }

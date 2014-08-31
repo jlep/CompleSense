@@ -92,7 +92,7 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 //Log.i(TAG,rootDir);
                 //String audioFilePath = rootDir + "/Music/romance.wav";
                 //Log.i(TAG,audioFilePath);
-                updateStatusTxt(remoteSocketAddr.toString() + "->" + sm.toString());
+                updateStatusTxt("From " + remoteSocketAddr.toString() + " receive " + sm.toString());
                 // request send audio streaming
                 //audioStreamThread = AudioShareManager.sendAudioThread(audioFilePath, remoteSocketAddr.getAddress() );
                 int relayPort = SystemMessage.byteArray2Int(sm.getPayload());
@@ -102,8 +102,8 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 String host = SystemUtil.getHost(socketAddrStr);
                 Log.i(TAG,"remote host is " + host);
 
-                audioStreamThread = AudioShareManager.getSendMicAudioThread(new InetSocketAddress(host, relayPort));
-                audioStreamThread.start();
+                //audioStreamThread = AudioShareManager.getSendMicAudioThread(new InetSocketAddress(host, relayPort));
+                //audioStreamThread.start();
 
                 break;
 
@@ -111,9 +111,9 @@ public class ClientUdpConnectionRunnable extends AbstractUdpConnectionRunnable
                 // relay sender is ready
                 updateStatusTxt(remoteSocketAddr.toString() + "->" + sm.toString());
 
-                audioStreamThread = AudioShareManager.getReceiveAudioThread();
-                audioStreamThread.start();
-                write(SystemMessage.makeRelayListenerReply(), remoteSocketAddr);
+                //audioStreamThread = AudioShareManager.getReceiveAudioThread();
+                //audioStreamThread.start();
+                //write(SystemMessage.makeRelayListenerReply(), remoteSocketAddr);
 
                 break;
             case SystemMessage.R:

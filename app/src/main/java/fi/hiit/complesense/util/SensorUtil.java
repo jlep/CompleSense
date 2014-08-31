@@ -12,22 +12,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import fi.hiit.complesense.core.SensorValues;
+
 /**
  * Created by hxguo on 7/15/14.
  */
 public class SensorUtil implements SensorEventListener
 {
     public static final String TAG ="SensorUtil";
-    private SensorManager mSensorManager;
+    public static final String KEY_LOCAL_SOCKET = "/0.0.0.0";
 
-    private Map<Integer, float[]> localSensorValues;
+    private final SensorManager mSensorManager;
+    // All sensor values stored by local device, values can be retrieved from
+    // server too
+    protected Map<String, SensorValues> sensorValues; //Map<socketAddress:sensor_type, []>
+
 
 
     public SensorUtil(Context context)
     {
         mSensorManager = (SensorManager)
                 context.getSystemService(Context.SENSOR_SERVICE);
-        localSensorValues = new ConcurrentHashMap<Integer, float[]>();
+        sensorValues = new ConcurrentHashMap<String, SensorValues>();
+
     }
 
     public void registerSensorListener(int sensorType)
@@ -36,6 +43,7 @@ public class SensorUtil implements SensorEventListener
         mSensorManager.registerListener(this,
                 mSensorManager.getDefaultSensor(sensorType),
                 SensorManager.SENSOR_DELAY_NORMAL);
+
     }
 
     public void unregisterSensorListener()
@@ -43,15 +51,43 @@ public class SensorUtil implements SensorEventListener
         mSensorManager.unregisterListener(this);
     }
 
-
-    public float[] getLocalSensorValues(int sensorType)
+    public void setSensorValue(float[] values, int sensorType, String srcSocketAddr)
     {
-        return localSensorValues.get(sensorType);
+        String key = SensorValues.genKey(srcSocketAddr, sensorType);
+        SensorValues sv = sensorValues.get(key);
+        if(sv==null)
+        {
+            sensorValues.put(key, new SensorValues(srcSocketAddr, sensorType,values));
+        }
+        else
+            sv.setValues(values);
     }
 
-    private void setLocalSensorValues(int type, float[] values)
+    public float[] getSensorValue(String srcSocketAddr, int sensorType)
     {
-        localSensorValues.put(type, values);
+        String key = SensorValues.genKey(srcSocketAddr, sensorType);
+        return ((SensorValues)sensorValues.get(key)).getValues();
+    }
+
+
+    public float[] getLocalSensorValue(int sensorType)
+    {
+        String key = KEY_LOCAL_SOCKET+"::"+ Integer.toString(sensorType);
+
+        if (null==sensorValues.get(key))
+        {
+            // Sensor Listener not installed yet
+            registerSensorListener(sensorType);
+            return null;
+        }
+        return ((SensorValues)sensorValues.get(key)).getValues();
+    }
+
+    private void setLocalSensorValue(int type, float[] values)
+    {
+        SensorValues sv = new SensorValues(KEY_LOCAL_SOCKET, type, values);
+        //Log.i(TAG, KEY_LOCAL_SOCKET+"::"+Integer.toString(type));
+        sensorValues.put(KEY_LOCAL_SOCKET+"::"+Integer.toString(type), sv);
     }
 
     @Override
@@ -61,7 +97,7 @@ public class SensorUtil implements SensorEventListener
         for(int i=0;i< values.length;i++)
             values[i] = event.values[i];
 
-        setLocalSensorValues(event.sensor.getType(),values);
+        setLocalSensorValue(event.sensor.getType(),values);
     }
 
     @Override
@@ -100,18 +136,16 @@ public class SensorUtil implements SensorEventListener
         return sensorsNameList;
     }
 
-    public static List<Integer> getLocalSensorTypeList(Context context)
+    public List<Integer> getLocalSensorTypeList()
     {
-        SensorManager sensorManager = (SensorManager)
-                context.getSystemService(Context.SENSOR_SERVICE);
-        List<Sensor> allSensorsList = sensorManager.getSensorList(Sensor.TYPE_ALL);
+        List<Sensor> allSensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
         List<Integer> sensorsTypeList = new ArrayList<Integer>();
 
         //Log.i(TAG, "Total number of sensors = " + allSensorsList.size());
 
         for (int i = 0; i < allSensorsList.size(); i++) {
             //Log.i(TAG, "all sensor type = " + i);
-            if (sensorManager.getDefaultSensor(i) != null) {
+            if (mSensorManager.getDefaultSensor(i) != null) {
                 // Success! There's a such sensor
                 sensorsTypeList.add(i);
             }
@@ -121,5 +155,24 @@ public class SensorUtil implements SensorEventListener
     }
 
 
+    public static List<Integer> getLocalSensorTypeList(Context context)
+    {
+        SensorManager mSensorManager = (SensorManager)
+                context.getSystemService(Context.SENSOR_SERVICE);
 
+        List<Sensor> allSensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+        List<Integer> sensorsTypeList = new ArrayList<Integer>();
+
+        //Log.i(TAG, "Total number of sensors = " + allSensorsList.size());
+
+        for (int i = 0; i < allSensorsList.size(); i++) {
+            //Log.i(TAG, "all sensor type = " + i);
+            if (mSensorManager.getDefaultSensor(i) != null) {
+                // Success! There's a such sensor
+                sensorsTypeList.add(i);
+            }
+        }
+
+        return sensorsTypeList;
+    }
 }

@@ -30,12 +30,13 @@ public class AudioShareManager
     static final int SAMPLE_SIZE = 2; // bytes per sample
     static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 2;
 
-    public static AbstractStoppableThread getReceiveAudioThread()
+    public static ReceiveAudioThread getReceiveAudioThread(
+            final ServiceHandler serviceHandler)
     {
-        AbstractStoppableThread thrd = null;
+        ReceiveAudioThread thrd = null;
         try
         {
-            thrd = new ReceiveAudioThread();
+            thrd = new ReceiveAudioThread(serviceHandler);
         } catch (SocketException e) {
             Log.i(TAG,e.toString());
         }
@@ -43,13 +44,20 @@ public class AudioShareManager
 
     }
 
-    static class ReceiveAudioThread extends AbstractStoppableThread
+    public static class ReceiveAudioThread extends AbstractSystemThread
     {
+        public static final String TAG = "ReceiveAudioThread";
         private final DatagramSocket socket;
 
-        public ReceiveAudioThread() throws SocketException
+        public ReceiveAudioThread(ServiceHandler serviceHandler) throws SocketException
         {
-            socket = new DatagramSocket(AUDIO_PORT);
+            super(serviceHandler);
+            socket = new DatagramSocket();
+        }
+
+        public int getLocalPort()
+        {
+            return socket.getLocalPort();
         }
 
         @Override
@@ -97,27 +105,36 @@ public class AudioShareManager
             if(socket!=null)
                 socket.close();
         }
+
+        @Override
+        public void pauseThread() {
+
+        }
     }
 
 
-    public static AbstractStoppableThread getSendMicAudioThread(final SocketAddress remoteSocketAddr)
+    public static SendMicAudioThread getSendMicAudioThread(
+            final SocketAddress remoteSocketAddr, final ServiceHandler serviceHandler)
     {
-        AbstractStoppableThread thrd = null;
+        SendMicAudioThread thrd = null;
         try {
-            thrd = new SendMicAudioThread(remoteSocketAddr);
+            thrd = new SendMicAudioThread(remoteSocketAddr, serviceHandler);
         } catch (SocketException e) {
             Log.i(TAG,e.toString());
         }
         return thrd;
     }
 
-    static class SendMicAudioThread extends AbstractStoppableThread
+    public static class SendMicAudioThread extends AbstractSystemThread
     {
+        public static final String TAG = "SendMicAudioThread";
         private final SocketAddress remoteSocketAddr;
         private final DatagramSocket socket;
 
-        public SendMicAudioThread(SocketAddress remoteSocketAddr) throws SocketException
+        public SendMicAudioThread(SocketAddress remoteSocketAddr,
+                                  ServiceHandler serviceHandler) throws SocketException
         {
+            super(serviceHandler);
             socket = new DatagramSocket();
             this.remoteSocketAddr = remoteSocketAddr;
         }
@@ -182,6 +199,11 @@ public class AudioShareManager
         {
             if(socket!=null)
                 socket.close();
+        }
+
+        @Override
+        public void pauseThread() {
+
         }
     }
 

@@ -15,13 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.Acceptor;
-import fi.hiit.complesense.connection.Connector;
-import fi.hiit.complesense.core.AbstractSystemThread;
-import fi.hiit.complesense.core.ClientManager;
-import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
-import fi.hiit.complesense.core.LocalDeviceManager;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 import fi.hiit.complesense.util.SensorUtil;
@@ -35,13 +30,14 @@ public class TestingService extends AbstractGroupService
     public static final int NUM_CLIENTS = 1;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
-    private ArrayList<LocalDeviceManager> clientsList;
-    private LocalDeviceManager serverManager;
+    private ArrayList<ServiceHandler> clientsList;
 
     private static final String TAG = "TestingService";
     // Binder given to clients
     private InetAddress localHost;
     private Messenger uiMessenger;
+
+    GroupOwnerServiceHandler ownerServiceHanlder;
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
@@ -80,7 +76,7 @@ public class TestingService extends AbstractGroupService
     public void onCreate()
     {
         Log.i(TAG,"onCreate()");
-        clientsList = new ArrayList<LocalDeviceManager>(NUM_CLIENTS);
+        clientsList = new ArrayList<ServiceHandler>(NUM_CLIENTS);
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -111,6 +107,7 @@ public class TestingService extends AbstractGroupService
     public void testSensorListParsing()
     {
         Log.i(TAG,"testSensorListParsing()");
+
         List<Integer> sList= SensorUtil.getLocalSensorTypeList(getApplicationContext());
         Log.i(TAG,sList.toString());
 
@@ -177,23 +174,25 @@ public class TestingService extends AbstractGroupService
 
         //serverManager = new GroupOwnerManager(mMessenger,
         //        getApplication(), false);
-        GroupOwnerServiceHandler ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger, "Testing Service Handler");
-        ServiceHandler clientServiceHanlder = new ServiceHandler(mMessenger, "Testing Service Handler");
+        ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
+                "GroupOwner Handler", getApplicationContext());
 
-        Log.i(TAG,"Creating GroupOwner thread");
-        serverManager = new LocalDeviceManager(mMessenger, ownerServiceHanlder, null);
-        serverManager.start();
+        Log.i(TAG, "Creating GroupOwner thread");
+        ownerServiceHanlder.startServiveHandler();
 
         for(int i=0;i<NUM_CLIENTS;i++)
         {
             Log.i(TAG,"Creating client thread");
-            clientsList.add(new LocalDeviceManager(mMessenger, clientServiceHanlder, localHost));
+            int delay = (int)(1000 * Math.random());
+
+            clientsList.add(new ClientServiceHandler(mMessenger,
+                    "Client Handler", getApplicationContext(), localHost, delay));
         }
 
         for(int i=0;i<NUM_CLIENTS;i++)
         {
             Log.i(TAG, "Starting client thread");
-            clientsList.get(i).start();
+            clientsList.get(i).startServiveHandler();
         }
     }
 
@@ -214,10 +213,10 @@ public class TestingService extends AbstractGroupService
         for(int i=0;i<NUM_CLIENTS;i++)
         {
             Log.i(TAG, "Stopping client thread");
-            clientsList.get(i).stop();
+            clientsList.get(i).stopServiceHandler();
         }
         clientsList.clear();
-        serverManager.stop();
+        ownerServiceHanlder.stopServiceHandler();
 
     }
 

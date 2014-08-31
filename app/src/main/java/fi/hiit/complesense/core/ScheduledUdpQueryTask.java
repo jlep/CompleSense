@@ -6,6 +6,7 @@ import java.net.SocketAddress;
 import java.util.ArrayDeque;
 import java.util.TimerTask;
 
+import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.connection.local.GroupOwnerUdpConnectionRunnable;
 
 /**
@@ -15,17 +16,19 @@ public class ScheduledUdpQueryTask extends TimerTask
 {
 
     private static final String TAG = "ScheduledQueryTask";
-    private final GroupOwnerUdpConnectionRunnable runnable;
-    private final GroupOwnerManager groupOwnerManager;
+    private final UdpConnectionRunnable runnable;
+    private final ServiceHandler serviceHandler;
     private final SocketAddress remoteSocketAddr;
+    private final int sensorType;
 
-    public ScheduledUdpQueryTask(GroupOwnerUdpConnectionRunnable runnable,
-                              GroupOwnerManager groupOwnerManager,
-                              SocketAddress remoteSocketAddr)
+    public ScheduledUdpQueryTask(UdpConnectionRunnable runnable,
+                                 ServiceHandler serviceHandler,
+                                 SocketAddress remoteSocketAddr, int sensorType)
     {
         this.runnable = runnable;
-        this.groupOwnerManager = groupOwnerManager;
+        this.serviceHandler = serviceHandler;
         this.remoteSocketAddr = remoteSocketAddr;
+        this.sensorType = sensorType;
     }
 
     @Override
@@ -38,6 +41,7 @@ public class ScheduledUdpQueryTask extends TimerTask
         //groupOwnerManager.sendMeasureRTTRequest(hops);
     }
 
+    /*
     private ArrayDeque<String> selectHopsMeasureRtt()
     {
         Object[] hopsStr = groupOwnerManager.getConnectedClients().toArray();
@@ -48,11 +52,10 @@ public class ScheduledUdpQueryTask extends TimerTask
 
         return hops;
     }
-
+    */
     private void sendSensorQueryMessage()
     {
-        int sType = groupOwnerManager.getSelectedSensor(remoteSocketAddr.toString());
         //Log.i(TAG, "sType: " + sType);
-        runnable.write(SystemMessage.makeSensorDataQueryMessage(sType), remoteSocketAddr);
+        runnable.write(SystemMessage.makeSensorDataQueryMessage(sensorType), remoteSocketAddr);
     }
 }
