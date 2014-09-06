@@ -36,17 +36,19 @@ public class ConnectionRunnable implements Runnable, Handler.Callback
     public ConnectionRunnable(ServiceHandler serviceHandler,
                               Socket socket) throws IOException
     {
+
+        Log.i(TAG,"ConnectionRunnable()");
         THREAD_ID = Thread.currentThread().getId();
 
         this.serviceHandler = serviceHandler;
         this.socket = socket;
 
         oStream = new ObjectOutputStream(socket.getOutputStream());
-        write("");
+        //write("");
         //Log.i(TAG,"Object output streams are initialized");
         iStream = new ObjectInputStream(socket.getInputStream());
         //Log.i(TAG,"Object input streams are initialized");
-        Log.i(TAG,"Object streams are initialized");
+        Log.e(TAG,"Object streams are initialized");
 
         HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
         handlerThread.start();
@@ -106,6 +108,19 @@ public class ConnectionRunnable implements Runnable, Handler.Callback
         msg.obj = sm;
         msg.replyTo = mMessenger;
         msg.sendToTarget();
+    }
+
+    public void write(byte[] bytes)
+    {
+        //Log.i(TAG, "write()");
+        try
+        {
+            //oStream.write(msg.getBytes());
+            oStream.write(bytes);
+            oStream.flush();
+        } catch (IOException e) {
+            Log.e(TAG, "Exception during write", e);
+        }
     }
 
 

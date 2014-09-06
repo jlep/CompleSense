@@ -15,11 +15,9 @@ import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorUDP;
-import fi.hiit.complesense.connection.ConnectionRunnable;
 import fi.hiit.complesense.connection.ConnectorCloud;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
@@ -57,9 +55,12 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
         if(isGroupOwner)
         {
             AcceptorUDP acceptor = null;
+            ConnectorCloud connectorCloud = new ConnectorCloud(this);
             try {
                 acceptor = new AcceptorUDP(serviceMessenger, this);
                 eventHandlingThreads.put(AcceptorUDP.TAG, acceptor);
+                eventHandlingThreads.put(ConnectorCloud.TAG, connectorCloud);
+
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
 
@@ -164,12 +165,13 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
                     str += Float.toString(f);
                     str +=", ";
                 }
-                cloudConnector.getConnectionRunnable().write(str);
+                //cloudConnector.getConnectionRunnable().write(str, cloudConnector.getCloudSocketAddr() );
+                //cloudConnector.getConnectionRunnable().write(str.getBytes());
             }
         }
     }
 
-    protected void updateStatusTxt(String str)
+    public void updateStatusTxt(String str)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();

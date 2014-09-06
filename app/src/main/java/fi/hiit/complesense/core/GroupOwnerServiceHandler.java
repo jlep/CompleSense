@@ -1,17 +1,15 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
-import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
 import java.net.SocketAddress;
-import java.net.SocketException;
 import java.util.List;
 import java.util.Timer;
 
 import fi.hiit.complesense.connection.AcceptorUDP;
-import fi.hiit.complesense.connection.ConnectorUDP;
+import fi.hiit.complesense.connection.ConnectorCloud;
 
 /**
  * Created by hxguo on 21.8.2014.
@@ -28,7 +26,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
         timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
+
     }
+
+
 
     @Override
     protected void handleSystemMessage(SystemMessage sm, SocketAddress fromAddr)
@@ -88,6 +89,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                     }
                 }
 
+                /*
                 // create streaming recv thread
                 try {
                     AudioShareManager.ReceiveAudioThread recvAudioThread =
@@ -104,6 +106,29 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 } catch (SocketException e) {
                     e.printStackTrace();
                 }
+*/
+
+                ConnectorCloud connectorCloud = (ConnectorCloud)eventHandlingThreads.get(ConnectorCloud.TAG);
+                if(connectorCloud!=null)
+                {
+
+                    AudioShareManager.RelayAudioHttpThread relayAudioHttpThread =
+                            AudioShareManager.getHttpRelayAudioThread(fromAddr, connectorCloud,this);
+
+                    int recvPort = relayAudioHttpThread.getLocalPort();
+
+                    eventHandlingThreads.put(AudioShareManager.RelayAudioHttpThread.TAG,
+                            relayAudioHttpThread);
+                    relayAudioHttpThread.start();
+
+                    acceptorUDP.getConnectionRunnable().write(
+                            SystemMessage.makeAudioStreamingRequest(recvPort), fromAddr);
+                }
+                else
+                {
+                    Log.e(TAG,"connectorCloud is null");
+                }
+
 
                 break;
             case SystemMessage.RTT:

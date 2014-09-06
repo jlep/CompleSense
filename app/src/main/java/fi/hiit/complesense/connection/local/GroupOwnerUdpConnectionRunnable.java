@@ -9,9 +9,7 @@ import java.net.SocketAddress;
 import java.util.List;
 
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
-import fi.hiit.complesense.core.AudioShareManager;
 import fi.hiit.complesense.core.GroupOwnerManager;
-import fi.hiit.complesense.core.ScheduledUdpQueryTask;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
@@ -85,12 +83,14 @@ public class GroupOwnerUdpConnectionRunnable extends AbstractUdpConnectionRunnab
                 SocketAddress senderAddr = groupOwnerManager.selectAudioStreamSender();
                 Log.i(TAG,"Relay sender Addr: " + senderAddr.toString());
 
+                /*
                 if(senderAddr!=null)
                 {
                     audioStreamThread = AudioShareManager.getRelayAudioThread(senderAddr, remoteSocketAddr,
                             GroupOwnerUdpConnectionRunnable.this);
                     audioStreamThread.start();
                 }
+                **/
                 break;
 
             case SystemMessage.V:

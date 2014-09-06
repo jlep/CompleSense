@@ -8,15 +8,20 @@ import android.media.MediaRecorder;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import fi.hiit.complesense.connection.AbstractStoppableThread;
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
+import fi.hiit.complesense.connection.ConnectionRunnable;
+import fi.hiit.complesense.connection.ConnectorCloud;
 
 /**
  * Created by hxguo on 8/4/14.
@@ -209,14 +214,15 @@ public class AudioShareManager
 
 
 
-    public static AbstractStoppableThread getRelayAudioThread(final SocketAddress senderSocketAddr,
+    public static RelayAudioThread getRelayAudioThread(final SocketAddress senderSocketAddr,
                                              final SocketAddress receiverSocketAddr,
-                                             final AbstractUdpConnectionRunnable parentThread)
+                                             final AbstractUdpConnectionRunnable parentThread,
+                                             final ServiceHandler serviceHandler)
     {
-        AbstractStoppableThread thrd = null;
+        RelayAudioThread thrd = null;
         try {
             thrd = new RelayAudioThread(senderSocketAddr,
-                    receiverSocketAddr, parentThread);
+                    receiverSocketAddr, parentThread, serviceHandler);
         } catch (SocketException e)
         {
             Log.i(TAG,e.toString());
@@ -224,7 +230,7 @@ public class AudioShareManager
         return thrd;
     }
 
-    static class RelayAudioThread extends AbstractStoppableThread
+    public static class RelayAudioThread extends AbstractSystemThread
     {
         private final SocketAddress senderSocketAddr;
         private final SocketAddress receiverSocketAddr;
@@ -233,7 +239,10 @@ public class AudioShareManager
 
         public RelayAudioThread(SocketAddress senderSocketAddr,
                                 SocketAddress receiverSocketAddr,
-                                AbstractUdpConnectionRunnable parentThread) throws SocketException {
+                                AbstractUdpConnectionRunnable parentThread,
+                                ServiceHandler serviceHandler) throws SocketException
+        {
+            super(serviceHandler);
             this.senderSocketAddr = senderSocketAddr;
             this.receiverSocketAddr = receiverSocketAddr;
             this.parentThread = parentThread;
@@ -293,7 +302,119 @@ public class AudioShareManager
             if(sendSocket!=null)
                 sendSocket.close();
         }
+
+        @Override
+        public void pauseThread() {
+
+        }
+    }
+
+    public static RelayAudioHttpThread getHttpRelayAudioThread(final SocketAddress senderSocketAddr,
+                                                               final ConnectorCloud connectorCloud,
+                                                       final ServiceHandler serviceHandler)
+    {
+        RelayAudioHttpThread thrd = null;
+        try {
+            thrd = new RelayAudioHttpThread(senderSocketAddr, connectorCloud,
+                    serviceHandler);
+        } catch (IOException e) {
+            Log.i(TAG,e.toString());
+        }
+        return thrd;
     }
 
 
+    public static class RelayAudioHttpThread extends AbstractSystemThread
+    {
+        public static final String TAG = "RelayAudioHttpThread";
+
+        private final SocketAddress senderSocketAddr;
+        private final ConnectorCloud connectorCloud;
+        DatagramSocket recvSocket;
+        byte[] buf = new byte[BUF_SIZE];
+        ConnectionRunnable connectionRunnable;
+        final Socket socket;
+        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL,
+                                                      Constants.CLOUD_SERVER_PORT);
+
+        private ObjectOutputStream oStream;
+
+
+
+        public RelayAudioHttpThread(SocketAddress senderSocketAddr,
+                                    ConnectorCloud connectorCloud,
+                                    ServiceHandler serviceHandler) throws IOException
+        {
+            super(serviceHandler);
+            this.senderSocketAddr = senderSocketAddr;
+            this.connectorCloud = connectorCloud;
+
+            recvSocket = new DatagramSocket();
+            connectionRunnable = null;
+            socket = new Socket();
+        }
+
+        @Override
+        public void run()
+        {
+            Log.e(TAG, "start RelayAudioHttpThread() thread, thread id: "
+                    + Thread.currentThread().getId());
+            try
+            {
+                socket.connect(cloudSocketAddr);
+                oStream = new ObjectOutputStream(socket.getOutputStream());
+
+
+                while(!Thread.currentThread().isInterrupted())
+                {
+                    DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
+                    recvSocket.receive(pack);
+                    Log.i(TAG, "Relay recv pack: " + pack.getLength());
+                    oStream.write(pack.getData(), 0, pack.getData().length);
+                    oStream.flush();
+                }
+                Log.e(TAG, "getHttpRelayAudioThread() exits loop");
+            }
+            catch (SocketException se)
+            {
+                Log.e(TAG, "getHttpRelayAudioThread(): " + se.toString());
+            }
+            catch (IOException ie)
+            {
+                Log.e(TAG, "getHttpRelayAudioThread(): " + ie.toString());
+            }
+            finally
+            {
+                stopThread();
+            }
+        } // end run
+
+        public int getLocalPort()
+        {
+            return recvSocket.getLocalPort();
+        }
+
+        @Override
+        public void stopThread()
+        {
+            if(recvSocket!=null)
+                recvSocket.close();
+
+            if(oStream!=null)
+            {
+                try {
+                    oStream.flush();
+                    oStream.close();
+                } catch (IOException e) {
+                    Log.i(TAG,e.toString());
+                }
+            }
+
+        }
+
+        @Override
+        public void pauseThread() {
+
+        }
+    }
 }

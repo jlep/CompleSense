@@ -3,6 +3,7 @@ package fi.hiit.complesense.connection;
 import android.util.Log;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -17,42 +18,49 @@ public class ConnectorCloud extends AbstractSystemThread
 {
     public static final String TAG = "ConnectorCloud";
 
-    private CloudConnectionRunnable cloudConnectionRunnable;
+    private InetSocketAddress cloudSocketAddr = null;
+    private ConnectionRunnable cloudConnectionRunnable;
+    //private HttpConnectionRunnable cloudConnectionRunnable;
+    //private HttpStreamingConnection cloudConnectionRunnable;
 
-    protected ConnectorCloud(ServiceHandler serviceHandler)
+    public ConnectorCloud(ServiceHandler serviceHandler)
     {
         super(serviceHandler);
+
     }
 
     @Override
     public void run()
     {
-        Socket socket = new Socket();
-        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL,
+        cloudSocketAddr = new InetSocketAddress(Constants.URL,
                 Constants.CLOUD_SERVER_PORT);
+
+        /*
+        Socket socket = null;
         try
         {
-            socket.bind(null);
-            socket.connect(cloudSocketAddr,5000);
+            socket = new Socket();
+            socket.connect(cloudSocketAddr);
             Log.i(TAG, "Connecting to cloud...");
 
-            cloudConnectionRunnable = new CloudConnectionRunnable(serviceHandler, socket);
-            new Thread(cloudConnectionRunnable).start();
+            //cloudConnectionRunnable = new HttpStreamingConnection(serviceHandler);
+            //cloudConnectionRunnable = new ConnectionRunnable(serviceHandler, socket);
+            //new Thread(cloudConnectionRunnable).start();
         }
         catch (IOException e)
         {
-            Log.i(TAG, e.toString() );
+            Log.e(TAG, e.toString());
             try {
                 socket.close();
             } catch (IOException e1) {
-                Log.i(TAG,e.toString());
+                e1.printStackTrace();
             }
-            return;
         }
+        */
 
     }
 
-    public CloudConnectionRunnable getConnectionRunnable()
+    public ConnectionRunnable getConnectionRunnable()
     {
         return cloudConnectionRunnable;
     }
@@ -70,5 +78,9 @@ public class ConnectorCloud extends AbstractSystemThread
     @Override
     public void pauseThread() {
 
+    }
+
+    public InetSocketAddress getCloudSocketAddr() {
+        return cloudSocketAddr;
     }
 }

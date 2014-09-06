@@ -38,6 +38,7 @@ public class TestingService extends AbstractGroupService
     private Messenger uiMessenger;
 
     GroupOwnerServiceHandler ownerServiceHanlder;
+    private boolean testRunning = false;
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
@@ -164,36 +165,39 @@ public class TestingService extends AbstractGroupService
     public void startTesting(Messenger uiMessenger, int numClients)
     {
         Log.i(TAG,"startTesting(client="+numClients+")");
-
-
-        if(localHost==null)
-            return;
-
-        this.uiMessenger = uiMessenger;
-
-
-        //serverManager = new GroupOwnerManager(mMessenger,
-        //        getApplication(), false);
-        ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
-                "GroupOwner Handler", getApplicationContext());
-
-        Log.i(TAG, "Creating GroupOwner thread");
-        ownerServiceHanlder.startServiveHandler();
-
-        for(int i=0;i<NUM_CLIENTS;i++)
+        if(!testRunning)
         {
-            Log.i(TAG,"Creating client thread");
-            int delay = (int)(1000 * Math.random());
+            testRunning = true;
+            if(localHost==null)
+                return;
 
-            clientsList.add(new ClientServiceHandler(mMessenger,
-                    "Client Handler", getApplicationContext(), localHost, delay));
+            this.uiMessenger = uiMessenger;
+
+
+            //serverManager = new GroupOwnerManager(mMessenger,
+            //        getApplication(), false);
+            ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
+                    "GroupOwner Handler", getApplicationContext());
+
+            Log.i(TAG, "Creating GroupOwner thread");
+            ownerServiceHanlder.startServiveHandler();
+
+            for(int i=0;i<NUM_CLIENTS;i++)
+            {
+                Log.i(TAG,"Creating client thread");
+                int delay = (int)(1000 * Math.random());
+
+                clientsList.add(new ClientServiceHandler(mMessenger,
+                        "Client Handler", getApplicationContext(), localHost, delay));
+            }
+
+            for(int i=0;i<NUM_CLIENTS;i++)
+            {
+                Log.i(TAG, "Starting client thread");
+                clientsList.get(i).startServiveHandler();
+            }
         }
 
-        for(int i=0;i<NUM_CLIENTS;i++)
-        {
-            Log.i(TAG, "Starting client thread");
-            clientsList.get(i).startServiveHandler();
-        }
     }
 
 

@@ -1,5 +1,7 @@
 package fi.hiit.complesense;
 
+import java.net.URL;
+
 /**
  * Created by hxguo on 7/11/14.
  */
@@ -8,6 +10,7 @@ public class Constants
     public static final int SERVER_PORT = 30243; // group owner port
     public static final int CLOUD_SERVER_PORT = 10002; // cloud server port
     public static final String URL = "universe.hiit.fi";// server url
+    public static final String URL_UPLOAD = URL+":"+CLOUD_SERVER_PORT+"/upload/";
     public static final int MAX_BUF = 1024;
 
     public static final String SELF_INFO_UPDATE_ACTION = "fi.hiit.complesense.ui.SELF_INFO_UPDATE_ACTION";
@@ -49,4 +52,6 @@ public class Constants
 
 
     public static final String INIT_CONNECTION = "INIT";
+
+
 }
