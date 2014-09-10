@@ -1,27 +1,42 @@
 package fi.hiit.complesense.core;
 
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
+import android.view.Window;
 
+import org.json.JSONException;
+import org.webrtc.DataChannel;
+import org.webrtc.MediaStream;
+import org.webrtc.PeerConnectionFactory;
+import org.webrtc.VideoRenderer;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.ConnectionRunnable;
 import fi.hiit.complesense.connection.ConnectorCloud;
+import fi.hiit.complesense.connection.UdpConnectionRunnable;
 
 /**
  * Created by hxguo on 8/4/14.
@@ -50,7 +65,7 @@ public class AudioShareManager
     }
 
     public static class ReceiveAudioThread extends AbstractSystemThread
-    {
+        {
         public static final String TAG = "ReceiveAudioThread";
         private final DatagramSocket socket;
 
@@ -115,6 +130,7 @@ public class AudioShareManager
         public void pauseThread() {
 
         }
+
     }
 
 
@@ -133,6 +149,9 @@ public class AudioShareManager
     public static class SendMicAudioThread extends AbstractSystemThread
     {
         public static final String TAG = "SendMicAudioThread";
+
+        private String callerId;
+
         private final SocketAddress remoteSocketAddr;
         private final DatagramSocket socket;
 
@@ -149,6 +168,8 @@ public class AudioShareManager
         {
             Log.e(TAG, "start getSendMicAudioThread() thread, thread id: "
                     + Thread.currentThread().getId());
+            serviceHandler.updateStatusTxt("SendMicAudioThread starts: " + Thread.currentThread().getId());
+
             AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SAMPLE_RATE,
                     AudioFormat.CHANNEL_CONFIGURATION_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
@@ -225,7 +246,7 @@ public class AudioShareManager
                     receiverSocketAddr, parentThread, serviceHandler);
         } catch (SocketException e)
         {
-            Log.i(TAG,e.toString());
+            Log.i(TAG, e.toString());
         }
         return thrd;
     }
@@ -243,6 +264,7 @@ public class AudioShareManager
                                 ServiceHandler serviceHandler) throws SocketException
         {
             super(serviceHandler);
+
             this.senderSocketAddr = senderSocketAddr;
             this.receiverSocketAddr = receiverSocketAddr;
             this.parentThread = parentThread;
@@ -259,8 +281,9 @@ public class AudioShareManager
             try
             {
                 byte[] buf = new byte[BUF_SIZE];
-                parentThread.write(SystemMessage.makeAudioStreamingRequest(recvSocket.getLocalPort()),
-                        senderSocketAddr);
+              //  parentThread.write(SystemMessage.makeAudioStreamingRequest(recvSocket.getLocalPort()),
+                //        senderSocketAddr);
+
 
 
                 while(!Thread.currentThread().isInterrupted())
@@ -309,14 +332,123 @@ public class AudioShareManager
         }
     }
 
+    public static StreamRelayAudioThread getStreamRelayAudioThread(final SocketAddress senderSocketAddr,
+                                                       final ServiceHandler serviceHandler,
+                                                       final UdpConnectionRunnable parentThread)
+    {
+        StreamRelayAudioThread thrd = null;
+        try {
+            thrd = new StreamRelayAudioThread(senderSocketAddr,
+                    parentThread, serviceHandler);
+        } catch (SocketException e)
+        {
+            Log.i(TAG,e.toString());
+        } catch (IOException e) {
+            Log.i(TAG, e.toString());
+        }
+        return thrd;
+    }
+
+    public static class StreamRelayAudioThread extends AbstractSystemThread
+    {
+        public static final String TAG = "StreamRelayAudioThread";
+        private final SocketAddress senderSocketAddr;
+        private final UdpConnectionRunnable parentThread;
+        DatagramSocket recvSocket;
+        private final OutputStream outputStream;
+        private final Socket cloudSocket;
+
+
+
+        public StreamRelayAudioThread(SocketAddress senderSocketAddr,
+                                      UdpConnectionRunnable parentThread,
+                                      ServiceHandler serviceHandler) throws IOException
+        {
+            super(serviceHandler);
+
+            this.senderSocketAddr = senderSocketAddr;
+            this.parentThread = parentThread;
+            recvSocket = new DatagramSocket();
+            cloudSocket = new Socket(Constants.URL, Constants.CLOUD_SERVER_PORT);
+            outputStream = new BufferedOutputStream(cloudSocket.getOutputStream());
+
+        }
+
+        @Override
+        public void run()
+        {
+            Log.e(TAG, "start getRelayAudioThread() thread, thread id: "
+                    + Thread.currentThread().getId());
+
+            serviceHandler.updateStatusTxt("StreamRelayAudioThread starts: "
+                    + Thread.currentThread().getId());
+            try
+            {
+                byte[] buf = new byte[BUF_SIZE];
+                parentThread.write(SystemMessage.makeAudioStreamingRequest(
+                        recvSocket.getLocalPort(),
+                        cloudSocket.getLocalSocketAddress().toString()), senderSocketAddr);
+
+
+                while(!Thread.currentThread().isInterrupted())
+                {
+                    DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
+                    recvSocket.receive(pack);
+                    Log.i(TAG, "Relay recv pack: " + pack.getLength());
+
+                    outputStream.write(pack.getData(), 0, pack.getLength());
+                    outputStream.flush();
+                }
+                Log.e(TAG, "exits loop");
+            }
+            catch (SocketException se)
+            {
+                Log.e(TAG, se.toString());
+            }
+            catch (IOException ie)
+            {
+                Log.e(TAG, ie.toString());
+            }
+            finally{
+                stopThread();
+            }
+        } // end run
+
+
+        @Override
+        public void stopThread()
+        {
+            if(recvSocket!=null)
+                recvSocket.close();
+
+            if(cloudSocket!=null){
+                try {
+                    cloudSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void pauseThread() {
+
+        }
+
+        public int getLocalForeignPort()
+        {
+            return cloudSocket.getLocalPort();
+        }
+    }
+
+
     public static RelayAudioHttpThread getHttpRelayAudioThread(final SocketAddress senderSocketAddr,
-                                                               final ConnectorCloud connectorCloud,
-                                                       final ServiceHandler serviceHandler)
+                                                       final ServiceHandler serviceHandler,
+                                                       final UdpConnectionRunnable localConnectionRunnale)
     {
         RelayAudioHttpThread thrd = null;
         try {
-            thrd = new RelayAudioHttpThread(senderSocketAddr, connectorCloud,
-                    serviceHandler);
+            thrd = new RelayAudioHttpThread(senderSocketAddr, serviceHandler,localConnectionRunnale);
         } catch (IOException e) {
             Log.i(TAG,e.toString());
         }
@@ -328,30 +460,26 @@ public class AudioShareManager
     {
         public static final String TAG = "RelayAudioHttpThread";
 
-        private final SocketAddress senderSocketAddr;
-        private final ConnectorCloud connectorCloud;
+        public final SocketAddress senderSocketAddr;
         DatagramSocket recvSocket;
         byte[] buf = new byte[BUF_SIZE];
         ConnectionRunnable connectionRunnable;
-        final Socket socket;
-        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL,
-                                                      Constants.CLOUD_SERVER_PORT);
 
-        private ObjectOutputStream oStream;
-
-
+        private BufferedOutputStream outputStream;
+        private HttpURLConnection httpURLConnection;
+        private final UdpConnectionRunnable localConnectionRunnale;
 
         public RelayAudioHttpThread(SocketAddress senderSocketAddr,
-                                    ConnectorCloud connectorCloud,
-                                    ServiceHandler serviceHandler) throws IOException
+                                    ServiceHandler serviceHandler,
+                                    UdpConnectionRunnable localConnectionRunnale) throws IOException
         {
             super(serviceHandler);
             this.senderSocketAddr = senderSocketAddr;
-            this.connectorCloud = connectorCloud;
 
             recvSocket = new DatagramSocket();
             connectionRunnable = null;
-            socket = new Socket();
+            outputStream = null;
+            this.localConnectionRunnale = localConnectionRunnale;
         }
 
         @Override
@@ -359,19 +487,26 @@ public class AudioShareManager
         {
             Log.e(TAG, "start RelayAudioHttpThread() thread, thread id: "
                     + Thread.currentThread().getId());
+            URL url = null;
             try
             {
-                socket.connect(cloudSocketAddr);
-                oStream = new ObjectOutputStream(socket.getOutputStream());
+                url = new URL("http://"+ Constants.URL +":"
+                        +Constants.CLOUD_SERVER_PORT + "/");
+                httpURLConnection = (HttpURLConnection) url.openConnection();
+                httpURLConnection.setRequestMethod("POST");
+                outputStream = new BufferedOutputStream(httpURLConnection.getOutputStream());
 
+                // inform peer to start sending audio stream
+                //localConnectionRunnale.write(SystemMessage.makeAudioStreamingRequest(
+                //                recvSocket.getLocalPort()), senderSocketAddr);
 
                 while(!Thread.currentThread().isInterrupted())
                 {
                     DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
                     recvSocket.receive(pack);
                     Log.i(TAG, "Relay recv pack: " + pack.getLength());
-                    oStream.write(pack.getData(), 0, pack.getData().length);
-                    oStream.flush();
+                    if(outputStream!=null)
+                        outputStream.write(pack.getData(), 0, pack.getLength());
                 }
                 Log.e(TAG, "getHttpRelayAudioThread() exits loop");
             }
@@ -399,17 +534,6 @@ public class AudioShareManager
         {
             if(recvSocket!=null)
                 recvSocket.close();
-
-            if(oStream!=null)
-            {
-                try {
-                    oStream.flush();
-                    oStream.close();
-                } catch (IOException e) {
-                    Log.i(TAG,e.toString());
-                }
-            }
-
         }
 
         @Override
@@ -417,4 +541,6 @@ public class AudioShareManager
 
         }
     }
+
+
 }

@@ -6,10 +6,20 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Date;
 
 import fi.hiit.complesense.Constants;
 
@@ -140,5 +150,28 @@ public class SystemUtil {
     {
         int port = Integer.parseInt(socketAddrStr.substring(socketAddrStr.lastIndexOf(":")+1));
         return port;
+    }
+
+    public static void writeLogFile(String startTime, String recvSocketAddr)
+    {
+
+        String fileName = recvSocketAddr + "-" +startTime +".txt";
+        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String filePath = root + fileName;
+
+        Log.i(TAG, "writeLogFile("+filePath+")");
+
+        try {
+            BufferedWriter output = new BufferedWriter(new FileWriter(filePath, false)) ;
+            output.write(Long.toString(System.currentTimeMillis()));
+            output.flush();
+            output.close();
+        } catch (FileNotFoundException e) {
+            Log.i(TAG,e.toString());
+        } catch (IOException e) {
+            Log.i(TAG,e.toString());
+        }
+
+
     }
 }

@@ -1,24 +1,40 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Messenger;
+import android.provider.MediaStore;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.webrtc.MediaStream;
+
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.ConnectorCloud;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 21.8.2014.
  */
 public class GroupOwnerServiceHandler extends ServiceHandler
+    implements AudioStreamingClient.SocketIOListener
 {
     private static final String TAG = "GroupOwnerServiceHandler";
     private final AcceptorUDP acceptorUDP;
     private Timer timer;
+
+    private final String cloudSocketAddrStr = "http://" + Constants.URL +
+            ":" + Constants.CLOUD_SERVER_PORT + "/";
+
 
     public GroupOwnerServiceHandler(Messenger serviceMessenger, String name,
                                     Context context)
@@ -26,7 +42,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
         timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
-
     }
 
 
@@ -70,6 +85,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 //send2Cloud(fromAddr.toString(), values);
 
                 updateStatusTxt(fromAddr + "->: " + sm.toString());
+                SystemUtil.writeLogFile(startTime, fromAddr.toString());
                 break;
 
             case SystemMessage.N:
@@ -90,24 +106,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 }
 
                 /*
-                // create streaming recv thread
-                try {
-                    AudioShareManager.ReceiveAudioThread recvAudioThread =
-                            new AudioShareManager.ReceiveAudioThread(this);
+                AudioShareManager.RelayAudioHttpThread httpThread =
+                        AudioShareManager.getHttpRelayAudioThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
+                eventHandlingThreads.put(AudioShareManager.StreamRelayAudioThread.TAG,
+                        httpThread);
+                */
 
-                    int recvPort = recvAudioThread.getLocalPort();
-                    eventHandlingThreads.put(AudioShareManager.ReceiveAudioThread.TAG
-                                    + Integer.toString(recvPort), recvAudioThread);
-                    recvAudioThread.start();
-
-                    acceptorUDP.getConnectionRunnable().write(
-                            SystemMessage.makeAudioStreamingRequest(recvPort), fromAddr);
-
-                } catch (SocketException e) {
-                    e.printStackTrace();
-                }
-*/
-
+                /*
                 ConnectorCloud connectorCloud = (ConnectorCloud)eventHandlingThreads.get(ConnectorCloud.TAG);
                 if(connectorCloud!=null)
                 {
@@ -128,7 +133,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 {
                     Log.e(TAG,"connectorCloud is null");
                 }
+*/
+                AudioShareManager.StreamRelayAudioThread streamRelayThread =
+                        AudioShareManager.getStreamRelayAudioThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
+                eventHandlingThreads.put(AudioShareManager.StreamRelayAudioThread.TAG +"-"+fromAddr,
+                        streamRelayThread);
 
+                streamRelayThread.start();
 
                 break;
             case SystemMessage.RTT:
@@ -159,5 +170,22 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
         timer.cancel();
         super.stopServiceHandler();
+    }
+
+    @Override
+    public void onAddRemoteOuputStream()
+    {
+        Log.i(TAG,"onAddRemoteOuputStream()");
+
+        Iterator<AbstractSystemThread> iter = eventHandlingThreads.values().iterator();
+        while (iter.hasNext())
+        {
+            AbstractSystemThread  sysThread = (AbstractSystemThread)iter.next();
+            if(sysThread instanceof AudioShareManager.RelayAudioHttpThread)
+            {
+                sysThread.start();
+            }
+        }
+
     }
 }

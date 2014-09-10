@@ -29,6 +29,9 @@ import fi.hiit.complesense.util.SensorUtil;
 public class ServiceHandler extends HandlerThread implements Handler.Callback
 {
     private static final String TAG = "ServiceHandler";
+
+    public final String startTime = Long.toString(System.currentTimeMillis());
+
     protected final Messenger serviceMessenger;
     private final Context context;
     private Handler handler;

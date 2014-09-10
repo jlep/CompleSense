@@ -18,6 +18,7 @@ public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
     private final ConnectorUDP connectorUDP;
+    private String foreignSocketAddrStr = null;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -49,8 +50,13 @@ public class ClientServiceHandler extends ServiceHandler
                 String host = SystemUtil.getHost(socketAddrStr);
                 Log.i(TAG,"remote host is " + host);
 
-                int port = SystemMessage.byteArray2Int(sm.getPayload());
+                int port = SystemMessage.byteArray2Int(sm.getPayload(),0, Integer.SIZE/8);
                 Log.i(TAG,"streaming recv port is " + port);
+
+                foreignSocketAddrStr = new String(sm.getPayload(),
+                        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
+
+                SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
 
                 AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
                         new InetSocketAddress(host, port), this);
@@ -79,6 +85,9 @@ public class ClientServiceHandler extends ServiceHandler
 
                 if(null!=values)
                 {
+                    if(foreignSocketAddrStr!=null)
+                        SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
+
                     SystemMessage reply = SystemMessage.makeSensorValuesReplyMessage(sensorType, values);
                     if(connectorUDP!=null)
                         connectorUDP.getConnectionRunnable().write(reply, remoteSocketAddr);

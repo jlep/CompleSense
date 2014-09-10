@@ -18,5 +18,6 @@
     <string name="stop_server">Stop</string>
     <string name="connected_clients">Connected Clients</string>
     <string name="empty_server_message">Waiting for clients connection</string>
+    <string name="host">universe.hiit.fi</string>
 
 </resources>

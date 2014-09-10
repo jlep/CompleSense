@@ -24,6 +24,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.core.ComleSenseDevice;
 import fi.hiit.complesense.core.LocalManager;
+import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.ui.DemoActivity;
 import fi.hiit.complesense.util.SystemUtil;
@@ -45,7 +46,8 @@ public abstract class AbstractGroupService extends Service
 
     protected GroupBroadcastReceiver receiver;
     protected WifiConnectionManager mWifiConnManager;
-    protected LocalManager localManager = null;
+    //protected LocalManager localManager = null;
+    protected ServiceHandler serviceHandler = null;
 
     protected WifiP2pDevice mDevice, groupOwner;
 
@@ -114,7 +116,7 @@ public abstract class AbstractGroupService extends Service
         mMessenger = null;
         uiMessenger = null;
         groupOwner = null;
-        localManager = null;
+        serviceHandler = null;
         isInitialized = false;
     }
 

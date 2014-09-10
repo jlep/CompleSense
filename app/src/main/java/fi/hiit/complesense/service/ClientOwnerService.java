@@ -18,8 +18,10 @@ import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientManager;
+import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.ComleSenseDevice;
 import fi.hiit.complesense.core.GroupOwnerManager;
+import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -185,8 +187,8 @@ public class ClientOwnerService extends AbstractGroupService
     protected void stop()
     {
         Log.i(TAG, "stop()");
-        if(localManager!=null)
-            localManager.stop();
+        if(serviceHandler!=null)
+            serviceHandler.stopServiceHandler();
 
         if (manager != null && channel != null)
         {
@@ -212,14 +214,12 @@ public class ClientOwnerService extends AbstractGroupService
                 Log.i(TAG, "Device is connected as Group Owner in master mode");
                 SystemUtil.sendStatusTextUpdate(uiMessenger,
                         "Device connected as Group Owner");
-                if(localManager == null)
+                if(serviceHandler == null)
                 {
-                    localManager = new GroupOwnerManager(mMessenger, context, true);
-                    try {
-                        localManager.start();
-                    } catch (IOException e) {
-                        Log.i(TAG,e.toString());
-                    }
+                    //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
+                    serviceHandler = new GroupOwnerServiceHandler(mMessenger,
+                            "GroupOwnerServiceHandler", context);
+                    serviceHandler.startServiveHandler();
                 }
 
             }
@@ -236,18 +236,16 @@ public class ClientOwnerService extends AbstractGroupService
             Log.i(TAG, "Device is connected as Group Client in client mode");
             SystemUtil.sendStatusTextUpdate(uiMessenger,
                     "Device connected as Client");
-            if(localManager == null)
+            if(serviceHandler == null)
             {
                 mWifiConnManager.clearServiceAdvertisement();
 
-                localManager = new ClientManager(mMessenger, context, false);
-                try {
-                    Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
-                    localManager.start(p2pInfo.groupOwnerAddress, 0);
-                } catch (IOException e) {
-                    Log.i(TAG,e.toString());
+                //serviceHandler = new ClientManager(mMessenger, context, false);
+                serviceHandler = new ClientServiceHandler(mMessenger,
+                        "ClientServiceHandler", context, p2pInfo.groupOwnerAddress, 0);
 
-                }
+                Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
+                serviceHandler.startServiveHandler();
             }
 
         }

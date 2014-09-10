@@ -1,5 +1,6 @@
 package fi.hiit.complesense.ui;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -15,9 +16,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import org.webrtc.PeerConnectionFactory;
 
 import java.io.Serializable;
 
@@ -39,8 +43,11 @@ public class DemoActivity extends AbstractGroupActivity
     {
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.demo_activity_main);
 
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        PeerConnectionFactory.initializeAndroidGlobals(this);
+
+        setContentView(R.layout.demo_activity_main);
         initUi((TextView) findViewById(R.id.status_text),
                 (ScrollView) findViewById(R.id.scroll_text));
 
@@ -124,6 +131,7 @@ public class DemoActivity extends AbstractGroupActivity
         {
             Log.d(TAG,"service is running");
         }
+
     }
 
     @Override

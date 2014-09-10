@@ -183,9 +183,13 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.N, payload);
     }
 
-    public static SystemMessage makeAudioStreamingRequest(int port2send)
+    public static SystemMessage makeAudioStreamingRequest(int port2send, String foreignSocketAddr)
     {
-        byte[] payload = int2Bytes( port2send);
+        ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / 8 + foreignSocketAddr.length());
+        bb.putInt(port2send);
+        bb.put(foreignSocketAddr.getBytes());
+
+        byte[] payload = bb.array();
 
         return new SystemMessage(SystemMessage.O, payload);
     }
