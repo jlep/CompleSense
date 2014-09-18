@@ -8,10 +8,12 @@ import android.hardware.SensorManager;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.SensorValues;
 
 /**
@@ -35,6 +37,9 @@ public class SensorUtil implements SensorEventListener
                 context.getSystemService(Context.SENSOR_SERVICE);
         sensorValues = new ConcurrentHashMap<String, SensorValues>();
 
+        List<Integer> localSensorTypeList = getLocalSensorTypeList();
+        for(Integer type:localSensorTypeList)
+            setLocalSensorValue(type, Constants.dummyValues);
     }
 
     public void registerSensorListener(int sensorType)
@@ -54,6 +59,7 @@ public class SensorUtil implements SensorEventListener
     public void setSensorValue(float[] values, int sensorType, String srcSocketAddr)
     {
         String key = SensorValues.genKey(srcSocketAddr, sensorType);
+        Log.e(TAG, "key: " + key);
         SensorValues sv = sensorValues.get(key);
         if(sv==null)
         {
@@ -61,6 +67,14 @@ public class SensorUtil implements SensorEventListener
         }
         else
             sv.setValues(values);
+    }
+
+    public void initSensorValues(List<Integer> typeList, String remoteSocketAddr)
+    {
+        for(Integer type : typeList)
+            setSensorValue(Constants.dummyValues, type, remoteSocketAddr);
+
+
     }
 
     public float[] getSensorValue(String srcSocketAddr, int sensorType)
@@ -134,6 +148,27 @@ public class SensorUtil implements SensorEventListener
             sensorsNameList.add(sensor.getName());
         }
         return sensorsNameList;
+    }
+
+    /**
+     * Randomly select one sensor from a connected client
+     */
+    public synchronized int randomlySelectSensor(String remoteSocketAddr)
+    {
+        Iterator<String> iter = sensorValues.keySet().iterator();
+        List<String> typeList = new ArrayList<String>();
+        while(iter.hasNext())
+        {
+            String key = iter.next();
+            if(key.contains(remoteSocketAddr) )
+                typeList.add(key);
+        }
+
+        String keySensorValues = typeList.get((int)(Math.random()*typeList.size()) );
+        Log.i(TAG,"keySensorValues: " + keySensorValues);
+        int sType = Integer.parseInt(keySensorValues.substring(keySensorValues.lastIndexOf(":")+1) );
+        Log.i(TAG,"substring: " + keySensorValues.substring(keySensorValues.lastIndexOf(":")+1));
+        return sType;
     }
 
     public List<Integer> getLocalSensorTypeList()

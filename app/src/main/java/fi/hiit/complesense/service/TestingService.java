@@ -27,7 +27,7 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 1;
+    public static final int NUM_CLIENTS = 3;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
     private ArrayList<ServiceHandler> clientsList;

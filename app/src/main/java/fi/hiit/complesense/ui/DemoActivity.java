@@ -170,13 +170,6 @@ public class DemoActivity extends AbstractGroupActivity
         super.onResume();
     }
 
-    public void appendStatus(String status)
-    {
-        String current = statusTxtView.getText().toString();
-        statusTxtView.setText(current + "\n" + status);
-        statusTxtView.computeScroll();
-    }
-
     @Override
     public void onPause()
     {

@@ -19,7 +19,9 @@ public class ScheduledUdpQueryTask extends TimerTask
     private final UdpConnectionRunnable runnable;
     private final ServiceHandler serviceHandler;
     private final SocketAddress remoteSocketAddr;
-    private final int sensorType;
+    private int sensorType;
+    private int counter;
+    private final int counter2Switch;
 
     public ScheduledUdpQueryTask(UdpConnectionRunnable runnable,
                                  ServiceHandler serviceHandler,
@@ -29,6 +31,9 @@ public class ScheduledUdpQueryTask extends TimerTask
         this.serviceHandler = serviceHandler;
         this.remoteSocketAddr = remoteSocketAddr;
         this.sensorType = sensorType;
+        counter = 0;
+        counter2Switch = (int)(Math.random() * 10) + 1;
+        Log.i(TAG, "counter2Switch: " + counter2Switch);
     }
 
     @Override
@@ -36,6 +41,7 @@ public class ScheduledUdpQueryTask extends TimerTask
     {
         //Log.i(TAG, "run()");
         sendSensorQueryMessage();
+        sendSwitchSensorRequest();
         //ArrayDeque<String> hops = selectHopsMeasureRtt();
         //Log.i(TAG, "Selected hops: " + hops.toString());
         //groupOwnerManager.sendMeasureRTTRequest(hops);
@@ -53,9 +59,25 @@ public class ScheduledUdpQueryTask extends TimerTask
         return hops;
     }
     */
-    private void sendSensorQueryMessage()
+    protected void sendSensorQueryMessage()
     {
         //Log.i(TAG, "sType: " + sType);
         runnable.write(SystemMessage.makeSensorDataQueryMessage(sensorType), remoteSocketAddr);
+        counter++;
     }
+
+    protected void sendSwitchSensorRequest()
+    {
+        if(counter >= counter2Switch)
+        {
+            int selectedType = serviceHandler.sensorUtil.randomlySelectSensor(remoteSocketAddr.toString());
+            serviceHandler.updateStatusTxt("Switch sensor from "+ sensorType +" to "
+                    + selectedType + " on " + remoteSocketAddr.toString());
+            sensorType = selectedType;
+            runnable.write(SystemMessage.makeSensorDataQueryMessage(selectedType), remoteSocketAddr);
+            counter = 0;
+        }
+
+    }
+
 }

@@ -54,4 +54,5 @@ public class Constants
     public static final String INIT_CONNECTION = "INIT";
 
 
+    public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};;
 }

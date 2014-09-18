@@ -79,8 +79,12 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
             case SystemMessage.V:
                 type = SystemMessage.parseSensorType(sm);
+                if(type <= 0)
+                {
+                    Log.e(TAG, "cannot parse sensor type");
+                    break;
+                }
                 values = SystemMessage.parseSensorValues(sm);
-
                 sensorUtil.setSensorValue(values, type, fromAddr.toString());
                 //send2Cloud(fromAddr.toString(), values);
 
@@ -90,9 +94,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
             case SystemMessage.N:
                 List<Integer> typeList = SystemMessage.parseSensorTypeList(sm);
+                sensorUtil.initSensorValues(typeList, fromAddr.toString());
                 updateStatusTxt("sensor list from " + fromAddr + ": " + typeList.toString());
+                Log.e(TAG, "from "+fromAddr.toString()+" receive typeList: " + typeList.toString());
 
-                int sType = randomlySelectSensor(typeList, fromAddr.toString());
+                int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
                 Log.i(TAG,"sType: " + sType);
 
                 if(acceptorUDP!=null)
@@ -134,13 +140,16 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                     Log.e(TAG,"connectorCloud is null");
                 }
 */
+                /*
                 AudioShareManager.StreamRelayAudioThread streamRelayThread =
                         AudioShareManager.getStreamRelayAudioThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
-                eventHandlingThreads.put(AudioShareManager.StreamRelayAudioThread.TAG +"-"+fromAddr,
-                        streamRelayThread);
-
-                streamRelayThread.start();
-
+                if(streamRelayThread!=null)
+                {
+                    eventHandlingThreads.put(AudioShareManager.StreamRelayAudioThread.TAG +"-"+fromAddr,
+                            streamRelayThread);
+                    streamRelayThread.start();
+                }
+*/
                 break;
             case SystemMessage.RTT:
                 //forwardRttQuery(sm.getPayload(),remoteSocketAddr);
@@ -152,18 +161,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     }
 
 
-    /**
-     * Randomly select one sensor from a connected client
-     */
-    public synchronized int randomlySelectSensor(List<Integer> typeList, String remoteSocketAddr)
-    {
-        int sType = typeList.get((int)(Math.random()*typeList.size()) );
-        float[] dummyValues = {-1.0f,-1.0f,-1.0f};
-        sensorUtil.setSensorValue(dummyValues, sType, remoteSocketAddr);
 
-        //sensorValues.put(remoteSocketAddr, dummyValues);
-        return sType;
-    }
 
     @Override
     public void stopServiceHandler()

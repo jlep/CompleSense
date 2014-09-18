@@ -277,7 +277,7 @@ public class SystemMessage implements Serializable
 
     public static int parseSensorType(SystemMessage sm)
     {
-        if(sm.getCmd()==SystemMessage.R)
+        if(sm.getCmd()==SystemMessage.V || sm.getCmd()==SystemMessage.R)
         {
             //Log.i(TAG, "parseSensorType() " + Integer.toString(byteArray2Int(sm.getPayload()) ));
             return byteArray2Int(sm.getPayload());
