@@ -534,6 +534,19 @@ public class AudioShareManager
         {
             if(recvSocket!=null)
                 recvSocket.close();
+            if(outputStream!=null)
+            {
+                try {
+                    outputStream.flush();
+                    outputStream.close();
+                } catch (IOException e) {
+                    Log.i(TAG,e.toString());
+                }
+
+            }
+
+            if(httpURLConnection!=null)
+                httpURLConnection.disconnect();
         }
 
         @Override
