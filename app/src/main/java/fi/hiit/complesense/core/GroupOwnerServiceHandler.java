@@ -78,6 +78,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 break;
 
             case SystemMessage.V:
+                renewPeerList(fromAddr.toString());
                 type = SystemMessage.parseSensorType(sm);
                 if(type <= 0)
                 {
@@ -95,8 +96,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             case SystemMessage.N:
                 List<Integer> typeList = SystemMessage.parseSensorTypeList(sm);
                 sensorUtil.initSensorValues(typeList, fromAddr.toString());
+                addNewConnection(fromAddr);
+
                 updateStatusTxt("sensor list from " + fromAddr + ": " + typeList.toString());
-                Log.e(TAG, "from "+fromAddr.toString()+" receive typeList: " + typeList.toString());
+                //Log.e(TAG, "from "+fromAddr.toString()+" receive typeList: " + typeList.toString());
 
                 int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
                 Log.i(TAG,"sType: " + sType);
@@ -160,9 +163,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }
     }
 
-
-
-
     @Override
     public void stopServiceHandler()
     {
@@ -184,6 +184,12 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 sysThread.start();
             }
         }
+    }
 
+    @Override
+    public void onValidTimeExpires(SocketAddress socketAddress)
+    {
+        super.onValidTimeExpires(socketAddress);
+        timer.cancel();
     }
 }

@@ -11,9 +11,14 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
@@ -26,7 +31,8 @@ import fi.hiit.complesense.util.SensorUtil;
 /**
  * Created by hxguo on 20.8.2014.
  */
-public class ServiceHandler extends HandlerThread implements Handler.Callback
+public class ServiceHandler extends HandlerThread
+        implements Handler.Callback,AliveConnection.AliveConnectionListener
 {
     private static final String TAG = "ServiceHandler";
 
@@ -36,24 +42,29 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
     private final Context context;
     private Handler handler;
     protected Map<String, AbstractSystemThread> eventHandlingThreads;
-
+    protected Map<String, AliveConnection> peerList; // Store all the alive connections
 
     public final SensorUtil sensorUtil;
+    public final long delay;
     private boolean isGroupOwner;
 
     public ServiceHandler(Messenger serviceMessenger, String name,
-                          Context context, boolean isGroupOwner, InetAddress ownerAddr, int delay)
+                          Context context, boolean isGroupOwner, InetAddress ownerAddr,
+                          long delay)
     {
         super(name);
         this.serviceMessenger = serviceMessenger;
         this.context = context;
         sensorUtil = new SensorUtil(context);
         eventHandlingThreads =  new TreeMap<String, AbstractSystemThread>();
+        peerList = new TreeMap<String, AliveConnection>();
         this.isGroupOwner = isGroupOwner;
-        init(ownerAddr, delay);
+
+        this.delay = delay;
+        init(ownerAddr);
     }
 
-    protected void init(InetAddress ownerAddr, int delay)
+    protected void init(InetAddress ownerAddr)
     {
         if(isGroupOwner)
         {
@@ -73,7 +84,7 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
         {
             ConnectorUDP connector = null;
             try {
-                connector = new ConnectorUDP(serviceMessenger, this, ownerAddr, delay);
+                connector = new ConnectorUDP(serviceMessenger, this, ownerAddr);
                 eventHandlingThreads.put(ConnectorUDP.TAG, connector);
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
@@ -133,7 +144,12 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
 
     public void startServiveHandler()
     {
-        Log.i(TAG,"startServiceHandler()");
+        Log.i(TAG,"startServiceHandler(delay: " + delay +")");
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.toString());
+        }
         this.start();
         Iterator<Map.Entry<String, AbstractSystemThread>> iterator
                 = eventHandlingThreads.entrySet().iterator();
@@ -174,6 +190,34 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
         }
     }
 
+    protected void addNewConnection(SocketAddress socketAddress)
+    {
+        String str = "addNewConnection("+ socketAddress +")";
+        Log.i(TAG,str);
+        updateStatusTxt(str);
+        AliveConnection aliveConnection = new AliveConnection(socketAddress, this);
+        if(!peerList.containsKey(socketAddress.toString()))
+            this.peerList.put(socketAddress.toString(), aliveConnection);
+    }
+
+
+    protected void removeFromPeerList(String socketAddrStr)
+    {
+        String str = "removeFromPeerList("+ socketAddrStr +")";
+        Log.i(TAG,str);
+        updateStatusTxt(str);
+        peerList.remove(socketAddrStr);
+    }
+
+
+    protected void renewPeerList(String socketAddrStr)
+    {
+        String str = "renewPeerList("+ socketAddrStr +")";
+        Log.i(TAG,str);
+        updateStatusTxt(str);
+        ((AliveConnection)(peerList.get(socketAddrStr)) ).resetCheckTime();
+    }
+
     public void updateStatusTxt(String str)
     {
         //Log.i(TAG,"updateStatusTxt()");
@@ -187,4 +231,10 @@ public class ServiceHandler extends HandlerThread implements Handler.Callback
         }
     }
 
+    @Override
+    public void onValidTimeExpires(SocketAddress socketAddress)
+    {
+        Log.i(TAG, "onValidTimeExpires(" + socketAddress.toString() + ")");
+        removeFromPeerList(socketAddress.toString());
+    }
 }

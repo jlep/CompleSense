@@ -23,27 +23,23 @@ public class ConnectorUDP extends AbstractSystemThread
 
     private final InetAddress ownerAddr;
     private final Messenger serviceMessenger;
-    private final int delay;
     private ClientConnectionRunnable clientConnectionRunnable;
 
     public ConnectorUDP(Messenger serviceMessenger,
                      ServiceHandler serviceHandler,
-                     InetAddress ownerAddr, int delay) throws IOException
+                     InetAddress ownerAddr) throws IOException
     {
         super(serviceHandler);
         this.ownerAddr = ownerAddr;
 
         //this.ownerAddr = ownerAddr;
         this.serviceMessenger = serviceMessenger;
-        this.delay = delay;
 
     }
 
     @Override
     public void run()
     {
-        if(delay>0)
-            Log.i(TAG, "Starting client in " + delay + "ms");
         DatagramSocket socket = null;
         try
         {

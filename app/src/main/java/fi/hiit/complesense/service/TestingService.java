@@ -3,6 +3,7 @@ package fi.hiit.complesense.service;
 import android.app.Service;
 import android.content.Intent;
 import android.net.wifi.p2p.WifiP2pInfo;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
@@ -27,7 +28,7 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 3;
+    public static final int NUM_CLIENTS = 1;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
     private ArrayList<ServiceHandler> clientsList;
@@ -187,6 +188,7 @@ public class TestingService extends AbstractGroupService
                 Log.i(TAG,"Creating client thread");
                 int delay = (int)(1000 * Math.random());
 
+
                 clientsList.add(new ClientServiceHandler(mMessenger,
                         "Client Handler", getApplicationContext(), localHost, delay));
             }
@@ -196,10 +198,42 @@ public class TestingService extends AbstractGroupService
                 Log.i(TAG, "Starting client thread");
                 clientsList.get(i).startServiveHandler();
             }
+            killClients();
+
         }
 
     }
 
+    private void killClients()
+    {
+        final long duration = 30000, interval = 5000;
+
+        CountDownTimer countDownTimer = new CountDownTimer(duration, interval) {
+            @Override
+            public void onTick(long l) {
+                Log.i(TAG, "onTick( "+ l+")");
+                if(clientsList.size() > 0 && l < (duration - interval) )
+                {
+                    int index = (int)(Math.random() * clientsList.size());
+                    Log.i(TAG, "kill client "+ index);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger,
+                            "client " + index + " is killed");
+
+                    ServiceHandler client =  clientsList.get(index);
+                    client.stopServiceHandler();
+                    clientsList.remove(client);
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                Log.i(TAG, "onFinnish(clientsList.size(): + " + clientsList.size() + ")");
+                SystemUtil.sendStatusTextUpdate(uiMessenger, "onFinnish(clientsList.size(): + " + clientsList.size() + ")");
+            }
+        };
+        countDownTimer.start();
+
+    }
 
 
     @Override
@@ -214,7 +248,7 @@ public class TestingService extends AbstractGroupService
         Log.i(TAG, "stopTesting()");
         Log.e(TAG,"num of clients: " + clientsList.size());
 
-        for(int i=0;i<NUM_CLIENTS;i++)
+        for(int i=0;i<clientsList.size();i++)
         {
             Log.i(TAG, "Stopping client thread");
             clientsList.get(i).stopServiceHandler();
