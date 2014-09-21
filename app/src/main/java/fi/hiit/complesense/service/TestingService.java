@@ -188,7 +188,6 @@ public class TestingService extends AbstractGroupService
                 Log.i(TAG,"Creating client thread");
                 int delay = (int)(1000 * Math.random());
 
-
                 clientsList.add(new ClientServiceHandler(mMessenger,
                         "Client Handler", getApplicationContext(), localHost, delay));
             }

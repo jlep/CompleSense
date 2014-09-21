@@ -52,6 +52,7 @@ public class Constants
 
 
     public static final String INIT_CONNECTION = "INIT";
+    public static final int RTT_ROUNDS = 5;
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};;

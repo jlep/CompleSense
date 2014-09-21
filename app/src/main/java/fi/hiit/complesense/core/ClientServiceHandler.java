@@ -103,6 +103,8 @@ public class ClientServiceHandler extends ServiceHandler
                 break;
             case SystemMessage.RTT:
                 //forwardRttQuery(sm.getPayload(),remoteSocketAddr);
+                if(connectorUDP!=null)
+                    replyRttQuery(connectorUDP.getConnectionRunnable());
                 break;
 
             default:

@@ -335,6 +335,12 @@ public class SystemMessage implements Serializable
     }
 
 
+    /**
+     * for multiple hops
+     * @param timeStamp
+     * @param hops
+     * @return
+     */
     public static SystemMessage makeRttQuery(long timeStamp, ArrayDeque<String> hops)
     {
         int len = Long.SIZE / 8;
@@ -355,6 +361,25 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.RTT, bb.array());
     }
 
+    /**
+     * single hop
+     * @param timeStamp
+     * @param rounds
+     * @return
+     */
+    public static SystemMessage makeRttQuery(long timeStamp,int rounds)
+    {
+        int len = Long.SIZE / 8 + Integer.SIZE / 8;
+        ByteBuffer bb = ByteBuffer.allocate(len);
+        bb.order(ByteOrder.BIG_ENDIAN);
+
+        bb.putLong(timeStamp);
+        bb.putInt(rounds);
+
+        return new SystemMessage(SystemMessage.RTT, bb.array());
+    }
+
+    /*
     public static ArrayDeque<String> parseRttQuery(byte[] payload)
     {
         ByteBuffer bb = ByteBuffer.wrap(payload);
@@ -375,4 +400,5 @@ public class SystemMessage implements Serializable
 
         return hops;
     }
+    */
 }

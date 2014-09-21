@@ -13,13 +13,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.List;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by rocsea0626 on 30.8.2014.
@@ -37,6 +43,10 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
     protected byte[] recBuf = new byte[Constants.MAX_BUF];
     protected DatagramPacket recPacket = new DatagramPacket(recBuf, recBuf.length);
 
+    public interface UdpConnectionListner
+    {
+        public void onReceiveRttReply(long currentTimeMillis);
+    }
     public UdpConnectionRunnable(ServiceHandler serviceHandler,
                               DatagramSocket socket) throws IOException
     {
@@ -73,7 +83,7 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
             {
                 socket.receive(recPacket);
                 //remoteSocketAddr = recPacket.getSocketAddress();//todo: remoteSocketAddr is not synchronized
-                send2ServerHandler(recPacket);
+                send2ServiceHandler(recPacket);
 
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
@@ -92,7 +102,7 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
         Log.w(TAG,"Group Owner UDP connection terminates..");
     }
 
-    protected void send2ServerHandler(DatagramPacket packet) throws SocketException
+    protected void send2ServiceHandler(DatagramPacket packet) throws SocketException
     {
         Message msg = serviceHandler.getHandler().obtainMessage();
         msg.what = UdpConnectionRunnable.ID_DATAGRAM_PACKET;
@@ -153,6 +163,20 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
     {
         Log.i(TAG,"stopRunnable()");
         socket.close();
+    }
+
+    /**
+     *
+     * @param nextHop:
+     */
+    public void sendMeasureRTTRequest(String nextHop, int rounds)
+    {
+        Log.i(TAG,"sendMeasureRTTRequest()");
+        String nextHost = SystemUtil.getHost(nextHop);
+        int nextPort = SystemUtil.getPort(nextHop);
+        //Log.i(TAG,nextHost+":"+nextPort);
+        write(SystemMessage.makeRttQuery(System.currentTimeMillis(), rounds),
+                new InetSocketAddress(nextHost, nextPort));
     }
 
 }

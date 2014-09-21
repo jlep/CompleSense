@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
@@ -29,8 +30,9 @@ public class ClientConnectionRunnable extends UdpConnectionRunnable
     @Override
     public void run()
     {
-        write(SystemMessage.makeSensorsListReplyMessage(
-                serviceHandler.sensorUtil.getLocalSensorTypeList()), groupOwnerSocketAddr);
+     //   write(SystemMessage.makeSensorsListReplyMessage(
+                //serviceHandler.sensorUtil.getLocalSensorTypeList()), groupOwnerSocketAddr);
+        sendMeasureRTTRequest(groupOwnerSocketAddr.toString(), Constants.RTT_ROUNDS);
 
         super.run();
     }

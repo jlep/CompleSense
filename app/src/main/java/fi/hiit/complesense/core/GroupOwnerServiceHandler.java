@@ -20,14 +20,14 @@ import java.util.Timer;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.ConnectorCloud;
+import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 21.8.2014.
  */
 public class GroupOwnerServiceHandler extends ServiceHandler
-    implements AudioStreamingClient.SocketIOListener
-{
+    implements AudioStreamingClient.SocketIOListener, UdpConnectionRunnable.UdpConnectionListner {
     private static final String TAG = "GroupOwnerServiceHandler";
     private final AcceptorUDP acceptorUDP;
     private Timer timer;
@@ -156,6 +156,9 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 break;
             case SystemMessage.RTT:
                 //forwardRttQuery(sm.getPayload(),remoteSocketAddr);
+                UdpConnectionRunnable udpConnectionRunnable = acceptorUDP.getConnectionRunnable();
+                if(udpConnectionRunnable!=null)
+                    replyRttQuery(sm.getPayload(), fromAddr, udpConnectionRunnable, this);
                 break;
 
             default:
@@ -192,4 +195,5 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super.onValidTimeExpires(socketAddress);
         timer.cancel();
     }
+
 }

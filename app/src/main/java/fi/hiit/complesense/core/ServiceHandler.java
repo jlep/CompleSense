@@ -13,6 +13,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -22,17 +24,19 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.ConnectorCloud;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 20.8.2014.
  */
 public class ServiceHandler extends HandlerThread
-        implements Handler.Callback,AliveConnection.AliveConnectionListener
+        implements Handler.Callback,AliveConnection.AliveConnectionListener, UdpConnectionRunnable.UdpConnectionListner
 {
     private static final String TAG = "ServiceHandler";
 
@@ -47,6 +51,7 @@ public class ServiceHandler extends HandlerThread
     public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
+    private long rttMeasurement;
 
     public ServiceHandler(Messenger serviceMessenger, String name,
                           Context context, boolean isGroupOwner, InetAddress ownerAddr,
@@ -236,5 +241,78 @@ public class ServiceHandler extends HandlerThread
     {
         Log.i(TAG, "onValidTimeExpires(" + socketAddress.toString() + ")");
         removeFromPeerList(socketAddress.toString());
+    }
+/*
+    public void forwardRttQuery(byte[] payload, SocketAddress remoteSocketAddr)
+    {
+        ByteBuffer bb = ByteBuffer.wrap(payload);
+        long timeStamp = bb.getLong();
+
+        ArrayDeque<String> hops = SystemMessage.parseRttQuery(payload);
+        Log.i(TAG, "RTT hops: " + hops.toString());
+
+        if(socket.getLocalSocketAddress().toString().contains("/:::"))
+        {
+            //must be the group owner socket
+            String nextHost = SystemUtil.getHost(hops.peek());
+            int nextPort = SystemUtil.getPort(hops.peek());
+
+            Log.i(TAG,"nextSocketAddr: " + nextHost+":"+nextPort);
+            write(SystemMessage.makeRttQuery(timeStamp, hops), new InetSocketAddress(nextHost, nextPort));
+
+        }
+        else
+        {
+            String socketAddrStr = hops.poll();
+            Log.i(TAG,"poll socketAddr: " + socketAddrStr);
+            if(!socketAddrStr.equals(socket.getLocalSocketAddress().toString()))
+            {
+                Log.e(TAG,"packet wrong host: " + socketAddrStr + "/" +
+                        socket.getLocalSocketAddress().toString());
+                return;
+            }
+            if(hops.size()==0)
+            {
+                //Log.i(TAG,"RTT: " + Long.toString(System.currentTimeMillis()- timeStamp));
+                long rtt = System.currentTimeMillis()-timeStamp;
+                Log.i(TAG,"pacekt has reached its destination: " + rtt);
+
+                rttMeasurements.add(rtt);
+                Iterator<Long> iter = rttMeasurements.iterator();
+                long sum = 0;
+                while(iter.hasNext())
+                    sum += (Long)iter.next();
+
+                serviceHandler.updateStatusTxt("RTT: "
+                        + Float.toString((float) (sum / rttMeasurements.size())));
+                return;
+            }
+
+            if(timeStamp==0)
+                timeStamp = System.currentTimeMillis();
+            write(SystemMessage.makeRttQuery(timeStamp, hops), remoteSocketAddr);
+        }
+
+    }
+*/
+    public void replyRttQuery(byte[] payload, SocketAddress remoteSocketAddr, UdpConnectionRunnable runnable,
+                              UdpConnectionRunnable.UdpConnectionListner listener)
+    {
+        ByteBuffer bb = ByteBuffer.wrap(payload);
+        long startTime = bb.getLong();
+        int rounds = bb.getInt();
+        if(rounds <= 0)
+        {
+            listener.onReceiveRttReply(startTime);
+        }
+        else{
+            if(runnable!=null)
+                runnable.write(SystemMessage.makeRttQuery(startTime, rounds--), remoteSocketAddr);
+        }
+    }
+
+    @Override
+    public void onReceiveRttReply(long startTimeMillis) {
+        this.rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
     }
 }
