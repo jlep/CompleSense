@@ -17,10 +17,8 @@ import java.io.IOException;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.core.ClientManager;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.ComleSenseDevice;
-import fi.hiit.complesense.core.GroupOwnerManager;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;

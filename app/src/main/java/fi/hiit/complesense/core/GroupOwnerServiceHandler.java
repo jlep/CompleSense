@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -42,6 +43,21 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
         timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
+    }
+
+    @Override
+    public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
+    {
+        super.onReceiveLastRttReply(startTimeMillis, fromAddr);
+        int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
+        Log.i(TAG,"sType: " + sType);
+
+        if(acceptorUDP.getConnectionRunnable()!=null)
+        {
+            ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(
+                    acceptorUDP.getConnectionRunnable(),this, fromAddr,sType);
+            timer.schedule(sTask, 0, 3000);
+        }
     }
 
 
@@ -101,18 +117,9 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 updateStatusTxt("sensor list from " + fromAddr + ": " + typeList.toString());
                 //Log.e(TAG, "from "+fromAddr.toString()+" receive typeList: " + typeList.toString());
 
-                int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
-                Log.i(TAG,"sType: " + sType);
-
-                if(acceptorUDP!=null)
-                {
-                    if(acceptorUDP.getConnectionRunnable()!=null)
-                    {
-                        ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(
-                                acceptorUDP.getConnectionRunnable(),this, fromAddr,sType);
-                        timer.schedule(sTask, 0, 3000);
-                    }
-                }
+                // make RTT measurement request
+                acceptorUDP.write(SystemMessage.makeRttQuery(System.currentTimeMillis(),
+                        Constants.RTT_ROUNDS, acceptorUDP.getLocalSocketAddr()),fromAddr);
 
                 /*
                 AudioShareManager.RelayAudioHttpThread httpThread =
@@ -143,7 +150,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                     Log.e(TAG,"connectorCloud is null");
                 }
 */
-                /*
                 AudioShareManager.StreamRelayAudioThread streamRelayThread =
                         AudioShareManager.getStreamRelayAudioThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
                 if(streamRelayThread!=null)
@@ -151,14 +157,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                     eventHandlingThreads.put(AudioShareManager.StreamRelayAudioThread.TAG +"-"+fromAddr,
                             streamRelayThread);
                     streamRelayThread.start();
+
                 }
-*/
-                break;
-            case SystemMessage.RTT:
-                //forwardRttQuery(sm.getPayload(),remoteSocketAddr);
-                UdpConnectionRunnable udpConnectionRunnable = acceptorUDP.getConnectionRunnable();
-                if(udpConnectionRunnable!=null)
-                    replyRttQuery(sm.getPayload(), fromAddr, udpConnectionRunnable, this);
                 break;
 
             default:
@@ -195,5 +195,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super.onValidTimeExpires(socketAddress);
         timer.cancel();
     }
+
+
 
 }

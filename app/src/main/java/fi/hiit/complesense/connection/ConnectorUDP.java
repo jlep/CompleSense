@@ -1,40 +1,29 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.local.ClientUdpConnectionRunnable;
-import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by rocsea0626 on 30.8.2014.
  */
-public class ConnectorUDP extends AbstractSystemThread
+public class ConnectorUDP extends AbstractUdpSocketHandler
 {
     public static final String TAG = "ConnectorUDP";
 
     private final InetAddress ownerAddr;
-    private final Messenger serviceMessenger;
-    private ClientConnectionRunnable clientConnectionRunnable;
 
-    public ConnectorUDP(Messenger serviceMessenger,
-                     ServiceHandler serviceHandler,
+    public ConnectorUDP(ServiceHandler serviceHandler,
                      InetAddress ownerAddr) throws IOException
     {
         super(serviceHandler);
         this.ownerAddr = ownerAddr;
-
-        //this.ownerAddr = ownerAddr;
-        this.serviceMessenger = serviceMessenger;
-
     }
 
     @Override
@@ -48,30 +37,15 @@ public class ConnectorUDP extends AbstractSystemThread
             Log.i(TAG, ownerAddr.toString());
             Log.i(TAG, "Launching the I/O handler at: " + socket.getLocalSocketAddress().toString());
 
-            clientConnectionRunnable = new ClientConnectionRunnable(serviceHandler, socket);
-            new Thread(clientConnectionRunnable).start();
+            udpConnRunnable = new ClientConnectionRunnable(serviceHandler, socket);
+            new Thread(udpConnRunnable).start();
         }
         catch (IOException e)
         {
             Log.i(TAG, e.toString() );
-            AbstractUdpSocketHandler.closeSocket(socket);
+            socket.close();
             return;
         }
     }
 
-    public UdpConnectionRunnable getConnectionRunnable()
-    {
-        return clientConnectionRunnable;
-    }
-
-
-    @Override
-    public void stopThread() {
-
-    }
-
-    @Override
-    public void pauseThread() {
-
-    }
 }

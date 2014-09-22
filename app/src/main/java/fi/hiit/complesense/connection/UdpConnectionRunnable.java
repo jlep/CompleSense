@@ -45,7 +45,7 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
 
     public interface UdpConnectionListner
     {
-        public void onReceiveRttReply(long currentTimeMillis);
+        public void onReceiveLastRttReply(long currentTimeMillis, SocketAddress fromAddr);
     }
     public UdpConnectionRunnable(ServiceHandler serviceHandler,
                               DatagramSocket socket) throws IOException
@@ -76,7 +76,7 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
     {
         Log.i(TAG, "run()");
 
-        Log.i(TAG,"Query available sensors on the connected client");
+        //Log.i(TAG,"Query available sensors on the connected client");
         while (!Thread.currentThread().isInterrupted())
         {
             try
@@ -98,7 +98,6 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
                 break;
             }
         }
-
         Log.w(TAG,"Group Owner UDP connection terminates..");
     }
 
@@ -165,18 +164,32 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
         socket.close();
     }
 
-    /**
-     *
-     * @param nextHop:
-     */
-    public void sendMeasureRTTRequest(String nextHop, int rounds)
+    public void replyRttQuery(byte[] payload, SocketAddress remoteSocketAddr,
+                              UdpConnectionRunnable.UdpConnectionListner listener)
     {
-        Log.i(TAG,"sendMeasureRTTRequest()");
-        String nextHost = SystemUtil.getHost(nextHop);
-        int nextPort = SystemUtil.getPort(nextHop);
-        //Log.i(TAG,nextHost+":"+nextPort);
-        write(SystemMessage.makeRttQuery(System.currentTimeMillis(), rounds),
-                new InetSocketAddress(nextHost, nextPort));
-    }
+        ByteBuffer bb = ByteBuffer.wrap(payload);
+        long startTime = bb.getLong();
+        int rounds = bb.getInt();
+        int strLen = payload.length - Long.SIZE/8 - Integer.SIZE/8;
+        byte strBuf[] = new byte[strLen];
+        bb.get(strBuf);
+        String senderSocketAddrStr = new String(strBuf);
+        Log.i(TAG,"replyRttQuery(rounds: "+rounds+" senderSocketAddrStr: " + senderSocketAddrStr + ")");
+        String localSocketAddrStr = socket.getLocalSocketAddress().toString();
+        Log.i(TAG,"replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
 
+        if(rounds <= 0 && senderSocketAddrStr.equalsIgnoreCase(localSocketAddrStr) )
+        {
+            listener.onReceiveLastRttReply(startTime, remoteSocketAddr);
+        }
+        else{
+            if(senderSocketAddrStr.equalsIgnoreCase(localSocketAddrStr) )
+                --rounds;
+            String host = SystemUtil.getHost(senderSocketAddrStr);
+            int port = SystemUtil.getPort(senderSocketAddrStr);
+
+            write(SystemMessage.makeRttQuery(startTime, rounds,
+                    new InetSocketAddress(host, port)), remoteSocketAddr);
+        }
+    }
 }

@@ -1,35 +1,25 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Messenger;
 import android.util.Log;
-
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.SocketAddress;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.local.GroupOwnerUdpConnectionRunnable;
-import fi.hiit.complesense.core.AbstractSystemThread;
-import fi.hiit.complesense.core.GroupOwnerManager;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by rocsea0626 on 30.8.2014.
  */
-public class AcceptorUDP extends AbstractSystemThread
+public class AcceptorUDP extends AbstractUdpSocketHandler
 {
     public static final String TAG = "AcceptorUDP";
 
-    private final DatagramSocket socket;
-    private volatile boolean running = false;
+    public final DatagramSocket socket;
 
-    private final Messenger serviceMessenger;
-    private UdpConnectionRunnable udpConnRunnable;
-
-    public AcceptorUDP(Messenger serviceMessenger,
-                       ServiceHandler serviceHandler) throws IOException
+    public AcceptorUDP(ServiceHandler serviceHandler) throws IOException
     {
         super(serviceHandler);
-        this.serviceMessenger = serviceMessenger;
 
         socket = new DatagramSocket(Constants.SERVER_PORT);
         socket.setReuseAddress(true);
@@ -41,38 +31,18 @@ public class AcceptorUDP extends AbstractSystemThread
     public void run()
     {
         Log.i(TAG,"run()");
-        running = true;
-
-        if(running)
+        try
         {
-            try
-            {
-                udpConnRunnable= new UdpConnectionRunnable(serviceHandler, socket);
-                new Thread(udpConnRunnable).start();
-            }
-            catch (IOException e)
-            {
-                Log.w(TAG,e.toString());
-            }
+            udpConnRunnable= new UdpConnectionRunnable(serviceHandler, socket);
+            new Thread(udpConnRunnable).start();
         }
-        Log.w(TAG, "Server Terminates!!!");
+        catch (IOException e)
+        {
+            Log.w(TAG,e.toString());
+        }
     }
 
-    @Override
-    public void stopThread()
-    {
-        Log.i(TAG, "stopThread()");
-        running = false;
-        if(udpConnRunnable != null)
-            udpConnRunnable.stopRunnable();
-    }
-
-    @Override
-    public void pauseThread() {
-
-    }
-
-    public UdpConnectionRunnable getConnectionRunnable() {
-        return udpConnRunnable;
+    public SocketAddress getLocalSocketAddr() {
+        return socket.getLocalSocketAddress();
     }
 }

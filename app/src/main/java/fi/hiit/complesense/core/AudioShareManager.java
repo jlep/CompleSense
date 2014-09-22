@@ -358,7 +358,8 @@ public class AudioShareManager
         private final OutputStream outputStream;
         private final Socket cloudSocket;
 
-
+        private int packetCount = 0;
+        private long recStartTime = 0;
 
         public StreamRelayAudioThread(SocketAddress senderSocketAddr,
                                       UdpConnectionRunnable parentThread,
@@ -394,7 +395,14 @@ public class AudioShareManager
                 {
                     DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
                     recvSocket.receive(pack);
-                    Log.i(TAG, "Relay recv pack: " + pack.getLength());
+                    packetCount++;
+                    Log.i(TAG, "Relay recv packetCount: " + packetCount);
+                    if(packetCount == 1)
+                    {
+                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
+                        recStartTime = System.currentTimeMillis() - timeDiff;
+                    }
+
 
                     outputStream.write(pack.getData(), 0, pack.getLength());
                     outputStream.flush();
@@ -433,6 +441,11 @@ public class AudioShareManager
         @Override
         public void pauseThread() {
 
+        }
+
+        public long getRecStartTime()
+        {
+            return this.recStartTime;
         }
 
         public int getLocalForeignPort()

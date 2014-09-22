@@ -23,7 +23,6 @@ import java.util.TreeMap;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.core.ComleSenseDevice;
-import fi.hiit.complesense.core.LocalManager;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.ui.DemoActivity;

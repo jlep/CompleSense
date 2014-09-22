@@ -19,6 +19,7 @@ public class AliveConnection
 
     public static final long VALID_TIME = 10000, COUNT_DOWN_INTERVAL = 1000;
     private long nextCheckTime;
+    private long timeDiff;
 
     public interface AliveConnectionListener
     {
@@ -33,6 +34,16 @@ public class AliveConnection
         nextCheckTime = VALID_TIME;
 
         initCountDownTimer();
+    }
+
+    public void setTimeDiff(long timeDiff)
+    {
+        this.timeDiff = timeDiff;
+    }
+
+    public long getTimeDiff()
+    {
+        return this.timeDiff;
     }
 
     private void initCountDownTimer()

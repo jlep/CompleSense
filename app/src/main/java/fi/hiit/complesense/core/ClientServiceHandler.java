@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
 import fi.hiit.complesense.connection.ConnectorUDP;
+import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -24,6 +25,7 @@ public class ClientServiceHandler extends ServiceHandler
     public ClientServiceHandler(Messenger serviceMessenger,
                                 String name, Context context,
                                 InetAddress ownerAddr, int delay)
+
     {
         super(serviceMessenger, name, context, false, ownerAddr, delay);
         connectorUDP = (ConnectorUDP)eventHandlingThreads.get(ConnectorUDP.TAG);
@@ -90,7 +92,7 @@ public class ClientServiceHandler extends ServiceHandler
 
                     SystemMessage reply = SystemMessage.makeSensorValuesReplyMessage(sensorType, values);
                     if(connectorUDP!=null)
-                        connectorUDP.getConnectionRunnable().write(reply, remoteSocketAddr);
+                        connectorUDP.write(reply, remoteSocketAddr);
                 }
                 break;
 
@@ -100,11 +102,6 @@ public class ClientServiceHandler extends ServiceHandler
             case SystemMessage.C:
                 //write(SystemMessage.makeSensorsListReplyMessage(
                 //        clientManager.getLocalSensorList()), remoteSocketAddr);
-                break;
-            case SystemMessage.RTT:
-                //forwardRttQuery(sm.getPayload(),remoteSocketAddr);
-                if(connectorUDP!=null)
-                    replyRttQuery(connectorUDP.getConnectionRunnable());
                 break;
 
             default:

@@ -197,8 +197,7 @@ public class TestingService extends AbstractGroupService
                 Log.i(TAG, "Starting client thread");
                 clientsList.get(i).startServiveHandler();
             }
-            killClients();
-
+            //killClients();
         }
 
     }

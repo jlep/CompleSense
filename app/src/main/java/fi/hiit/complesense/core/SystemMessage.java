@@ -55,6 +55,7 @@ public class SystemMessage implements Serializable
 
 
     public static final int TYPE_AUDIO_STREAM = 30;
+    public static final short CLOCK_SYNC = 31;
 
 
 
@@ -367,16 +368,22 @@ public class SystemMessage implements Serializable
      * @param rounds
      * @return
      */
-    public static SystemMessage makeRttQuery(long timeStamp,int rounds)
+    public static SystemMessage makeRttQuery(long timeStamp,int rounds, SocketAddress localSocketAddr)
     {
-        int len = Long.SIZE / 8 + Integer.SIZE / 8;
+        int len = Long.SIZE / 8 + Integer.SIZE / 8 + localSocketAddr.toString().length();
         ByteBuffer bb = ByteBuffer.allocate(len);
         bb.order(ByteOrder.BIG_ENDIAN);
 
         bb.putLong(timeStamp);
         bb.putInt(rounds);
+        bb.put(localSocketAddr.toString().getBytes() );
 
         return new SystemMessage(SystemMessage.RTT, bb.array());
+    }
+
+    public static SystemMessage makeClockQueryRequest() {
+        byte[] payload = (new String("")).getBytes();
+        return new SystemMessage(SystemMessage.CLOCK_SYNC, payload);
     }
 
     /*

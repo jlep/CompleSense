@@ -1,18 +1,11 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Timer;
 
-import fi.hiit.complesense.connection.AbstractSocketHandler;
-import fi.hiit.complesense.core.LocalManager;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 7/22/14.

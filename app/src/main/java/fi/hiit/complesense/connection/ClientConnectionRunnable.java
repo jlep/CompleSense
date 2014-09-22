@@ -30,12 +30,12 @@ public class ClientConnectionRunnable extends UdpConnectionRunnable
     @Override
     public void run()
     {
-     //   write(SystemMessage.makeSensorsListReplyMessage(
-                //serviceHandler.sensorUtil.getLocalSensorTypeList()), groupOwnerSocketAddr);
-        sendMeasureRTTRequest(groupOwnerSocketAddr.toString(), Constants.RTT_ROUNDS);
+        write(SystemMessage.makeSensorsListReplyMessage(
+                serviceHandler.sensorUtil.getLocalSensorTypeList()), groupOwnerSocketAddr);
+        //sendMeasureRTTRequest(groupOwnerSocketAddr.toString(), Constants.RTT_ROUNDS);
+        // synchronize local clock with group mater
 
         super.run();
     }
-
 
 }

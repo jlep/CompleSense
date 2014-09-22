@@ -1,13 +1,9 @@
 package fi.hiit.complesense.core;
 
 import android.util.Log;
-
 import java.net.SocketAddress;
-import java.util.ArrayDeque;
 import java.util.TimerTask;
-
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
-import fi.hiit.complesense.connection.local.GroupOwnerUdpConnectionRunnable;
 
 /**
  * Created by hxguo on 8/5/14.
@@ -74,7 +70,8 @@ public class ScheduledUdpQueryTask extends TimerTask
             serviceHandler.updateStatusTxt("Switch sensor from "+ sensorType +" to "
                     + selectedType + " on " + remoteSocketAddr.toString());
             sensorType = selectedType;
-            runnable.write(SystemMessage.makeSensorDataQueryMessage(selectedType), remoteSocketAddr);
+            if(runnable!=null)
+                runnable.write(SystemMessage.makeSensorDataQueryMessage(selectedType), remoteSocketAddr);
             counter = 0;
         }
 

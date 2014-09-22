@@ -27,7 +27,6 @@ import java.io.Serializable;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.service.GroupOwnerService;
 import fi.hiit.complesense.service.TestingService;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -148,7 +147,7 @@ public class DemoActivity extends AbstractGroupActivity
         Log.i(TAG,"onDestroy()");
 
         doUnbindService();
-        stopService(new Intent(this, GroupOwnerService.class));
+        stopService(new Intent(this, TestingService.class));
         super.onDestroy();
     }
 

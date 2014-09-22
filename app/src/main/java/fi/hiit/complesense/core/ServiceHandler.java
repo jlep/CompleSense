@@ -26,6 +26,7 @@ import java.util.TreeMap;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AcceptorUDP;
+import fi.hiit.complesense.connection.Connector;
 import fi.hiit.complesense.connection.ConnectorCloud;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
@@ -51,7 +52,6 @@ public class ServiceHandler extends HandlerThread
     public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
-    private long rttMeasurement;
 
     public ServiceHandler(Messenger serviceMessenger, String name,
                           Context context, boolean isGroupOwner, InetAddress ownerAddr,
@@ -76,7 +76,7 @@ public class ServiceHandler extends HandlerThread
             AcceptorUDP acceptor = null;
             ConnectorCloud connectorCloud = new ConnectorCloud(this);
             try {
-                acceptor = new AcceptorUDP(serviceMessenger, this);
+                acceptor = new AcceptorUDP(this);
                 eventHandlingThreads.put(AcceptorUDP.TAG, acceptor);
                 eventHandlingThreads.put(ConnectorCloud.TAG, connectorCloud);
 
@@ -89,7 +89,7 @@ public class ServiceHandler extends HandlerThread
         {
             ConnectorUDP connector = null;
             try {
-                connector = new ConnectorUDP(serviceMessenger, this, ownerAddr);
+                connector = new ConnectorUDP(this, ownerAddr);
                 eventHandlingThreads.put(ConnectorUDP.TAG, connector);
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
@@ -126,6 +126,23 @@ public class ServiceHandler extends HandlerThread
     {
         Log.i(TAG, "recv: " + sm.toString() + " from " + fromAddr);
         //reply(msg.replyTo);
+        if(sm.getCmd()==SystemMessage.RTT)
+        {
+            UdpConnectionRunnable runnable = null;
+            if(eventHandlingThreads.get(AcceptorUDP.TAG)!=null){
+                runnable = ((AcceptorUDP)
+                        eventHandlingThreads.get(AcceptorUDP.TAG)).getConnectionRunnable();
+            }
+
+            if(eventHandlingThreads.get(ConnectorUDP.TAG)!=null){
+                runnable = ((ConnectorUDP)
+                        eventHandlingThreads.get(ConnectorUDP.TAG)).getConnectionRunnable();
+            }
+
+            if(runnable==null)
+                Log.e(TAG,"runnable is null");
+            runnable.replyRttQuery(sm.getPayload(), fromAddr, this);
+        }
     }
 
 
@@ -295,24 +312,13 @@ public class ServiceHandler extends HandlerThread
 
     }
 */
-    public void replyRttQuery(byte[] payload, SocketAddress remoteSocketAddr, UdpConnectionRunnable runnable,
-                              UdpConnectionRunnable.UdpConnectionListner listener)
+    @Override
+    public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
     {
-        ByteBuffer bb = ByteBuffer.wrap(payload);
-        long startTime = bb.getLong();
-        int rounds = bb.getInt();
-        if(rounds <= 0)
-        {
-            listener.onReceiveRttReply(startTime);
-        }
-        else{
-            if(runnable!=null)
-                runnable.write(SystemMessage.makeRttQuery(startTime, rounds--), remoteSocketAddr);
-        }
+        //Log.i(TAG, "startTimeMillis: " + startTimeMillis + "currentTime: " + System.currentTimeMillis());
+        long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
+        peerList.get(fromAddr.toString()).setTimeDiff(rttMeasurement / 2);
+        Log.i(TAG,"RTT between "+ fromAddr.toString() +" : " + rttMeasurement+ " ms");
     }
 
-    @Override
-    public void onReceiveRttReply(long startTimeMillis) {
-        this.rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
-    }
 }

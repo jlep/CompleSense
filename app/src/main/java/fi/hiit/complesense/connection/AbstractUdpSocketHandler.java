@@ -1,45 +1,49 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Messenger;
 import android.util.Log;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.util.Timer;
+import java.net.SocketAddress;
+
+import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.core.SystemMessage;
 
 /**
- * Created by hxguo on 7/22/14.
+ * Created by hxguo on 9/22/14.
  */
-public abstract class AbstractUdpSocketHandler extends Thread
+public class AbstractUdpSocketHandler extends AbstractSystemThread
 {
-    private static final String TAG = "AbstractUDPSocketHandler";
-    protected final Timer timer;
-    protected Messenger remoteMessenger;
-    protected AbstractUdpConnectionRunnable connectionRunnable;
 
-    protected AbstractUdpSocketHandler(Messenger messenger)
+    private static final String TAG = "AbstractUdpSocketHandler";
+    protected UdpConnectionRunnable udpConnRunnable;
+
+    protected AbstractUdpSocketHandler(ServiceHandler serviceHandler)
     {
-        remoteMessenger = messenger;
-        timer = new Timer();
+        super(serviceHandler);
+        udpConnRunnable = null;
     }
-
 
     @Override
-    public abstract void run();
-    public abstract void stopHandler();
-
-    public static void closeSocket(DatagramSocket socket)
+    public void stopThread() 
     {
-        Log.i(TAG, "closeSocket(DatagramSocket)");
-        if (socket != null && !socket.isClosed())
-            socket.close();
+        Log.i(TAG, "stopThread()");
+        if(udpConnRunnable != null)
+            udpConnRunnable.stopRunnable();
     }
 
-    public AbstractUdpConnectionRunnable getConnectionRunnable()
-    {
-        return connectionRunnable;
+    @Override
+    public void pauseThread() {
+
     }
 
+    public void write(SystemMessage systemMessage, SocketAddress remoteSocketAddr)
+    {
+        if(getConnectionRunnable() != null)
+            getConnectionRunnable().write(systemMessage, remoteSocketAddr);
+    }
 
+    public UdpConnectionRunnable getConnectionRunnable() {
+        return udpConnRunnable;
+    }
 
 }

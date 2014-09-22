@@ -115,7 +115,7 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
         timer.cancel();
         socket.close();
     }
-
+/*
     public void forwardRttQuery(byte[] payload, SocketAddress remoteSocketAddr)
     {
         ByteBuffer bb = ByteBuffer.wrap(payload);
@@ -165,7 +165,7 @@ public abstract class AbstractUdpConnectionRunnable implements Runnable
             write(SystemMessage.makeRttQuery(timeStamp, hops), remoteSocketAddr);
         }
 
-    }
+    }*/
 
     @Override
     public abstract void run();

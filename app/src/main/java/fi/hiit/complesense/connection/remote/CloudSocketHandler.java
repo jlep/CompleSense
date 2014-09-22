@@ -8,10 +8,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AbstractSocketHandler;
 import fi.hiit.complesense.connection.ConnectionRunnable;
 import fi.hiit.complesense.core.AbstractSystemThread;
-import fi.hiit.complesense.core.LocalManager;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
