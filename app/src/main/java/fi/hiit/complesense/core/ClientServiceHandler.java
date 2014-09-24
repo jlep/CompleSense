@@ -57,9 +57,8 @@ public class ClientServiceHandler extends ServiceHandler
 
                 int port = bb.getInt();
                 Log.i(TAG,"streaming recv port is " + port);
-                byte[] strByte = new byte[sm.getPayload().length - Integer.SIZE / 8];
-                bb.get(strByte);
-                String threadId = new String(strByte);
+                long threadId = bb.getLong();
+                Log.i(TAG, "threadId: " + threadId);
 
                 //foreignSocketAddrStr = new String(sm.getPayload(),
                 //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);

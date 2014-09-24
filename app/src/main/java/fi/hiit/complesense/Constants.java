@@ -1,5 +1,8 @@
 package fi.hiit.complesense;
 
+import android.os.Environment;
+
+import java.io.File;
 import java.net.URL;
 
 /**
@@ -7,6 +10,9 @@ import java.net.URL;
  */
 public class Constants
 {
+    public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
+
+
     public static final int SERVER_PORT = 30243; // group owner port
     public static final int CLOUD_SERVER_PORT = 10002; // cloud server port
     public static final String URL = "universe.hiit.fi";// server url
@@ -55,5 +61,6 @@ public class Constants
     public static final int RTT_ROUNDS = 5;
 
 
-    public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};;
+
+    public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};
 }

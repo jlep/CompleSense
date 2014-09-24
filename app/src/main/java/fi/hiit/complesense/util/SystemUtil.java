@@ -156,12 +156,7 @@ public class SystemUtil {
     {
 
         String fileName = recvSocketAddr + "-" +startTime +".txt";
-        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
-        String folder = root + "/CompleSense";
-        File ffolder = new File(folder);
-        if(!ffolder.exists())
-            ffolder.mkdir();
-        String filePath = folder + fileName;
+        String filePath = Constants.ROOT_DIR + fileName;
 
         Log.i(TAG, "writeLogFile("+filePath+")");
 
@@ -177,15 +172,10 @@ public class SystemUtil {
         }
     }
 
-    public static void writeLogFile(String threadId)
+    public static void writeLogFile(long threadId)
     {
         String fileName = threadId +".txt";
-        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
-        String folder = root + "/CompleSense/";
-        File ffolder = new File(folder);
-        if(!ffolder.exists())
-            ffolder.mkdir();
-        String filePath = folder + fileName;
+        String filePath = Constants.ROOT_DIR + fileName;
 
         Log.i(TAG, "writeLogFile("+filePath+")");
 
@@ -199,5 +189,13 @@ public class SystemUtil {
         } catch (IOException e) {
             Log.i(TAG,e.toString());
         }
+    }
+
+    public static void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : fileOrDirectory.listFiles())
+                deleteRecursive(child);
+
+        fileOrDirectory.delete();
     }
 }
