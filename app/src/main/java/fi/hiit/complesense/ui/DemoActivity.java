@@ -21,8 +21,6 @@ import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import org.webrtc.PeerConnectionFactory;
-
 import java.io.Serializable;
 
 import fi.hiit.complesense.Constants;
@@ -44,8 +42,6 @@ public class DemoActivity extends AbstractGroupActivity
         super.onCreate(savedInstanceState);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        PeerConnectionFactory.initializeAndroidGlobals(this);
-
         setContentView(R.layout.demo_activity_main);
         initUi((TextView) findViewById(R.id.status_text),
                 (ScrollView) findViewById(R.id.scroll_text));

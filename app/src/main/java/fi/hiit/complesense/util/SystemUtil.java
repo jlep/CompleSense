@@ -157,7 +157,11 @@ public class SystemUtil {
 
         String fileName = recvSocketAddr + "-" +startTime +".txt";
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();
-        String filePath = root + fileName;
+        String folder = root + "/CompleSense";
+        File ffolder = new File(folder);
+        if(!ffolder.exists())
+            ffolder.mkdir();
+        String filePath = folder + fileName;
 
         Log.i(TAG, "writeLogFile("+filePath+")");
 
@@ -171,7 +175,29 @@ public class SystemUtil {
         } catch (IOException e) {
             Log.i(TAG,e.toString());
         }
+    }
 
+    public static void writeLogFile(String threadId)
+    {
+        String fileName = threadId +".txt";
+        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String folder = root + "/CompleSense/";
+        File ffolder = new File(folder);
+        if(!ffolder.exists())
+            ffolder.mkdir();
+        String filePath = folder + fileName;
 
+        Log.i(TAG, "writeLogFile("+filePath+")");
+
+        try {
+            BufferedWriter output = new BufferedWriter(new FileWriter(filePath, false)) ;
+            output.write(Long.toString(System.currentTimeMillis()));
+            output.flush();
+            output.close();
+        } catch (FileNotFoundException e) {
+            Log.i(TAG,e.toString());
+        } catch (IOException e) {
+            Log.i(TAG,e.toString());
+        }
     }
 }

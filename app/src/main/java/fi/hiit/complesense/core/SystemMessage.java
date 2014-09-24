@@ -195,6 +195,17 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.O, payload);
     }
 
+    public static SystemMessage makeAudioStreamingRequest(int port2send, long syncClock)
+    {
+        ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / 8 + Long.SIZE / 8);
+        bb.putInt(port2send);
+        bb.putLong(syncClock);
+
+        byte[] payload = bb.array();
+
+        return new SystemMessage(SystemMessage.O, payload);
+    }
+
     public static SystemMessage makeAudioStreamingReply(byte[] bytes, int bytes_read)
     {
         int totalLen = (Integer.SIZE + bytes_read * Byte.SIZE) / 8;

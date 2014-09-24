@@ -7,35 +7,29 @@ import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
-import android.view.Window;
 
-import org.json.JSONException;
-import org.webrtc.DataChannel;
-import org.webrtc.MediaStream;
-import org.webrtc.PeerConnectionFactory;
-import org.webrtc.VideoRenderer;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.WebSocket;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.ConnectionRunnable;
-import fi.hiit.complesense.connection.ConnectorCloud;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 
 /**
@@ -166,7 +160,7 @@ public class AudioShareManager
         @Override
         public void run()
         {
-            Log.e(TAG, "start getSendMicAudioThread() thread, thread id: "
+            Log.e(TAG, "start SendMicAudioThread, thread id: "
                     + Thread.currentThread().getId());
             serviceHandler.updateStatusTxt("SendMicAudioThread starts: " + Thread.currentThread().getId());
 
@@ -283,8 +277,6 @@ public class AudioShareManager
                 byte[] buf = new byte[BUF_SIZE];
               //  parentThread.write(SystemMessage.makeAudioStreamingRequest(recvSocket.getLocalPort()),
                 //        senderSocketAddr);
-
-
 
                 while(!Thread.currentThread().isInterrupted())
                 {
@@ -454,7 +446,6 @@ public class AudioShareManager
         }
     }
 
-
     public static RelayAudioHttpThread getHttpRelayAudioThread(final SocketAddress senderSocketAddr,
                                                        final ServiceHandler serviceHandler,
                                                        final UdpConnectionRunnable localConnectionRunnale)
@@ -467,7 +458,6 @@ public class AudioShareManager
         }
         return thrd;
     }
-
 
     public static class RelayAudioHttpThread extends AbstractSystemThread
     {
@@ -568,5 +558,142 @@ public class AudioShareManager
         }
     }
 
+    public static WebSocketConnection getWebSocketAudioRelayThread(final SocketAddress senderSocketAddr,
+                                                                         final ServiceHandler serviceHandler,
+                                                                         final UdpConnectionRunnable localUdpRunnable)
+    {
+        WebSocketConnection thrd = null;
+        try {
+            thrd = new WebSocketConnection(serviceHandler,
+                    senderSocketAddr, localUdpRunnable);
+        } catch (SocketException e)
+        {
+            Log.i(TAG,e.toString());
+        } catch (IOException e) {
+            Log.i(TAG, e.toString());
+        }
+        return thrd;
+    }
 
+
+    public static class WebSocketConnection extends AbstractSystemThread
+            implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, DataCallback
+    {
+        public static final String TAG = "WebSocketConnection:" + Thread.currentThread().getId();
+        private final SocketAddress senderSocketAddr;
+        private final UdpConnectionRunnable localUdpRunnable;
+        private final DatagramSocket recvSocket;
+        private int packetCount;
+        private long recStartTime;
+
+        private static final String PROTOCOL = "ws";
+        private URI uri = URI.create(PROTOCOL +"://"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
+        private WebSocket mWebSocket = null;
+
+        public WebSocketConnection(ServiceHandler serviceHandler,
+                                         SocketAddress senderSocketAddr,
+                                         UdpConnectionRunnable localUdpRunnable) throws SocketException
+        {
+            super(serviceHandler);
+            this.senderSocketAddr = senderSocketAddr;
+            this.localUdpRunnable = localUdpRunnable;
+            recvSocket = new DatagramSocket();
+
+            connect();
+        }
+
+        private void connect()
+        {
+            Log.i(TAG, "connect("+ uri.toString() +")");
+            serviceHandler.updateStatusTxt("connect("+ uri.toString() +")");
+            AsyncHttpClient.getDefaultInstance().websocket(uri.toString(), PROTOCOL, this);
+        }
+
+        @Override
+        public void run()
+        {
+            Log.e(TAG, "start WebSocketAudioRelayThread, id: "
+                    + Thread.currentThread().getId());
+
+            serviceHandler.updateStatusTxt("WebSocketAudioRelayThread starts: "
+                    + Thread.currentThread().getId());
+            try
+            {
+                byte[] buf = new byte[BUF_SIZE];
+                localUdpRunnable.write(SystemMessage.makeAudioStreamingRequest(
+                        recvSocket.getLocalPort(),
+                        Thread.currentThread().getId()), senderSocketAddr);
+
+                while(!Thread.currentThread().isInterrupted())
+                {
+                    DatagramPacket pack = new DatagramPacket(buf, BUF_SIZE);
+                    recvSocket.receive(pack);
+                    packetCount++;
+                    Log.i(TAG, "Relay recv packetCount: " + packetCount);
+                    if(packetCount == 1)
+                    {
+                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
+                        recStartTime = System.currentTimeMillis() - timeDiff;
+                        String audioName = "audio_name:" + Thread.currentThread().getId() +"_"+ Long.toString(recStartTime);
+                        mWebSocket.send(audioName);
+                        serviceHandler.updateStatusTxt(audioName);
+                    }
+                    mWebSocket.send(pack.getData());
+                }
+                Log.e(TAG, "exits loop");
+            }
+            catch (SocketException se)
+            {
+                Log.e(TAG, se.toString());
+            }
+            catch (IOException ie)
+            {
+                Log.e(TAG, ie.toString());
+            }
+            finally{
+                stopThread();
+            }
+        } // end run
+
+        @Override
+        public void stopThread()
+        {
+            if(recvSocket!=null)
+                recvSocket.close();
+            if(mWebSocket!=null)
+                mWebSocket.close();
+        }
+
+        @Override
+        public void pauseThread() {
+
+        }
+
+        @Override
+        public void onDataAvailable(DataEmitter dataEmitter,
+                                    ByteBufferList byteBufferList)
+        {
+            serviceHandler.updateStatusTxt("I got some bytes!");
+            // note that this data has been read
+            byteBufferList.recycle();
+        }
+
+        @Override
+        public void onStringAvailable(String s) {
+            serviceHandler.updateStatusTxt("str from Server: " + s);
+        }
+
+        @Override
+        public void onCompleted(Exception ex, WebSocket webSocket)
+        {
+            Log.i(TAG, "onCompleted("+ uri.toString() +")");
+            serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
+            if (ex != null) {
+                Log.e(TAG, ex.toString());
+                return;
+            }
+            mWebSocket = webSocket;
+            start();
+        }
+    }
 }

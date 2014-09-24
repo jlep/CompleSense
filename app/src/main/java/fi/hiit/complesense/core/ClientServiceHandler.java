@@ -7,6 +7,7 @@ import android.util.Log;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
@@ -19,7 +20,7 @@ public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
     private final ConnectorUDP connectorUDP;
-    private String foreignSocketAddrStr = null;
+    //private String foreignSocketAddrStr = null;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -52,13 +53,18 @@ public class ClientServiceHandler extends ServiceHandler
                 String host = SystemUtil.getHost(socketAddrStr);
                 Log.i(TAG,"remote host is " + host);
 
-                int port = SystemMessage.byteArray2Int(sm.getPayload(),0, Integer.SIZE/8);
+                ByteBuffer bb = ByteBuffer.wrap(sm.getPayload());
+
+                int port = bb.getInt();
                 Log.i(TAG,"streaming recv port is " + port);
+                byte[] strByte = new byte[sm.getPayload().length - Integer.SIZE / 8];
+                bb.get(strByte);
+                String threadId = new String(strByte);
 
-                foreignSocketAddrStr = new String(sm.getPayload(),
-                        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
+                //foreignSocketAddrStr = new String(sm.getPayload(),
+                //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
 
-                SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
+                SystemUtil.writeLogFile(threadId);
 
                 AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
                         new InetSocketAddress(host, port), this);
@@ -87,8 +93,8 @@ public class ClientServiceHandler extends ServiceHandler
 
                 if(null!=values)
                 {
-                    if(foreignSocketAddrStr!=null)
-                        SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
+                    //if(foreignSocketAddrStr!=null)
+                    //    SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
 
                     SystemMessage reply = SystemMessage.makeSensorValuesReplyMessage(sensorType, values);
                     if(connectorUDP!=null)
