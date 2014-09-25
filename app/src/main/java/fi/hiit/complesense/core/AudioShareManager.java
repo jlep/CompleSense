@@ -633,7 +633,10 @@ public class AudioShareManager
                     if(packetCount == 1)
                     {
                         long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
+                        Log.i(TAG, "timeDiff: " + timeDiff);
+                        serviceHandler.updateStatusTxt("timeDiff: " + timeDiff);
                         recStartTime = System.currentTimeMillis() - timeDiff;
+
                         String audioName = "audio_name:" + Thread.currentThread().getId() +"_"+ Long.toString(recStartTime);
                         mWebSocket.send(audioName);
                         serviceHandler.updateStatusTxt(audioName);

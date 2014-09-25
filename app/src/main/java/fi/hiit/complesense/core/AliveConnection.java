@@ -19,7 +19,7 @@ public class AliveConnection
 
     public static final long VALID_TIME = 10000, COUNT_DOWN_INTERVAL = 1000;
     private long nextCheckTime;
-    private long timeDiff;
+    private long timeDiff = 0;
 
     public interface AliveConnectionListener
     {
