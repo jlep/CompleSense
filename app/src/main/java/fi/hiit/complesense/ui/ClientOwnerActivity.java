@@ -123,10 +123,10 @@ public class ClientOwnerActivity extends AbstractGroupActivity
     protected void onDestroy()
     {
         Log.i(TAG,"onDestroy()");
-
+        super.onDestroy();
         doUnbindService();
         stopService(new Intent(this, ClientOwnerService.class));
-        super.onDestroy();
+
     }
 
     @Override

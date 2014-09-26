@@ -129,11 +129,11 @@ public class AudioShareManager
 
 
     public static SendMicAudioThread getSendMicAudioThread(
-            final SocketAddress remoteSocketAddr, final ServiceHandler serviceHandler)
+            final SocketAddress remoteSocketAddr, final ServiceHandler serviceHandler, boolean keepLocalFile)
     {
         SendMicAudioThread thrd = null;
         try {
-            thrd = new SendMicAudioThread(remoteSocketAddr, serviceHandler);
+            thrd = new SendMicAudioThread(remoteSocketAddr, serviceHandler, keepLocalFile);
         } catch (SocketException e) {
             Log.i(TAG,e.toString());
         }
@@ -143,18 +143,25 @@ public class AudioShareManager
     public static class SendMicAudioThread extends AbstractSystemThread
     {
         public static final String TAG = "SendMicAudioThread";
+        private final ExtRecorder extRecorder;
 
         private String callerId;
 
         private final SocketAddress remoteSocketAddr;
         private final DatagramSocket socket;
+        private final boolean keepLocalFile;
 
         public SendMicAudioThread(SocketAddress remoteSocketAddr,
-                                  ServiceHandler serviceHandler) throws SocketException
+                                  ServiceHandler serviceHandler,
+                                  boolean keepLocalFile) throws SocketException
         {
             super(serviceHandler);
             socket = new DatagramSocket();
             this.remoteSocketAddr = remoteSocketAddr;
+            this.keepLocalFile = keepLocalFile;
+            extRecorder = ExtRecorder.getInstanse(false, socket, remoteSocketAddr);
+            extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(System.currentTimeMillis() ) +".wav");
+            extRecorder.prepare();
         }
 
         @Override
@@ -164,59 +171,16 @@ public class AudioShareManager
                     + Thread.currentThread().getId());
             serviceHandler.updateStatusTxt("SendMicAudioThread starts: " + Thread.currentThread().getId());
 
-            AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SAMPLE_RATE,
-                    AudioFormat.CHANNEL_CONFIGURATION_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    AudioRecord.getMinBufferSize(SAMPLE_RATE,
-                            AudioFormat.CHANNEL_CONFIGURATION_MONO,
-                            AudioFormat.ENCODING_PCM_16BIT) * 10);
-            int bytes_read = 0;
-            int bytes_count = 0;
-            byte[] buf = new byte[BUF_SIZE];
-
-            try
-            {
-                InetAddress addr = InetAddress.getLocalHost();
-                audio_recorder.startRecording();
-
-                while(!Thread.currentThread().isInterrupted())
-                {
-                    bytes_read = audio_recorder.read(buf, 0, BUF_SIZE);
-                    DatagramPacket pack = new DatagramPacket(buf, bytes_read,
-                            remoteSocketAddr);
-                    socket.send(pack);
-                    bytes_count += bytes_read;
-                    Log.i(TAG, "send_bytes_count : " + bytes_count);
-                    Thread.sleep(SAMPLE_INTERVAL, 0);
-                }
-            }
-            catch (InterruptedException ie)
-            {
-                Log.e(TAG, "getSendMicAudioThread(): " + ie.toString());
-            }
-            catch (SocketException se)
-            {
-                Log.e(TAG, "getSendMicAudioThread(): " + se.toString());
-            }
-            catch (UnknownHostException uhe)
-            {
-                Log.e(TAG, "getSendMicAudioThread(): " + uhe.toString());
-            }
-            catch (IOException ie)
-            {
-                Log.e(TAG, "getSendMicAudioThread(): " + ie.toString());
-            }
-            finally
-            {
-                audio_recorder.stop();
-                if(socket!=null)
-                    socket.close();
-            }
+            extRecorder.start();
         } // end run
 
         @Override
         public void stopThread()
         {
+            extRecorder.stop();
+            extRecorder.reset();
+            extRecorder.release();
+
             if(socket!=null)
                 socket.close();
         }
@@ -633,10 +597,12 @@ public class AudioShareManager
                     if(packetCount == 1)
                     {
                         long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
-                        Log.i(TAG, "timeDiff: " + timeDiff);
-                        serviceHandler.updateStatusTxt("timeDiff: " + timeDiff);
-                        recStartTime = System.currentTimeMillis() - timeDiff;
 
+                        String str = "timeDiff with "+ senderSocketAddr.toString() +": " + timeDiff;
+                        Log.i(TAG, str);
+                        serviceHandler.updateStatusTxt(str);
+
+                        recStartTime = System.currentTimeMillis() - timeDiff;
                         String audioName = "audio_name:" + Thread.currentThread().getId() +"_"+ Long.toString(recStartTime);
                         mWebSocket.send(audioName);
                         serviceHandler.updateStatusTxt(audioName);

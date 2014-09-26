@@ -152,7 +152,7 @@ public class SystemUtil {
         return port;
     }
 
-    public static void writeLogFile(String startTime, String recvSocketAddr)
+    public static void writeAlivenessFile(String startTime, String recvSocketAddr)
     {
 
         String fileName = recvSocketAddr + "-" +startTime +".txt";
@@ -172,7 +172,7 @@ public class SystemUtil {
         }
     }
 
-    public static void writeLogFile(long threadId)
+    public static void writeAlivenessFile(long threadId)
     {
         String fileName = threadId +".txt";
         String filePath = Constants.ROOT_DIR + fileName;
@@ -197,5 +197,13 @@ public class SystemUtil {
                 deleteRecursive(child);
 
         fileOrDirectory.delete();
+    }
+
+    public static void cleanRootDir()
+    {
+        File rootFolder = new File(Constants.ROOT_DIR);
+        if(rootFolder.exists())
+            SystemUtil.deleteRecursive(rootFolder);
+        rootFolder.mkdir();
     }
 }

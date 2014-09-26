@@ -3,6 +3,7 @@ package fi.hiit.complesense.ui;
 import android.app.Activity;
 import android.content.ServiceConnection;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -10,6 +11,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import fi.hiit.complesense.Constants;
 
@@ -28,8 +34,15 @@ public abstract class AbstractGroupActivity extends Activity
 
     /** Messenger for communicating with service. */
     protected Messenger mService = null;
+    protected final String outputFile = Constants.ROOT_DIR +
+            Long.toString(System.currentTimeMillis()) + ".textview";
 
     protected ServiceConnection mConnection = null;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
 
     @Override
     public void onResume()
@@ -45,6 +58,14 @@ public abstract class AbstractGroupActivity extends Activity
         Log.d(TAG, "onPause()");
         super.onPause();
         doUnbindService();
+    }
+
+    @Override
+    protected void onDestroy()
+    {
+        Log.d(TAG, "onDestroy()");
+        dumpTextView2File(statusTxtView.getText().toString() );
+        super.onDestroy();
     }
 
     protected abstract void doBindService();
@@ -75,20 +96,33 @@ public abstract class AbstractGroupActivity extends Activity
         {
             StringBuffer sb = new StringBuffer(statusTxtView.getText());
             // delete lines
-            int numLinesDel = (int)(maxLines*0.3);
+            int numLinesDel = (int)(maxLines*0.8);
             int offset = 0;
             for(int i=0;i<numLinesDel;++i)
             {
                 //Log.i(TAG, "offset: " + offset);
                 offset = sb.indexOf("\n",offset)+1;
             }
+            dumpTextView2File(sb.subSequence(0, offset).toString() );
+
             //Log.i(TAG,"offset: " + sb.substring(0,offset));
             statusTxtView.setText(sb.subSequence(offset, sb.length()));
         }
-
-
         statusTxtView.append(txt + "\n");
         scrollView.fullScroll(View.FOCUS_DOWN);
+    }
+
+    private void dumpTextView2File(String str)
+    {
+        Log.i(TAG, "dumpTextView2File("+ outputFile +")");
+        try {
+            BufferedWriter bfw = new BufferedWriter(new FileWriter(outputFile, true) );
+            bfw.write(str);
+            bfw.flush();
+            bfw.close();
+        } catch (IOException e) {
+            Log.i(TAG,e.toString() );
+        }
     }
 
     protected void updateSelfInfoFragment(Message msg)

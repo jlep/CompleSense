@@ -63,10 +63,10 @@ public class ClientServiceHandler extends ServiceHandler
                 //foreignSocketAddrStr = new String(sm.getPayload(),
                 //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
 
-                SystemUtil.writeLogFile(threadId);
+                SystemUtil.writeAlivenessFile(threadId);
 
                 AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
-                        new InetSocketAddress(host, port), this);
+                        new InetSocketAddress(host, port), this, true);
                 eventHandlingThreads.put(AudioShareManager.SendMicAudioThread.TAG, audioStreamThread);
                 audioStreamThread.start();
 
