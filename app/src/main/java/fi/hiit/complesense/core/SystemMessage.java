@@ -194,12 +194,15 @@ public class SystemMessage implements Serializable
 
         return new SystemMessage(SystemMessage.O, payload);
     }
-    public static SystemMessage makeAudioStreamingRequest(int port2send, long threadId)
+    public static SystemMessage makeAudioStreamingRequest(int port2send, long threadId, boolean toStart)
     {
-        ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / 8 + Long.SIZE / 8 );
+        ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / 8 + Long.SIZE / 8 + Integer.SIZE / 8);
         bb.putInt(port2send);
         bb.putLong(threadId);
-
+        if(toStart)
+            bb.putInt(1);
+        else
+            bb.putInt(0);
         byte[] payload = bb.array();
 
         return new SystemMessage(SystemMessage.O, payload);

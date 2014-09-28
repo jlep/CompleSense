@@ -60,15 +60,28 @@ public class ClientServiceHandler extends ServiceHandler
                 long threadId = bb.getLong();
                 Log.i(TAG, "threadId: " + threadId);
 
-                //foreignSocketAddrStr = new String(sm.getPayload(),
-                //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
+                int toStart = bb.getInt();
 
-                SystemUtil.writeAlivenessFile(threadId);
+                if(toStart == 1)
+                {
+                    //foreignSocketAddrStr = new String(sm.getPayload(),
+                    //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
 
-                AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
-                        new InetSocketAddress(host, port), this, true);
-                eventHandlingThreads.put(AudioShareManager.SendMicAudioThread.TAG, audioStreamThread);
-                audioStreamThread.start();
+                    SystemUtil.writeAlivenessFile(threadId);
+
+                    AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
+                            new InetSocketAddress(host, port), this, true);
+                    eventHandlingThreads.put(AudioShareManager.SendMicAudioThread.TAG, audioStreamThread);
+                    audioStreamThread.start();
+                }
+                else
+                {
+                    AudioShareManager.SendMicAudioThread sendMicAudioThread =
+                            (AudioShareManager.SendMicAudioThread) eventHandlingThreads.remove(AudioShareManager.SendMicAudioThread.TAG);
+                    if(sendMicAudioThread != null)
+                        sendMicAudioThread.stopThread();
+                }
+
 
                 // request send audio streaming
                 //audioStreamThread = AudioShareManager.sendAudioThread(audioFilePath, remoteSocketAddr.getAddress() );

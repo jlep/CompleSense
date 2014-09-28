@@ -1,6 +1,7 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.os.CountDownTimer;
 import android.os.Messenger;
 import android.util.Log;
 
@@ -23,6 +24,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private final AcceptorUDP acceptorUDP;
     private Timer timer;
 
+    private int clientCounter = 0;
+
     private final String cloudSocketAddrStr = "http://" + Constants.URL +
             ":" + Constants.CLOUD_SERVER_PORT + "/";
 
@@ -39,6 +42,9 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
     {
         super.onReceiveLastRttReply(startTimeMillis, fromAddr);
+        clientCounter++;
+
+
         int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
         Log.i(TAG,"sType: " + sType);
 
@@ -55,9 +61,45 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         {
             eventHandlingThreads.put(AudioShareManager.WebSocketConnection.TAG +"-"+fromAddr,
                     webSocketConnection);
+
         }
+
+        if(clientCounter >= 4)
+        {
+            CountDownTimer countDownTimer = new CountDownTimer(10, 1) {
+                @Override
+                public void onTick(long l) {
+
+                }
+
+                @Override
+                public void onFinish() {
+                    killRecSendingThread();
+                }
+            };
+
+            countDownTimer.start();
+        }
+
+
+
     }
 
+    private void killRecSendingThread()
+    {
+        Iterator<String> iter = eventHandlingThreads.keySet().iterator();
+        while(iter.hasNext())
+        {
+            String key = iter.next();
+            if(key.contains(AudioShareManager.WebSocketConnection.TAG))
+            {
+                AudioShareManager.WebSocketConnection webSocketConnection =
+                        (AudioShareManager.WebSocketConnection) eventHandlingThreads.get(key);
+                acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0,false), webSocketConnection.senderSocketAddr);
+                webSocketConnection.stopThread();
+            }
+        }
+    }
 
 
     @Override

@@ -544,9 +544,9 @@ public class AudioShareManager
             implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, DataCallback
     {
         public static final String TAG = "WebSocketConnection:" + Thread.currentThread().getId();
-        private final SocketAddress senderSocketAddr;
+        public final SocketAddress senderSocketAddr;
         private final UdpConnectionRunnable localUdpRunnable;
-        private final DatagramSocket recvSocket;
+        public final DatagramSocket recvSocket;
         private int packetCount;
         private long recStartTime;
 
@@ -586,7 +586,7 @@ public class AudioShareManager
                 byte[] buf = new byte[BUF_SIZE];
                 localUdpRunnable.write(SystemMessage.makeAudioStreamingRequest(
                         recvSocket.getLocalPort(),
-                        Thread.currentThread().getId()), senderSocketAddr);
+                        Thread.currentThread().getId(), true), senderSocketAddr);
 
                 while(!Thread.currentThread().isInterrupted())
                 {
