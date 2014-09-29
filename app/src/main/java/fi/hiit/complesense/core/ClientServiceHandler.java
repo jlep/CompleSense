@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
+import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.util.SystemUtil;
@@ -43,10 +44,6 @@ public class ClientServiceHandler extends ServiceHandler
         {
             case SystemMessage.O:
                 // receive Audio Streaming request
-                //String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
-                //Log.i(TAG,rootDir);
-                //String audioFilePath = rootDir + "/Music/romance.wav";
-                //Log.i(TAG,audioFilePath);
                 updateStatusTxt("From " + remoteSocketAddr.toString() + " receive " + sm.toString());
 
                 String socketAddrStr = remoteSocketAddr.toString();
@@ -61,25 +58,27 @@ public class ClientServiceHandler extends ServiceHandler
                 Log.i(TAG, "threadId: " + threadId);
 
                 int toStart = bb.getInt();
+                Log.i(TAG, "toStart: " + toStart);
 
                 if(toStart == 1)
                 {
-                    //foreignSocketAddrStr = new String(sm.getPayload(),
-                    //        Integer.SIZE/8, sm.getPayload().length - Integer.SIZE/8);
-
                     SystemUtil.writeAlivenessFile(threadId);
+                    SendAudioThread sendAudioThread = SendAudioThread.getInstancce(
+                            new InetSocketAddress(host, port), this, threadId,true);
 
-                    AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
-                            new InetSocketAddress(host, port), this, true);
-                    eventHandlingThreads.put(AudioShareManager.SendMicAudioThread.TAG, audioStreamThread);
-                    audioStreamThread.start();
+                    /*AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
+                            new InetSocketAddress(host, port), this, true);*/
+                    eventHandlingThreads.put(SendAudioThread.TAG, sendAudioThread);
+                    sendAudioThread.start();
+
                 }
                 else
                 {
-                    AudioShareManager.SendMicAudioThread sendMicAudioThread =
-                            (AudioShareManager.SendMicAudioThread) eventHandlingThreads.remove(AudioShareManager.SendMicAudioThread.TAG);
-                    if(sendMicAudioThread != null)
-                        sendMicAudioThread.stopThread();
+                    //AudioShareManager.SendMicAudioThread sendMicAudioThread =
+                    //        (AudioShareManager.SendMicAudioThread) eventHandlingThreads.remove(AudioShareManager.SendMicAudioThread.TAG);
+                    SendAudioThread sendAudioThread = (SendAudioThread) eventHandlingThreads.remove(SendAudioThread.TAG);
+                    if(sendAudioThread != null)
+                        sendAudioThread.stopThread();
                 }
 
 

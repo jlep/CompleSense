@@ -1,10 +1,13 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
+
+import com.koushikdutta.async.http.WebSocket;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -19,10 +22,10 @@ public class ExtRecorder
 	private final static int[] sampleRates = {44100, 22050, 11025, 8000};
     private static final String TAG = "ExtRecorder";
 
-    private final DatagramSocket socket;
+    private final WebSocket mWebSocket;
     private final SocketAddress remoteSocketAddr;
 
-    public static ExtRecorder getInstanse(Boolean recordingCompressed, DatagramSocket socket, SocketAddress remoteSocketAddr)
+    public static ExtRecorder getInstanse(Boolean recordingCompressed, WebSocket webSocket, SocketAddress remoteSocketAddr)
 	{
 		ExtRecorder result = null;
 		
@@ -32,7 +35,7 @@ public class ExtRecorder
 											AudioSource.MIC,
 											sampleRates[3], 
 											AudioFormat.CHANNEL_IN_MONO,
-											AudioFormat.ENCODING_PCM_16BIT, socket, remoteSocketAddr);
+											AudioFormat.ENCODING_PCM_16BIT, webSocket, remoteSocketAddr);
 		}
 		else
 		{
@@ -43,7 +46,7 @@ public class ExtRecorder
 												AudioSource.MIC,
 												sampleRates[3], 
 												AudioFormat.CHANNEL_IN_MONO,
-												AudioFormat.ENCODING_PCM_16BIT, socket, remoteSocketAddr);
+												AudioFormat.ENCODING_PCM_16BIT, webSocket, remoteSocketAddr);
 				
 			} while((++i<sampleRates.length) & !(result.getState() == ExtRecorder.State.INITIALIZING));
 		}
@@ -134,11 +137,11 @@ public class ExtRecorder
 				try
 				{
 					randomAccessWriter.write(buffer); // Write buffer to file
-                    if(socket!=null)
+                    if(mWebSocket!=null)
                     {
                         DatagramPacket pack = new DatagramPacket(buffer, buffer.length,
                                 remoteSocketAddr);
-                        socket.send(pack);
+                        mWebSocket.send(pack.getData() );
                     }
 
 					payloadSize += buffer.length;
@@ -190,7 +193,7 @@ public class ExtRecorder
 	 * In case of errors, no exception is thrown, but the state is set to ERROR
 	 *
 	 */
-	public ExtRecorder(boolean uncompressed, int audioSource, int sampleRate, int channelConfig, int audioFormat, DatagramSocket socket, SocketAddress remoteSocketAddr)
+	public ExtRecorder(boolean uncompressed, int audioSource, int sampleRate, int channelConfig, int audioFormat, WebSocket socket, SocketAddress remoteSocketAddr)
 	{
 		try
 		{
@@ -263,7 +266,7 @@ public class ExtRecorder
 			state = State.ERROR;
 		}
 
-        this.socket = socket;
+        this.mWebSocket = socket;
         this.remoteSocketAddr = remoteSocketAddr;
     }
 
@@ -570,8 +573,8 @@ public class ExtRecorder
 				mediaRecorder.stop();
 			}
 			state = State.STOPPED;
-            if(socket!=null)
-                socket.close();
+            if(mWebSocket!=null)
+                mWebSocket.close();
 		}
 		else
 		{

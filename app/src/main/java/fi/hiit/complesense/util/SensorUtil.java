@@ -59,7 +59,7 @@ public class SensorUtil implements SensorEventListener
     public void setSensorValue(float[] values, int sensorType, String srcSocketAddr)
     {
         String key = SensorValues.genKey(srcSocketAddr, sensorType);
-        Log.e(TAG, "key: " + key);
+        //Log.e(TAG, "key: " + key);
         SensorValues sv = sensorValues.get(key);
         if(sv==null)
         {

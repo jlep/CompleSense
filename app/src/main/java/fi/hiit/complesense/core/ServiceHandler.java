@@ -24,14 +24,10 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.AcceptorUDP;
-import fi.hiit.complesense.connection.Connector;
-import fi.hiit.complesense.connection.ConnectorCloud;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.util.SensorUtil;
-import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -74,12 +70,9 @@ public class ServiceHandler extends HandlerThread
         if(isGroupOwner)
         {
             AcceptorUDP acceptor = null;
-            ConnectorCloud connectorCloud = new ConnectorCloud(this);
             try {
                 acceptor = new AcceptorUDP(this);
                 eventHandlingThreads.put(AcceptorUDP.TAG, acceptor);
-                eventHandlingThreads.put(ConnectorCloud.TAG, connectorCloud);
-
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
 
@@ -145,6 +138,11 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
+    public Map<String, AliveConnection> getPeerList()
+    {
+        return peerList;
+    }
+
 
     protected void reply(Messenger messenger)
     {
@@ -189,27 +187,13 @@ public class ServiceHandler extends HandlerThread
         Iterator<Map.Entry<String, AbstractSystemThread>> iterator
                 = eventHandlingThreads.entrySet().iterator();
         while(iterator.hasNext())
-            iterator.next().getValue().stopThread();
-
-        quit();
-    }
-    public void send2Cloud(String srcAddr, float[] values)
-    {
-        ConnectorCloud cloudConnector = (ConnectorCloud)eventHandlingThreads.get(ConnectorCloud.TAG);
-        if(cloudConnector!=null)
         {
-            if(cloudConnector.getConnectionRunnable()!=null)
-            {
-                String str = srcAddr + "->";
-                for(float f:values)
-                {
-                    str += Float.toString(f);
-                    str +=", ";
-                }
-                //cloudConnector.getConnectionRunnable().write(str, cloudConnector.getCloudSocketAddr() );
-                //cloudConnector.getConnectionRunnable().write(str.getBytes());
-            }
+            Map.Entry<String, AbstractSystemThread> entry = iterator.next();
+
+            Log.e(TAG, "Stop thread: " + entry.getKey());
+            entry.getValue().stopThread();
         }
+        quit();
     }
 
     protected void addNewConnection(SocketAddress socketAddress)

@@ -5,15 +5,17 @@ import android.os.CountDownTimer;
 import android.os.Messenger;
 import android.util.Log;
 
+import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
-
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.audio.RelayThread;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
-import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 21.8.2014.
@@ -42,8 +44,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
     {
         super.onReceiveLastRttReply(startTimeMillis, fromAddr);
-        clientCounter++;
-
 
         int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
         Log.i(TAG,"sType: " + sType);
@@ -55,18 +55,26 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             timer.schedule(sTask, 0, 3000);
         }
 
-        AudioShareManager.WebSocketConnection webSocketConnection=
-                AudioShareManager.getWebSocketAudioRelayThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
-        if(webSocketConnection!=null)
-        {
-            eventHandlingThreads.put(AudioShareManager.WebSocketConnection.TAG +"-"+fromAddr,
-                    webSocketConnection);
+        //AudioShareManager.WebSocketConnection webSocketConnection=
+        //        AudioShareManager.getWebSocketAudioRelayThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
 
+        try {
+            RelayThread relayThread = new RelayThread(this, fromAddr,
+                    acceptorUDP.getConnectionRunnable(), clientCounter);
+
+            ++clientCounter;
+            if(relayThread!=null)
+            {
+                eventHandlingThreads.put(RelayThread.TAG +"-"+fromAddr.toString(), relayThread);
+            }
+        } catch (SocketException e) {
+            Log.i(TAG, e.toString() );
         }
 
-        if(clientCounter >= 4)
+        if(clientCounter >= 1)
         {
-            CountDownTimer countDownTimer = new CountDownTimer(10, 1) {
+            Log.e(TAG, "enough clients have joined");
+            CountDownTimer countDownTimer = new CountDownTimer(20000,1000) {
                 @Override
                 public void onTick(long l) {
 
@@ -74,30 +82,21 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
                 @Override
                 public void onFinish() {
-                    killRecSendingThread();
+                    // send stop recording message
+                    Iterator<Map.Entry<String, AbstractSystemThread> > iter = eventHandlingThreads.entrySet().iterator();
+                    while(iter.hasNext())
+                    {
+                        Map.Entry<String, AbstractSystemThread> entry = iter.next();
+                        if(entry.getKey().contains(RelayThread.TAG))
+                        {
+                            Log.i(TAG, "stop rec on: " + entry.getKey());
+                            SocketAddress clientAddr = ((RelayThread)entry.getValue()).senderSocketAddr;
+                            acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0, false), clientAddr);
+                        }
+                    }
                 }
             };
-
             countDownTimer.start();
-        }
-
-
-
-    }
-
-    private void killRecSendingThread()
-    {
-        Iterator<String> iter = eventHandlingThreads.keySet().iterator();
-        while(iter.hasNext())
-        {
-            String key = iter.next();
-            if(key.contains(AudioShareManager.WebSocketConnection.TAG))
-            {
-                AudioShareManager.WebSocketConnection webSocketConnection =
-                        (AudioShareManager.WebSocketConnection) eventHandlingThreads.get(key);
-                acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0,false), webSocketConnection.senderSocketAddr);
-                webSocketConnection.stopThread();
-            }
         }
     }
 

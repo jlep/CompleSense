@@ -1,11 +1,8 @@
 package fi.hiit.complesense.core;
 
-import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.AudioTrack;
-import android.media.MediaRecorder;
 import android.util.Log;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -20,14 +17,14 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
-import java.net.UnknownHostException;
+
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.audio.ExtRecorder;
 import fi.hiit.complesense.connection.AbstractUdpConnectionRunnable;
 import fi.hiit.complesense.connection.ConnectionRunnable;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
@@ -170,7 +167,6 @@ public class AudioShareManager
             Log.e(TAG, "start SendMicAudioThread, thread id: "
                     + Thread.currentThread().getId());
             serviceHandler.updateStatusTxt("SendMicAudioThread starts: " + Thread.currentThread().getId());
-
             extRecorder.start();
         } // end run
 
@@ -656,11 +652,11 @@ public class AudioShareManager
         public void onCompleted(Exception ex, WebSocket webSocket)
         {
             Log.i(TAG, "onCompleted("+ uri.toString() +")");
-            serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
             if (ex != null) {
                 Log.e(TAG, ex.toString());
                 return;
             }
+            serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
             mWebSocket = webSocket;
             start();
         }
