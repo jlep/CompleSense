@@ -145,7 +145,7 @@ public class UdpConnectionRunnable implements Runnable, Handler.Callback
 
     public void write(byte[] bytes, int bytesLen, SocketAddress remoteSocketAddr)
     {
-        Log.i(TAG,"write()" + socket.getLocalSocketAddress().toString()
+        Log.d(TAG,"write()" + socket.getLocalSocketAddress().toString()
                 + "->" +remoteSocketAddr.toString());
         try
         {

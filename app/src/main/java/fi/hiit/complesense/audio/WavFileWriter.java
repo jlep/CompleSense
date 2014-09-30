@@ -40,7 +40,7 @@ public class WavFileWriter
         randomAccessWriter.close();
     }
 
-    public static void close(String outputFile, int payloadSize)
+    public static void close(String outputFile, int payloadSize, long recStartTime)
     {
         try
         {
@@ -50,10 +50,16 @@ public class WavFileWriter
 
             randomAccessWriter.seek(40); // Write size to Subchunk2Size field
             randomAccessWriter.writeInt(Integer.reverseBytes(payloadSize));
-
             randomAccessWriter.close();
 
-            Log.i(TAG,"stop(payloadSize = "+ payloadSize +")");
+            String newFilename = Constants.ROOT_DIR + Long.toString(recStartTime) + ".wav";
+            File oldFile = new File(outputFile);
+            Log.i(TAG,"stop(oldFile.length(): " +oldFile.length() +")");
+            File newFile = new File(newFilename);
+            oldFile.renameTo(newFile);
+            Log.i(TAG,"stop(newFile.length(): " +newFile.length() +")");
+
+            Log.i(TAG,"stop(" +newFilename + " size: " + payloadSize +")");
 
         }
         catch(IOException e)

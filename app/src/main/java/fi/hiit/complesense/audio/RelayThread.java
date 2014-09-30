@@ -40,15 +40,13 @@ public class RelayThread extends AbstractSystemThread
     public final SocketAddress senderSocketAddr;
     private final UdpConnectionRunnable localUdpRunnable;
     private final int clientCounter;
-    private int packetCount;
     private long recStartTime;
-    private WavFileWriter wavFileWriter = null;
     private AsyncHttpServer httpServer;
     private WebSocket clientWebSocket = null, cloudWebSocket = null;
 
     private static final String PROTOCOL = "ws";
     private URI uri = URI.create(PROTOCOL +"://"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
-    private final String tmpFilePath;
+    private String tmpFilePath;
     private OutputStream outStream = null;
     private boolean firstPacket = true;
     private int payloadSize = 0;
@@ -56,19 +54,15 @@ public class RelayThread extends AbstractSystemThread
     private RelayThread(ServiceHandler serviceHandler,
                        SocketAddress senderSocketAddr,
                        UdpConnectionRunnable localUdpRunnable,
-                       int clientCounter) throws IOException {
+                       int clientCounter){
         super(serviceHandler);
         this.senderSocketAddr = senderSocketAddr;
         this.localUdpRunnable = localUdpRunnable;
         this.clientCounter = clientCounter;
-        tmpFilePath = Constants.ROOT_DIR + Long.toString(Thread.currentThread().getId())+".raw";
-        WavFileWriter.writeHeader(tmpFilePath);
-        outStream = new FileOutputStream(tmpFilePath, true);
 
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(this);
         httpServer.websocket("/send_rec", PROTOCOL, this);
-
 
     }
 
@@ -78,18 +72,8 @@ public class RelayThread extends AbstractSystemThread
                                    int clientCounter)
     {
         RelayThread relayThread = null;
-
-        try {
-            relayThread = new RelayThread(serviceHandler,
-                    senderSocketAddr, localUdpRunnable, clientCounter);
-
-        } catch (SocketException e) {
-            Log.i(TAG, e.toString());
-        } catch (FileNotFoundException e) {
-            Log.i(TAG, e.toString());
-        } catch (IOException e) {
-            Log.i(TAG, e.toString());
-        }
+        relayThread = new RelayThread(serviceHandler,
+                senderSocketAddr, localUdpRunnable, clientCounter);
         return relayThread;
     }
 
@@ -107,13 +91,27 @@ public class RelayThread extends AbstractSystemThread
         Log.e(TAG, "start RelayThread, id: " + Thread.currentThread().getId());
         serviceHandler.updateStatusTxt("RelayThread starts: " + Thread.currentThread().getId());
 
-        connect();
-        AsyncServerSocket asyncServerSocket = httpServer.listen(AsyncServer.getDefault(),
-            Constants.LOCAL_WEBSOCKET_PORT + clientCounter);
+        try
+        {
+            tmpFilePath = Constants.ROOT_DIR + Long.toString(Thread.currentThread().getId())+".raw";
+            WavFileWriter.writeHeader(tmpFilePath);
+            outStream = new FileOutputStream(tmpFilePath, true);
 
-        localUdpRunnable.write(SystemMessage.makeAudioStreamingRequest(
-                asyncServerSocket.getLocalPort(),
-                Thread.currentThread().getId(), true), senderSocketAddr);
+            AsyncServer asyncServer = new AsyncServer("AysncServer:" + Long.toString(Thread.currentThread().getId() ));
+            //connect();
+            AsyncServerSocket asyncServerSocket = httpServer.listen(asyncServer,
+                    Constants.LOCAL_WEBSOCKET_PORT + clientCounter);
+
+            localUdpRunnable.write(SystemMessage.makeAudioStreamingRequest(
+                    asyncServerSocket.getLocalPort(),
+                    Thread.currentThread().getId(), true), senderSocketAddr);
+        } catch (IOException e) {
+            Log.i(TAG, e.toString() );
+            stopThread();
+        }
+
+
+
     } // end run
 
 
@@ -129,7 +127,7 @@ public class RelayThread extends AbstractSystemThread
         {
             try {
                 outStream.close();
-                WavFileWriter.close(tmpFilePath, payloadSize);
+                WavFileWriter.close(tmpFilePath, payloadSize, recStartTime);
             } catch (IOException e) {
                 Log.i(TAG, e.toString());
             }
@@ -142,8 +140,6 @@ public class RelayThread extends AbstractSystemThread
     public void pauseThread() {
 
     }
-
-
 
     /****Cloud WebSocket callbacks***/
     @Override
@@ -187,6 +183,7 @@ public class RelayThread extends AbstractSystemThread
     @Override
     public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders)
     {
+        Log.i(TAG, "onConnected()");
         clientWebSocket = webSocket;
         clientWebSocket.setStringCallback(new WebSocket.StringCallback() {
             @Override
@@ -209,15 +206,14 @@ public class RelayThread extends AbstractSystemThread
                     firstPacket = false;
                 }
                 try {
+                    payloadSize +=  byteBufferList.remaining();
                     ByteBufferList.writeOutputStream(outStream, byteBufferList.getAll());
-                    payloadSize += byteBufferList.getAll().array().length;
+                    //Log.i(TAG,"payloadSize: " + payloadSize);
                 } catch (IOException e) {
                     Log.i(TAG, e.toString());
                 }
                 byteBufferList.recycle();
             }
         });
-
-
     }
 }

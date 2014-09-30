@@ -46,19 +46,12 @@ public class SendAudioThread extends AbstractSystemThread
         super(serviceHandler);
 
         socket = new DatagramSocket();
-        uri = URI.create(PROTOCOL +"://"+ remoteSocketAddr+"/");
+        uri = URI.create(PROTOCOL +":/"+ remoteSocketAddr.toString()+"/send_rec");
 
         this.remoteSocketAddr = remoteSocketAddr;
         this.keepLocalFile = keepLocalFile;
         extRecorder = null;
         this.ownerThreadId = threadId;
-
-        if(this.keepLocalFile)
-        {
-            extRecorder = ExtRecorder.getInstanse(false, mWebSocket, remoteSocketAddr);
-            extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(ownerThreadId) +".wav");
-            extRecorder.prepare();
-        }
 
         connect();
     }
@@ -78,8 +71,13 @@ public class SendAudioThread extends AbstractSystemThread
         Log.e(TAG, str);
         serviceHandler.updateStatusTxt(str);
 
-        if(extRecorder!= null && keepLocalFile)
+        if(this.keepLocalFile)
+        {
+            extRecorder = ExtRecorder.getInstanse(false, mWebSocket);
+            extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(ownerThreadId) +".wav");
+            extRecorder.prepare();
             extRecorder.start();
+        }
     } // end run
 
     @Override
@@ -136,6 +134,5 @@ public class SendAudioThread extends AbstractSystemThread
         serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
         mWebSocket = webSocket;
         start();
-
     }
 }

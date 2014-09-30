@@ -102,7 +102,7 @@ public class ServiceHandler extends HandlerThread
         {
             DatagramPacket packet = (DatagramPacket)msg.obj;
             SocketAddress fromAddr = packet.getSocketAddress();
-            Log.i(TAG,"recv UDP packet from " +  fromAddr );
+            Log.d(TAG,"recv UDP packet from " +  fromAddr );
 
             if(msg.arg1 == SystemMessage.ID_SYSTEM_MESSAGE)
             {
@@ -117,7 +117,7 @@ public class ServiceHandler extends HandlerThread
 
     protected void handleSystemMessage(SystemMessage sm, SocketAddress fromAddr)
     {
-        Log.i(TAG, "recv: " + sm.toString() + " from " + fromAddr);
+        Log.d(TAG, "recv: " + sm.toString() + " from " + fromAddr);
         //reply(msg.replyTo);
         if(sm.getCmd()==SystemMessage.RTT)
         {

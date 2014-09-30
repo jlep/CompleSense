@@ -23,9 +23,8 @@ public class ExtRecorder
     private static final String TAG = "ExtRecorder";
 
     private final WebSocket mWebSocket;
-    private final SocketAddress remoteSocketAddr;
 
-    public static ExtRecorder getInstanse(Boolean recordingCompressed, WebSocket webSocket, SocketAddress remoteSocketAddr)
+    public static ExtRecorder getInstanse(Boolean recordingCompressed, WebSocket webSocket)
 	{
 		ExtRecorder result = null;
 		
@@ -35,7 +34,7 @@ public class ExtRecorder
 											AudioSource.MIC,
 											sampleRates[3], 
 											AudioFormat.CHANNEL_IN_MONO,
-											AudioFormat.ENCODING_PCM_16BIT, webSocket, remoteSocketAddr);
+											AudioFormat.ENCODING_PCM_16BIT, webSocket);
 		}
 		else
 		{
@@ -46,7 +45,7 @@ public class ExtRecorder
 												AudioSource.MIC,
 												sampleRates[3], 
 												AudioFormat.CHANNEL_IN_MONO,
-												AudioFormat.ENCODING_PCM_16BIT, webSocket, remoteSocketAddr);
+												AudioFormat.ENCODING_PCM_16BIT, webSocket);
 				
 			} while((++i<sampleRates.length) & !(result.getState() == ExtRecorder.State.INITIALIZING));
 		}
@@ -138,11 +137,7 @@ public class ExtRecorder
 				{
 					randomAccessWriter.write(buffer); // Write buffer to file
                     if(mWebSocket!=null)
-                    {
-                        DatagramPacket pack = new DatagramPacket(buffer, buffer.length,
-                                remoteSocketAddr);
-                        mWebSocket.send(pack.getData() );
-                    }
+                        mWebSocket.send(buffer);
 
 					payloadSize += buffer.length;
 					if (bSamples == 16)
@@ -193,7 +188,7 @@ public class ExtRecorder
 	 * In case of errors, no exception is thrown, but the state is set to ERROR
 	 *
 	 */
-	public ExtRecorder(boolean uncompressed, int audioSource, int sampleRate, int channelConfig, int audioFormat, WebSocket socket, SocketAddress remoteSocketAddr)
+	public ExtRecorder(boolean uncompressed, int audioSource, int sampleRate, int channelConfig, int audioFormat, WebSocket socket)
 	{
 		try
 		{
@@ -267,7 +262,6 @@ public class ExtRecorder
 		}
 
         this.mWebSocket = socket;
-        this.remoteSocketAddr = remoteSocketAddr;
     }
 
     /**

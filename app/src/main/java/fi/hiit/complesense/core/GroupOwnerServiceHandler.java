@@ -66,6 +66,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         if(relayThread!=null)
         {
             eventHandlingThreads.put(RelayThread.TAG +"-"+fromAddr.toString(), relayThread);
+            relayThread.start();
         }
 
         if(clientCounter >= 1)
@@ -87,8 +88,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                         if(entry.getKey().contains(RelayThread.TAG))
                         {
                             Log.i(TAG, "stop rec on: " + entry.getKey());
-                            SocketAddress clientAddr = ((RelayThread)entry.getValue()).senderSocketAddr;
+                            RelayThread relayThread = (RelayThread)entry.getValue();
+                            SocketAddress clientAddr = relayThread.senderSocketAddr;
                             acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0, false), clientAddr);
+                            relayThread.stopThread();
                         }
                     }
                 }

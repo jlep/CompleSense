@@ -51,7 +51,7 @@ public class AliveConnection
         countDownTimer = new CountDownTimer(VALID_TIME, COUNT_DOWN_INTERVAL) {
             @Override
             public void onTick(long l) {
-                Log.i(TAG, "time until next check " + l);
+                //Log.i(TAG, "time until next check " + l);
             }
 
             @Override
