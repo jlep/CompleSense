@@ -2,6 +2,8 @@ package fi.hiit.complesense.audio;
 
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -15,44 +17,12 @@ import fi.hiit.complesense.core.ServiceHandler;
  */
 public class WavFileWriter
 {
-    private static final String TAG = "ExtRecorder";
-    private final String outputFile;
-    private RandomAccessFile randomAccessWriter;
-    private byte[] buffer;
-    private int payloadSize;
+    private static final String TAG = "WavFileWriter";
 
-    private WavFileWriter(ServiceHandler serviceHandler, String outputFile)
-            throws FileNotFoundException
-    {
-
-        this.outputFile = outputFile;
-        randomAccessWriter = new RandomAccessFile(this.outputFile, "rw");
-    }
-
-    public static WavFileWriter getWriter(ServiceHandler serviceHandler, String outputFile)
-    {
-        WavFileWriter wavFileWriter = null;
-        try
-        {
-            wavFileWriter = new WavFileWriter(serviceHandler, outputFile);
-            wavFileWriter.prepare();
-        }
-        catch (FileNotFoundException e)
-        {
-            Log.i(TAG, e.toString() );
-        } catch (IOException e) {
-            Log.i(TAG, e.toString() );
-        }
-
-        return wavFileWriter;
-    }
-
-
-    private void prepare()
+    public static void writeHeader(String outputFile)
             throws IOException
     {
-        randomAccessWriter = new RandomAccessFile(outputFile, "rw");
-        payloadSize = 0;
+        RandomAccessFile randomAccessWriter = new RandomAccessFile(outputFile, "rw");
         randomAccessWriter.setLength(0); // Set file length to 0, to prevent unexpected behavior in case the file already existed
         randomAccessWriter.writeBytes("RIFF");
         randomAccessWriter.writeInt(0); // Final file size not known yet, write 0
@@ -67,33 +37,14 @@ public class WavFileWriter
         randomAccessWriter.writeShort(Short.reverseBytes(Constants.BIT_SAMPLE)); // Bits per sample
         randomAccessWriter.writeBytes("data");
         randomAccessWriter.writeInt(0); // Data chunk size not known yet, write 0
-
-        //framePeriod = Constants.SAMPLE_RATE * TIMER_INTERVAL / 1000;
-        //buffer = new byte[framePeriod*Constants.BIT_SAMPLE/8*Constants.NUM_CHANNELS];
-        buffer = new byte[Constants.BUF_SIZE];
+        randomAccessWriter.close();
     }
 
-    public String getOutputFile()
-    {
-        return this.outputFile;
-    }
-
-
-
-    public void write(byte[] data)
-    {
-        try {
-            randomAccessWriter.write(data);
-            payloadSize += buffer.length;
-        } catch (IOException e) {
-            Log.i(TAG, e.toString());
-        }
-    }
-
-    public void close()
+    public static void close(String outputFile, int payloadSize)
     {
         try
         {
+            RandomAccessFile randomAccessWriter = new RandomAccessFile(outputFile, "rw");
             randomAccessWriter.seek(4); // Write size to RIFF header
             randomAccessWriter.writeInt(Integer.reverseBytes(36 + payloadSize));
 

@@ -10,6 +10,14 @@ import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 
@@ -21,19 +29,42 @@ public class AcceptorWebSocket extends AbstractSystemThread
 {
     public static final String TAG = "AcceptorWebSocket";
     private AsyncHttpServer httpServer;
+    private List<WebSocket> _sockets = new ArrayList<WebSocket>();
     private WebSocket clientWebSocket = null;
+    private static final String PROTOCOL = "ws";
 
+    private OutputStream outputStream = null;
 
     protected AcceptorWebSocket(ServiceHandler serviceHandler)
     {
         super(serviceHandler);
+        try {
+            outputStream = new FileOutputStream(Constants.ROOT_DIR + Long.toString(Thread.currentThread().getId()) );
+        } catch (FileNotFoundException e) {
+            Log.i(TAG, e.toString() );
+        }
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(this);
+        httpServer.websocket("/send_rec", PROTOCOL, this);
     }
 
     @Override
-    public void stopThread() {
+    public void run()
+    {
+        super.run();
+    }
 
+    @Override
+    public void stopThread()
+    {
+        if(outputStream != null)
+        {
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                Log.i(TAG, e.toString());
+            }
+        }
     }
 
     @Override
@@ -64,7 +95,11 @@ public class AcceptorWebSocket extends AbstractSystemThread
                                         ByteBufferList byteBufferList)
             {
                 // write to local file
-                byteBufferList.getAll();
+                try {
+                    ByteBufferList.writeOutputStream(outputStream, byteBufferList.getAll());
+                } catch (IOException e) {
+                    Log.i(TAG, e.toString());
+                }
                 byteBufferList.recycle();
             }
         });

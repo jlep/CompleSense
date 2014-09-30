@@ -5,6 +5,7 @@ import android.os.CountDownTimer;
 import android.os.Messenger;
 import android.util.Log;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -58,17 +59,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         //AudioShareManager.WebSocketConnection webSocketConnection=
         //        AudioShareManager.getWebSocketAudioRelayThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
 
-        try {
-            RelayThread relayThread = new RelayThread(this, fromAddr,
-                    acceptorUDP.getConnectionRunnable(), clientCounter);
+        RelayThread relayThread = RelayThread.getInstance(this, fromAddr,
+                acceptorUDP.getConnectionRunnable(), clientCounter);
 
-            ++clientCounter;
-            if(relayThread!=null)
-            {
-                eventHandlingThreads.put(RelayThread.TAG +"-"+fromAddr.toString(), relayThread);
-            }
-        } catch (SocketException e) {
-            Log.i(TAG, e.toString() );
+        ++clientCounter;
+        if(relayThread!=null)
+        {
+            eventHandlingThreads.put(RelayThread.TAG +"-"+fromAddr.toString(), relayThread);
         }
 
         if(clientCounter >= 1)

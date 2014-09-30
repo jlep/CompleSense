@@ -156,9 +156,9 @@ public class AudioShareManager
             socket = new DatagramSocket();
             this.remoteSocketAddr = remoteSocketAddr;
             this.keepLocalFile = keepLocalFile;
-            extRecorder = ExtRecorder.getInstanse(false, socket, remoteSocketAddr);
-            extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(System.currentTimeMillis() ) +".wav");
-            extRecorder.prepare();
+            extRecorder = ExtRecorder.getInstanse(false, null, remoteSocketAddr);
+            //extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(System.currentTimeMillis() ) +".wav");
+            //extRecorder.prepare();
         }
 
         @Override
