@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -69,10 +70,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             relayThread.start();
         }
 
-        if(clientCounter >= 1)
+        if(clientCounter >= 2)
         {
             Log.e(TAG, "enough clients have joined");
-            CountDownTimer countDownTimer = new CountDownTimer(20000,1000) {
+            CountDownTimer countDownTimer = new CountDownTimer(10000,1000) {
                 @Override
                 public void onTick(long l) {
 
@@ -82,17 +83,20 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 public void onFinish() {
                     // send stop recording message
                     Iterator<Map.Entry<String, AbstractSystemThread> > iter = eventHandlingThreads.entrySet().iterator();
+                    List<String> keys= new ArrayList<String>();
                     while(iter.hasNext())
                     {
                         Map.Entry<String, AbstractSystemThread> entry = iter.next();
                         if(entry.getKey().contains(RelayThread.TAG))
-                        {
-                            Log.i(TAG, "stop rec on: " + entry.getKey());
-                            RelayThread relayThread = (RelayThread)entry.getValue();
-                            SocketAddress clientAddr = relayThread.senderSocketAddr;
-                            acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0, false), clientAddr);
-                            relayThread.stopThread();
-                        }
+                            keys.add(entry.getKey());
+                    }
+                    for(String key : keys)
+                    {
+                        Log.i(TAG, "stop rec on: " + key);
+                        RelayThread rt = (RelayThread)eventHandlingThreads.remove(key);
+                        SocketAddress clientAddr = rt.senderSocketAddr;
+                        acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0, false), clientAddr);
+                        rt.stopThread();
                     }
                 }
             };
@@ -144,7 +148,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                 sensorUtil.setSensorValue(values, type, fromAddr.toString());
                 //send2Cloud(fromAddr.toString(), values);
 
-                updateStatusTxt(fromAddr + "->: " + sm.toString());
+                //updateStatusTxt(fromAddr + "->: " + sm.toString());
                 //SystemUtil.writeLogFile(startTime, fromAddr.toString());
                 break;
 

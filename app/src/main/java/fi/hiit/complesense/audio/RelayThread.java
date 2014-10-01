@@ -93,7 +93,7 @@ public class RelayThread extends AbstractSystemThread
 
         try
         {
-            tmpFilePath = Constants.ROOT_DIR + Long.toString(Thread.currentThread().getId())+".raw";
+            tmpFilePath = Constants.ROOT_DIR + Thread.currentThread().getId() +".raw";
             WavFileWriter.writeHeader(tmpFilePath);
             outStream = new FileOutputStream(tmpFilePath, true);
 
@@ -192,8 +192,11 @@ public class RelayThread extends AbstractSystemThread
             }
         });
 
+
         clientWebSocket.setDataCallback(new DataCallback()
         {
+
+            long lastCheckMillis = System.currentTimeMillis(), interval = 2000;
             @Override
             public void onDataAvailable(DataEmitter dataEmitter,
                                         ByteBufferList byteBufferList)
@@ -205,10 +208,18 @@ public class RelayThread extends AbstractSystemThread
                             serviceHandler.getPeerList().get(senderSocketAddr.toString()).getTimeDiff();
                     firstPacket = false;
                 }
-                try {
+                try
+                {
+                    if(System.currentTimeMillis() - lastCheckMillis > interval)
+                    {
+                        serviceHandler.updateStatusTxt("recv: " + byteBufferList.remaining() +" Bytes from "+ senderSocketAddr.toString());
+                        lastCheckMillis = System.currentTimeMillis();
+                    }
+                    Log.i(TAG, "payloadSize: "+ payloadSize);
                     payloadSize +=  byteBufferList.remaining();
                     ByteBufferList.writeOutputStream(outStream, byteBufferList.getAll());
-                    //Log.i(TAG,"payloadSize: " + payloadSize);
+
+
                 } catch (IOException e) {
                     Log.i(TAG, e.toString());
                 }

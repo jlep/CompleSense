@@ -542,7 +542,6 @@ public class ExtRecorder
 			if (rUncompressed)
 			{
 				audioRecorder.stop();
-				
 				try
 				{
 					randomAccessWriter.seek(4); // Write size to RIFF header

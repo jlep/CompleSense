@@ -1,5 +1,8 @@
 package fi.hiit.complesense.audio;
 
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.util.Log;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -8,11 +11,13 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
+import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.UnknownHostException;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbstractSystemThread;
@@ -27,10 +32,9 @@ public class SendAudioThread extends AbstractSystemThread
 {
     public static final String TAG = "SendAudioThread";
     private final long ownerThreadId;
-    private ExtRecorder extRecorder;
-    private final DatagramSocket socket;
     private final boolean keepLocalFile;
-    private final Object remoteSocketAddr;
+    private final SocketAddress remoteSocketAddr;
+    private WavFileWriter wavFileWriter;
 
     private static final String PROTOCOL = "ws";
     private URI uri = null;
@@ -45,12 +49,10 @@ public class SendAudioThread extends AbstractSystemThread
                               boolean keepLocalFile) throws SocketException {
         super(serviceHandler);
 
-        socket = new DatagramSocket();
         uri = URI.create(PROTOCOL +":/"+ remoteSocketAddr.toString()+"/send_rec");
 
         this.remoteSocketAddr = remoteSocketAddr;
         this.keepLocalFile = keepLocalFile;
-        extRecorder = null;
         this.ownerThreadId = threadId;
 
         connect();
@@ -70,30 +72,56 @@ public class SendAudioThread extends AbstractSystemThread
         String str = "start SendAudioThread, thread id: " + Thread.currentThread().getId();
         Log.e(TAG, str);
         serviceHandler.updateStatusTxt(str);
+        if(wavFileWriter!=null)
+            SendMicAudio();
 
-        if(this.keepLocalFile)
-        {
-            extRecorder = ExtRecorder.getInstanse(false, mWebSocket);
-            extRecorder.setOutputFile(Constants.ROOT_DIR + Long.toString(ownerThreadId) +".wav");
-            extRecorder.prepare();
-            extRecorder.start();
-        }
     } // end run
 
     @Override
     public void stopThread()
     {
-        extRecorder.stop();
-        extRecorder.reset();
-        extRecorder.release();
-
-        if(socket!=null)
-            socket.close();
+        String str = "stop SendAudioThread, thread";
+        Log.e(TAG, str);
+        serviceHandler.updateStatusTxt(str);
+        if(wavFileWriter!=null)
+            wavFileWriter.close();
+        //extRecorder.reset();
+        //extRecorder.release();
     }
 
     @Override
     public void pauseThread() {
 
+    }
+
+    public void SendMicAudio()
+    {
+        Log.e(TAG, "start SendMicAudio thread, thread id: " + Thread.currentThread().getId());
+        AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, Constants.SAMPLE_RATE,
+                AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                AudioRecord.getMinBufferSize(Constants.SAMPLE_RATE,
+                        AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT) * 10);
+        int bytes_read = 0;
+        int bytes_count = 0;
+        byte[] buf = new byte[Constants.BUF_SIZE];
+        try
+        {
+            while(true)
+            {
+                bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
+                mWebSocket.send(buf);
+                wavFileWriter.write(buf);
+                bytes_count += bytes_read;
+                Log.i(TAG, "bytes_count : " + bytes_count);
+                Thread.sleep(Constants.SAMPLE_INTERVAL, 0);
+            }
+        }
+        catch (InterruptedException ie)
+        {
+            Log.e(TAG, "InterruptedException");
+        }
     }
 
     public static SendAudioThread getInstancce(InetSocketAddress remoteSocketAddr,

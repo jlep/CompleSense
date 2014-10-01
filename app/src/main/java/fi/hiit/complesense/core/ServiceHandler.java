@@ -219,8 +219,8 @@ public class ServiceHandler extends HandlerThread
     protected void renewPeerList(String socketAddrStr)
     {
         String str = "renewPeerList("+ socketAddrStr +")";
-        Log.i(TAG,str);
-        updateStatusTxt(str);
+        Log.d(TAG,str);
+        //updateStatusTxt(str);
         ((AliveConnection)(peerList.get(socketAddrStr)) ).resetCheckTime();
     }
 
