@@ -87,6 +87,7 @@ public class WavFileWriter
             randomAccessWriter.seek(40); // Write size to Subchunk2Size field
             randomAccessWriter.writeInt(Integer.reverseBytes(payLoadSize));
             randomAccessWriter.close();
+            Log.i(TAG,"close(" + filePath + " size: " + payLoadSize +")");
         } catch (IOException e) {
             e.printStackTrace();
         }

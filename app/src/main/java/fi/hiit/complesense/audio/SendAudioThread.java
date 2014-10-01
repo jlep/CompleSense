@@ -34,28 +34,41 @@ public class SendAudioThread extends AbstractSystemThread
     private final long ownerThreadId;
     private final boolean keepLocalFile;
     private final SocketAddress remoteSocketAddr;
-    private WavFileWriter wavFileWriter;
-
     private static final String PROTOCOL = "ws";
     private URI uri = null;
     private WebSocket mWebSocket = null;
 
     public static SendAudioThread instance;
+    private volatile boolean recording;
 
 
     private SendAudioThread(SocketAddress remoteSocketAddr,
                               ServiceHandler serviceHandler,
                               long threadId,
-                              boolean keepLocalFile) throws SocketException {
+                              boolean keepLocalFile) throws SocketException
+    {
         super(serviceHandler);
-
         uri = URI.create(PROTOCOL +":/"+ remoteSocketAddr.toString()+"/send_rec");
-
         this.remoteSocketAddr = remoteSocketAddr;
         this.keepLocalFile = keepLocalFile;
         this.ownerThreadId = threadId;
-
         connect();
+    }
+
+    public static SendAudioThread getInstancce(InetSocketAddress remoteSocketAddr,
+                                               ServiceHandler serviceHandler,
+                                               long threadId, boolean keepLocalFile)
+    {
+        try
+        {
+            instance = new SendAudioThread(remoteSocketAddr, serviceHandler, threadId, keepLocalFile);
+        }
+        catch (SocketException e)
+        {
+            Log.i(TAG,e.toString() );
+            instance = null;
+        }
+        return instance;
     }
 
     private void connect()
@@ -72,8 +85,8 @@ public class SendAudioThread extends AbstractSystemThread
         String str = "start SendAudioThread, thread id: " + Thread.currentThread().getId();
         Log.e(TAG, str);
         serviceHandler.updateStatusTxt(str);
-        if(wavFileWriter!=null)
-            SendMicAudio();
+
+        sendMicAudio();
 
     } // end run
 
@@ -83,8 +96,8 @@ public class SendAudioThread extends AbstractSystemThread
         String str = "stop SendAudioThread, thread";
         Log.e(TAG, str);
         serviceHandler.updateStatusTxt(str);
-        if(wavFileWriter!=null)
-            wavFileWriter.close();
+        recording = false;
+
         //extRecorder.reset();
         //extRecorder.release();
     }
@@ -94,9 +107,11 @@ public class SendAudioThread extends AbstractSystemThread
 
     }
 
-    public void SendMicAudio()
+    public void sendMicAudio()
     {
         Log.e(TAG, "start SendMicAudio thread, thread id: " + Thread.currentThread().getId());
+        WavFileWriter wavFileWriter = null;
+
         AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, Constants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_CONFIGURATION_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
@@ -108,36 +123,47 @@ public class SendAudioThread extends AbstractSystemThread
         byte[] buf = new byte[Constants.BUF_SIZE];
         try
         {
-            while(true)
+            wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + ownerThreadId + ".wav");
+            if(wavFileWriter==null)
+                throw new IOException("wavFileWrite is null");
+
+            long lastCheckMillis = System.currentTimeMillis(), interval = 2000;
+            int preByteCount = 0;
+
+            recording = true;
+            audio_recorder.startRecording();
+            while(recording)
             {
                 bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
                 mWebSocket.send(buf);
                 wavFileWriter.write(buf);
                 bytes_count += bytes_read;
-                Log.i(TAG, "bytes_count : " + bytes_count);
-                Thread.sleep(Constants.SAMPLE_INTERVAL, 0);
+
+                Thread.sleep(Constants.SAMPLE_INTERVAL);
+                if(System.currentTimeMillis() - lastCheckMillis > interval )
+                {
+                    serviceHandler.updateStatusTxt("send " + (bytes_count - preByteCount) + "Bytes to master");
+                    Log.i(TAG, "bytes_count : " + bytes_count);
+                    lastCheckMillis = System.currentTimeMillis();
+                    preByteCount = bytes_count;
+                }
             }
         }
         catch (InterruptedException ie)
         {
-            Log.e(TAG, "InterruptedException");
-        }
-    }
-
-    public static SendAudioThread getInstancce(InetSocketAddress remoteSocketAddr,
-                                               ServiceHandler serviceHandler,
-                                               long threadId, boolean keepLocalFile)
-    {
-        instance = null;
-        try
+            Log.e(TAG, "Recording thread interrupted");
+        } catch (IOException e) {
+            Log.i(TAG, e.toString());
+        } finally
         {
-            instance = new SendAudioThread(remoteSocketAddr, serviceHandler, threadId, keepLocalFile);
+            Log.e(TAG, "Recording thread stops");
+            if(audio_recorder!=null)
+                audio_recorder.stop();
+            if(wavFileWriter!=null)
+                wavFileWriter.close();
+            if(mWebSocket!=null)
+                mWebSocket.close();
         }
-        catch (SocketException e)
-        {
-            Log.i(TAG,e.toString() );
-        }
-        return instance;
     }
 
     @Override

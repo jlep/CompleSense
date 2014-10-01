@@ -197,6 +197,7 @@ public class RelayThread extends AbstractSystemThread
         {
 
             long lastCheckMillis = System.currentTimeMillis(), interval = 2000;
+            int prePayLoadSize = 0;
             @Override
             public void onDataAvailable(DataEmitter dataEmitter,
                                         ByteBufferList byteBufferList)
@@ -210,15 +211,16 @@ public class RelayThread extends AbstractSystemThread
                 }
                 try
                 {
-                    if(System.currentTimeMillis() - lastCheckMillis > interval)
-                    {
-                        serviceHandler.updateStatusTxt("recv: " + byteBufferList.remaining() +" Bytes from "+ senderSocketAddr.toString());
-                        lastCheckMillis = System.currentTimeMillis();
-                    }
                     Log.i(TAG, "payloadSize: "+ payloadSize);
                     payloadSize +=  byteBufferList.remaining();
                     ByteBufferList.writeOutputStream(outStream, byteBufferList.getAll());
-
+                    if(System.currentTimeMillis() - lastCheckMillis > interval)
+                    {
+                        serviceHandler.updateStatusTxt("recv: " + (payloadSize - prePayLoadSize)
+                                +" Bytes from "+ senderSocketAddr.toString());
+                        lastCheckMillis = System.currentTimeMillis();
+                        prePayLoadSize = payloadSize;
+                    }
 
                 } catch (IOException e) {
                     Log.i(TAG, e.toString());

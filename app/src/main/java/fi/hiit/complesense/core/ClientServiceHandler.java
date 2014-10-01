@@ -66,15 +66,10 @@ public class ClientServiceHandler extends ServiceHandler
                     SendAudioThread sendAudioThread = SendAudioThread.getInstancce(
                             new InetSocketAddress(host, port), this, threadId,true);
 
-                    /*AudioShareManager.SendMicAudioThread audioStreamThread = AudioShareManager.getSendMicAudioThread(
-                            new InetSocketAddress(host, port), this, true);*/
                     eventHandlingThreads.put(SendAudioThread.TAG, sendAudioThread);
-
                 }
                 else
                 {
-                    //AudioShareManager.SendMicAudioThread sendMicAudioThread =
-                    //        (AudioShareManager.SendMicAudioThread) eventHandlingThreads.remove(AudioShareManager.SendMicAudioThread.TAG);
                     SendAudioThread sendAudioThread = (SendAudioThread) eventHandlingThreads.remove(SendAudioThread.TAG);
                     if(sendAudioThread != null)
                         sendAudioThread.stopThread();
