@@ -1,6 +1,9 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -296,6 +299,12 @@ public class ServiceHandler extends HandlerThread
 
     }
 */
+
+    /**
+     * Event is fired when the RTT query sender receives enough RTT reply from a peer
+     * @param startTimeMillis: requester local time, when RTT query was sent
+     * @param fromAddr: peer's address
+     */
     @Override
     public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
     {

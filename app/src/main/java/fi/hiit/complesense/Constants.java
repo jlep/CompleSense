@@ -12,6 +12,12 @@ public class Constants
 {
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
 
+    // TXT RECORD properties
+    public static final String TXTRECORD_PROP_VISIBILITY = "vb";
+    public static final String TXTRECORD_SENSOR_TYPE_LIST = "tp";
+    public static final String TXTRECORD_NETWORK_INFO = "cn";
+    public static final String TXTRECORD_BATTERY_LEVEL = "bt";
+
 
     public static final int SERVER_PORT = 30243; // group owner port
     public static final int CLOUD_SERVER_PORT = 10002; // cloud server port

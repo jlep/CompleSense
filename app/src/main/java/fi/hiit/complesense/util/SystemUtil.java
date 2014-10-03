@@ -2,6 +2,10 @@ package fi.hiit.complesense.util;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -19,9 +23,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.service.AbstractGroupService;
 
 /**
  * Created by hxguo on 7/14/14.
@@ -43,6 +52,45 @@ public class SystemUtil {
         return false;
     }
 
+    public static Map<String, String> generateTxtRecord(AbstractGroupService abstractGroupService)
+    {
+        Log.i(TAG,"generateTxtRecord()");
+
+        Map<String, String> record = new HashMap<String, String>();
+        record.put(Constants.TXTRECORD_PROP_VISIBILITY, "visible");
+
+        //-------- get available sensor list
+        record.put(Constants.TXTRECORD_SENSOR_TYPE_LIST,
+                SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
+        Log.i(TAG,SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
+
+        //-------- get available network connections
+        List<Integer> availableConns = new ArrayList<Integer>();
+        ConnectivityManager connMgr = (ConnectivityManager)
+                abstractGroupService.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
+        for(NetworkInfo ni:networkInfos)
+        {
+            if(ni !=null)
+            {
+                if(ni.isConnectedOrConnecting())
+                {
+                    Log.i(TAG, ni.getTypeName());
+                    availableConns.add(ni.getType());
+                }
+            }
+        }
+        if(availableConns.size()>0)
+            record.put(Constants.TXTRECORD_NETWORK_INFO, availableConns.toString() );
+
+        //-------- get battery level
+        record.put(Constants.TXTRECORD_BATTERY_LEVEL,
+                Float.toString(abstractGroupService.getBatteryLevel()));
+
+
+        return record;
+    }
+
     public static String parseErrorCode(int errorCode)
     {
         switch (errorCode) {
@@ -52,9 +100,11 @@ public class SystemUtil {
                 return "Busy";
             case WifiP2pManager.P2P_UNSUPPORTED:
                 return "P2P_Unsupported";
-
+            case WifiP2pManager.NO_SERVICE_REQUESTS:
+                return "No service request added";
+            default:
+                return "Unknown errorcode: " + Integer.toString(errorCode);
         }
-        return null;
     }
 
     public static void sendStatusTextUpdate(Messenger uiMessenger, String txt)

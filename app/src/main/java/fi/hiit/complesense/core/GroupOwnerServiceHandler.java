@@ -70,7 +70,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             relayThread.start();
         }
 
-        if(clientCounter >= 3)
+        if(clientCounter >= 4)
         {
             Log.e(TAG, "enough clients have joined");
             CountDownTimer countDownTimer = new CountDownTimer(20000,1000) {

@@ -42,7 +42,7 @@ public class RelayThread extends AbstractSystemThread
     private final int clientCounter;
     private long recStartTime;
     private AsyncHttpServer httpServer;
-    private WebSocket clientWebSocket = null, cloudWebSocket = null;
+    private WebSocket cloudWebSocket = null;
 
     private static final String PROTOCOL = "ws";
     private URI uri = URI.create(PROTOCOL +"://"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
@@ -119,8 +119,8 @@ public class RelayThread extends AbstractSystemThread
     @Override
     public void stopThread()
     {
-        if(clientWebSocket!=null)
-            clientWebSocket.close();
+        if(httpServer!=null)
+            httpServer.stop();
         if(cloudWebSocket!=null)
             cloudWebSocket.close();
         if(outStream!=null)
@@ -131,7 +131,6 @@ public class RelayThread extends AbstractSystemThread
             } catch (IOException e) {
                 Log.i(TAG, e.toString());
             }
-
         }
 
     }
@@ -146,7 +145,7 @@ public class RelayThread extends AbstractSystemThread
     public void onDataAvailable(DataEmitter dataEmitter,
                                 ByteBufferList byteBufferList)
     {
-        serviceHandler.updateStatusTxt("I got some bytes!");
+        serviceHandler.updateStatusTxt("I got some bytes from cloud!");
         // note that this data has been read
         byteBufferList.recycle();
     }
@@ -183,9 +182,8 @@ public class RelayThread extends AbstractSystemThread
     @Override
     public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders)
     {
-        Log.i(TAG, "onConnected()");
-        clientWebSocket = webSocket;
-        clientWebSocket.setStringCallback(new WebSocket.StringCallback() {
+        Log.i(TAG, "onConnected(threadId:"+ Thread.currentThread().getId() +")");
+        webSocket.setStringCallback(new WebSocket.StringCallback() {
             @Override
             public void onStringAvailable(String s) {
                 Log.i(TAG, "recv String: " + s);
@@ -193,9 +191,8 @@ public class RelayThread extends AbstractSystemThread
         });
 
 
-        clientWebSocket.setDataCallback(new DataCallback()
+        webSocket.setDataCallback(new DataCallback()
         {
-
             long lastCheckMillis = System.currentTimeMillis(), interval = 2000;
             int prePayLoadSize = 0;
             @Override
@@ -211,7 +208,7 @@ public class RelayThread extends AbstractSystemThread
                 }
                 try
                 {
-                    Log.i(TAG, "payloadSize: "+ payloadSize);
+                    Log.d(TAG, "payloadSize: "+ payloadSize);
                     payloadSize +=  byteBufferList.remaining();
                     ByteBufferList.writeOutputStream(outStream, byteBufferList.getAll());
                     if(System.currentTimeMillis() - lastCheckMillis > interval)
@@ -221,9 +218,8 @@ public class RelayThread extends AbstractSystemThread
                         lastCheckMillis = System.currentTimeMillis();
                         prePayLoadSize = payloadSize;
                     }
-
                 } catch (IOException e) {
-                    Log.i(TAG, e.toString());
+                    Log.i(TAG, "cannot write date to file: " + e.toString());
                 }
                 byteBufferList.recycle();
             }

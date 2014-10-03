@@ -1,10 +1,5 @@
 package fi.hiit.complesense.service;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -12,13 +7,10 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
-
-import java.io.IOException;
 import java.util.Map;
-
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
-import fi.hiit.complesense.core.ComleSenseDevice;
+import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
@@ -31,7 +23,7 @@ public class ClientOwnerService extends AbstractGroupService
     private static final String TAG = "ClientOwnerService";
 
     private boolean retryChannel = false;
-    private Context context;
+    private boolean receivedTxtRecord = false;
 
     WifiP2pManager.DnsSdTxtRecordListener txtListener =
             new WifiP2pManager.DnsSdTxtRecordListener()
@@ -40,35 +32,38 @@ public class ClientOwnerService extends AbstractGroupService
                 public void onDnsSdTxtRecordAvailable(
                         String fullDomain, Map record, WifiP2pDevice device)
                 {
-                    Log.i(TAG, "DnsSdTxtRecord available -" + record.toString());
+                    Log.i(TAG, "DnsSdTxtRecord available from " + device.deviceAddress +": " + record.toString());
+                    receivedTxtRecord = true;
                     //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, (String)record.get(
-                            WifiConnectionManager.TXTRECORD_SENSOR_TYPE_LIST));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, (String)record.get(
-                            WifiConnectionManager.TXTRECORD_NETWORK_INFO));
-                    //Log.i(TAG,"available sensors: " + record.get(TXTRECORD_SENSOR_TYPE_LIST));
-                    //Log.i(TAG, "available networks: " + record.get(TXTRECORD_NETWORK_INFO));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
+                            Constants.TXTRECORD_SENSOR_TYPE_LIST));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
+                            Constants.TXTRECORD_NETWORK_INFO));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_battery: "+ (String)record.get(
+                            Constants.TXTRECORD_BATTERY_LEVEL));
+                    discoveredDevices.put(device.deviceAddress, new CompleSenseDevice(device, record) );
+                    //Log.i(TAG,"compleSenseDevices.size():" + nearbyDevices.size() );
 
-                    nearbyDevices.put(device.deviceAddress, new ComleSenseDevice(device, record) );
-                    Log.i(TAG,"compleSenseDevices.size():" + nearbyDevices.size() );
-
-                    if(nearbyDevices.size()>1)
+                    if(discoveredDevices.size()>1)
                     {
                         mWifiConnManager.stopFindingService();
-
-                        groupOwner = mWifiConnManager.decideGroupOnwer(nearbyDevices);
+                        groupOwner = mWifiConnManager.decideGroupOnwer(discoveredDevices);
                         if(groupOwner == null)
                         {
                             Log.i(TAG,"groupOwner is null");
                             return;
                         }
-                        Log.i(TAG,"Group Owner Addr: " + groupOwner.deviceAddress );
+                        Log.i(TAG,"Group Owner Addr: " + groupOwner.deviceAddress + " own addr: " + getDevice().deviceAddress);
 
                         if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
-                            mWifiConnManager.connectP2p(device, 14);
+                        {
+                            Log.i(TAG,"Try to connect as group owner with highest priority");
+                            mWifiConnManager.connectP2p(device, 15);
+                        }
                         else
                         {
-                            mWifiConnManager.connectP2p(groupOwner, 1);
+                            Log.i(TAG,"Try to connect as group client");
+                            mWifiConnManager.connectP2p(groupOwner, 0);
                             mWifiConnManager.clearServiceAdvertisement();
                         }
                     }
@@ -88,8 +83,7 @@ public class ClientOwnerService extends AbstractGroupService
                 Log.i(TAG, "onDnsSdServiceAvailable()");
                 // update the UI and add the item the discovered device.
                 if(uiMessenger!=null)
-                    SystemUtil.sendDnsFoundUpdate(uiMessenger, srcDevice,
-                            instanceName);
+                    SystemUtil.sendDnsFoundUpdate(uiMessenger, srcDevice, instanceName);
             }
         }
     };
@@ -155,7 +149,6 @@ public class ClientOwnerService extends AbstractGroupService
         mMessenger = new Messenger(new IncomingHandler());
         receiver = new GroupBroadcastReceiver(manager, channel, this);
         registerReceiver(receiver,intentFilter);
-        context = getApplicationContext();
 
         mWifiConnManager = new WifiConnectionManager(ClientOwnerService.this,
                 manager, channel);
@@ -199,82 +192,58 @@ public class ClientOwnerService extends AbstractGroupService
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo p2pInfo)
     {
-        Log.i(TAG,"onConnectionInfoAvailable()");
+        Log.i(TAG,"onConnectionInfoAvailable("+ p2pInfo.groupFormed
+                +", "+ p2pInfo.groupOwnerAddress + ", "+ p2pInfo.isGroupOwner +")");
+
         if(mMessenger==null)
             Log.e(TAG,"mMessenger is null");
-        if (p2pInfo.isGroupOwner)
+
+        if(p2pInfo.groupFormed)
         {
-            if(groupOwner == null)
-                groupOwner = mDevice;
-
-            if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
+            if (p2pInfo.isGroupOwner)
             {
-                Log.i(TAG, "Device is connected as Group Owner in master mode");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Device connected as Group Owner");
-                if(serviceHandler == null)
-                {
-                    //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
-                    serviceHandler = new GroupOwnerServiceHandler(mMessenger,
-                            "GroupOwnerServiceHandler", context);
-                    serviceHandler.startServiveHandler();
-                }
+                if(groupOwner==null)
+                    groupOwner = mDevice;
 
+                if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
+                {
+                    Log.i(TAG, "Device is connected as Group Owner in master mode");
+                    SystemUtil.sendStatusTextUpdate(uiMessenger,
+                            "Device connected as Group Owner " + mDevice.isGroupOwner());
+                    if(serviceHandler == null)
+                    {
+                        //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
+                        serviceHandler = new GroupOwnerServiceHandler(mMessenger,
+                                "GroupOwnerServiceHandler", context);
+                        serviceHandler.startServiveHandler();
+                    }
+                }
+                else
+                {
+                    SystemUtil.sendStatusTextUpdate(uiMessenger,
+                            "Error - Device cannot be launched as Group Owner in client mode");
+                    Log.e(TAG, "Device cannot be launched as Group Owner in client mode");
+                }
+                //manager.requestGroupInfo(channel,this);
             }
             else
             {
+                Log.i(TAG, "Device is connected as Group Client in client mode");
                 SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Error - Device cannot be launched as Group Owner in client mode");
-                Log.e(TAG, "Device cannot be launched as Group Owner in client mode");
+                        "Device connected as Client");
+                if(serviceHandler == null)
+                {
+                    mWifiConnManager.clearServiceAdvertisement();
+
+                    //serviceHandler = new ClientManager(mMessenger, context, false);
+                    serviceHandler = new ClientServiceHandler(mMessenger,
+                            "ClientServiceHandler", context, p2pInfo.groupOwnerAddress, 0);
+
+                    Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
+                    serviceHandler.startServiveHandler();
+                }
             }
-            //manager.requestGroupInfo(channel,this);
-        }
-        else
-        {
-            Log.i(TAG, "Device is connected as Group Client in client mode");
-            SystemUtil.sendStatusTextUpdate(uiMessenger,
-                    "Device connected as Client");
-            if(serviceHandler == null)
-            {
-                mWifiConnManager.clearServiceAdvertisement();
-
-                //serviceHandler = new ClientManager(mMessenger, context, false);
-                serviceHandler = new ClientServiceHandler(mMessenger,
-                        "ClientServiceHandler", context, p2pInfo.groupOwnerAddress, 0);
-
-                Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
-                serviceHandler.startServiveHandler();
-            }
-
-        }
-
-    }
-
-    /**
-     *
-     * This BroadcastReceiver intercepts the android.net.ConnectivityManager.CONNECTIVITY_ACTION,
-     * which indicates a connection change. It checks whether the type is TYPE_WIFI.
-     * If it is, it checks whether Wi-Fi is connected and sets the wifiConnected flag in the
-     * main activity accordingly.
-     *
-     */
-    class NetworkReceiver extends BroadcastReceiver
-    {
-
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            Log.i("NetworkReceiver", "onReceive()");
-            ConnectivityManager connMgr =
-                    (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
-            for(NetworkInfo ni:networkInfos)
-            {
-                Log.i("NetworkReceiver", ni.getTypeName());
-                //if(ni.isAvailable())
-                //    availableConns.add(ni.getType() );
-            }
-
         }
     }
+
 }

@@ -4,12 +4,15 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.BatteryManager;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -17,13 +20,12 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
-
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.core.ComleSenseDevice;
+import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.ui.DemoActivity;
@@ -46,8 +48,8 @@ public abstract class AbstractGroupService extends Service
 
     protected GroupBroadcastReceiver receiver;
     protected WifiConnectionManager mWifiConnManager;
-    //protected LocalManager localManager = null;
     protected ServiceHandler serviceHandler = null;
+    protected Context context;
 
     protected WifiP2pDevice mDevice, groupOwner;
 
@@ -57,7 +59,34 @@ public abstract class AbstractGroupService extends Service
     protected Messenger mMessenger, uiMessenger;
     protected final IntentFilter intentFilter = new IntentFilter();
 
-    protected Map<String, ComleSenseDevice> nearbyDevices;
+    //protected Map<String, CompleSenseDevice> nearbyDevices;
+    protected Map<String, CompleSenseDevice> discoveredDevices;
+
+    /**
+     *
+     * This BroadcastReceiver intercepts the android.net.ConnectivityManager.CONNECTIVITY_ACTION,
+     * which indicates a connection change. It checks whether the type is TYPE_WIFI.
+     * If it is, it checks whether Wi-Fi is connected and sets the wifiConnected flag in the
+     * main activity accordingly.
+     *
+     */
+    class NetworkReceiver extends BroadcastReceiver
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            Log.i("NetworkReceiver", "onReceive()");
+            ConnectivityManager connMgr =
+                    (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
+            for(NetworkInfo ni:networkInfos)
+            {
+                Log.i("NetworkReceiver", ni.getTypeName());
+                //if(ni.isAvailable())
+                //    availableConns.add(ni.getType() );
+            }
+        }
+    }
 
     @Override
     public void onCreate()
@@ -67,12 +96,13 @@ public abstract class AbstractGroupService extends Service
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
         groupOwner = null;
+        context = getApplicationContext();
 
         mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         // Display a notification about us starting.
         showNotification();
 
-        nearbyDevices = new TreeMap<String, ComleSenseDevice>();
+        discoveredDevices = new TreeMap<String, CompleSenseDevice>();
 
         // add necessary intent values to be matched.
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -127,9 +157,9 @@ public abstract class AbstractGroupService extends Service
         return mDevice;
     }
 
-    public Map<String, ComleSenseDevice> getNearbyDevices()
+    public Map<String, CompleSenseDevice> getDiscoveredDevices()
     {
-        return nearbyDevices;
+        return discoveredDevices;
     }
 
     public void setIsWifiP2pEnabled(boolean isWifiP2pEnabled) {
@@ -138,8 +168,11 @@ public abstract class AbstractGroupService extends Service
 
     public void updateSelfInfo(WifiP2pDevice device)
     {
-        Log.i(TAG,"updateSelfInfo()");
+        Log.i(TAG,"updateSelfInfo(groupOwner: "+ device.isGroupOwner() +")");
         mDevice = device;
+        Map<String, String> txtRecord = SystemUtil.generateTxtRecord(this);
+        discoveredDevices.put(mDevice.deviceAddress, new CompleSenseDevice(mDevice, txtRecord));
+
         SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
     }
 
@@ -166,6 +199,36 @@ public abstract class AbstractGroupService extends Service
 
     }
 
+    public float getBatteryLevel()
+    {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = this.registerReceiver(null, ifilter);
+
+        //are we charging / charged?
+        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL;
+
+        //how are we charging
+        int chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
+        boolean acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
+
+        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        Log.i(TAG, "Batteray level: " + level);
+        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        Log.i(TAG, "Batteray scale: " + scale);
+
+        float batteryPct = level / (float)scale;
+        //get battery temperatur
+        int temp = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+
+        //get battery voltage
+        int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+
+        return batteryPct;
+    }
+
     protected void sendServiceInitComplete()
     {
         Message msg = Message.obtain();
@@ -176,6 +239,7 @@ public abstract class AbstractGroupService extends Service
             Log.i(TAG,e.toString());
         }
     }
+
 
 
 }

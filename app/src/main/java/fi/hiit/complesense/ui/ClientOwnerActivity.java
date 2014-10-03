@@ -126,7 +126,6 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         super.onDestroy();
         doUnbindService();
         stopService(new Intent(this, ClientOwnerService.class));
-
     }
 
     @Override
@@ -181,8 +180,8 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         String instanceName = msg.getData().getString(Constants.EXTENDED_DATA_INSTANCE_NAME);
         WifiP2pDevice srcDevice = (WifiP2pDevice)msg.obj;
 
-        appendStatus(srcDevice.deviceName);
-
+        appendStatus("Find service instance: " + instanceName + " name: " +
+                srcDevice.deviceName + " addr: " + srcDevice.deviceAddress);
     }
 
     private void updateClientsListFragment(Message msg)

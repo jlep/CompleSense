@@ -140,7 +140,7 @@ public class WavFileWriter
                 oldFile.renameTo(newFile);
                 //Log.i(TAG,"stop(newFile.length(): " +newFile.length() +")");
 
-                Log.i(TAG,"stop(" +newFilename + " size: " + payloadSize +")");
+                Log.i(TAG,"close(" +newFilename + " size: " + payloadSize +")");
             }
         }
         catch(IOException e)

@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.service.AbstractGroupService;
 import fi.hiit.complesense.util.SensorUtil;
@@ -27,16 +28,11 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class WifiConnectionManager
 {
-    private static final String TAG = "ConnectionUtil";
+    private static final String TAG = "WifiConnectionManager";
     private final AbstractGroupService abstractGroupService;
     protected WifiP2pManager manager;
     protected WifiP2pManager.Channel channel;
     public boolean isWifiP2pEnabled = false;
-
-    // TXT RECORD properties
-    public static final String TXTRECORD_PROP_AVAILABLE = "available";
-    public static final String TXTRECORD_SENSOR_TYPE_LIST = "types";
-    public static final String TXTRECORD_NETWORK_INFO = "conns";
 
     public static final String SERVICE_INSTANCE = "_wifidemotest";
     public static final String SERVICE_REG_TYPE = "_presence._tcp";
@@ -62,7 +58,7 @@ public class WifiConnectionManager
     {
         Log.i(TAG, "registerService()");
         Map<String, String> record = new HashMap<String, String>();
-        record.put(TXTRECORD_PROP_AVAILABLE, "visible");
+        record.put(Constants.TXTRECORD_PROP_VISIBILITY, "visible");
 
         WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
                 SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
@@ -119,40 +115,40 @@ public class WifiConnectionManager
             // After attaching listeners, create a service request and initiate
             // discovery.
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
-            manager.addServiceRequest(channel, serviceRequest,
-                    new WifiP2pManager.ActionListener()
+            manager.addServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener()
+            {
+                @Override
+                public void onSuccess()
+                {
+                    SystemUtil.sendStatusTextUpdate(uiMessenger,
+                            "Added service discovery request");
+
+                    manager.discoverServices(channel, new WifiP2pManager.ActionListener()
                     {
                         @Override
                         public void onSuccess() {
                             SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                    "Added service discovery request");
+                                    "Service discovery initiated");
                         }
 
                         @Override
-                        public void onFailure(int code) {
+                        public void onFailure(int code)
+                        {
                             SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                    "Failed adding service discovery request - " +
-                                            SystemUtil.parseErrorCode(code));
+                                    "Service discovery failed: " + SystemUtil.parseErrorCode(code));
+
                         }
                     });
-            manager.discoverServices(channel, new WifiP2pManager.ActionListener()
-            {
-                @Override
-                public void onSuccess() {
-                    SystemUtil.sendStatusTextUpdate(uiMessenger,
-                            "Service discovery initiated");
                 }
 
                 @Override
-                public void onFailure(int code)
-                {
+                public void onFailure(int code) {
                     SystemUtil.sendStatusTextUpdate(uiMessenger,
-                            "Service discovery failed: " + SystemUtil.parseErrorCode(code));
-
+                            "Failed adding service discovery request - " +
+                                    SystemUtil.parseErrorCode(code));
                 }
             });
         }
-
     }
 
     /**
@@ -192,7 +188,7 @@ public class WifiConnectionManager
                         public void onDnsSdTxtRecordAvailable(
                                 String fullDomainName, Map<String, String> record,
                                 WifiP2pDevice device) {
-                            Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
+                            Log.i(TAG, device.deviceName + " is "+ record.get(Constants.TXTRECORD_PROP_VISIBILITY));
                         }
                     });
 
@@ -279,13 +275,9 @@ public class WifiConnectionManager
                                               WifiP2pManager.DnsSdTxtRecordListener txtListener)
     {
         Log.i(TAG,"startRegistrationAndDiscovery()");
-
-        Map<String, String> record = generateTxtRecord();
-
-        abstractGroupService.getNearbyDevices().put(
-                abstractGroupService.getDevice().deviceAddress,
-                new ComleSenseDevice(abstractGroupService.getDevice(), record));
-
+        //-------- put own TxtRecord into advertisement
+        Map<String, String> record = abstractGroupService.getDiscoveredDevices().
+                get(abstractGroupService.getDevice().deviceAddress).getTxtRecord();
         WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
                 SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
 
@@ -308,49 +300,33 @@ public class WifiConnectionManager
         findService(servListener, txtListener);
     }
 
-    private Map<String, String> generateTxtRecord()
-    {
-        Log.i(TAG,"generateTxtRecord()");
-
-        Map<String, String> record = new HashMap<String, String>();
-        record.put(TXTRECORD_PROP_AVAILABLE, "visible");
-        record.put(TXTRECORD_SENSOR_TYPE_LIST,
-                SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
-        Log.i(TAG,SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
-
-        // network connections
-        List<Integer> availableConns = new ArrayList<Integer>();
-        ConnectivityManager connMgr =
-                (ConnectivityManager) abstractGroupService.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
-        for(NetworkInfo ni:networkInfos)
-        {
-            if(ni !=null)
-            {
-                //Log.i(TAG, ni.getTypeName());
-                if(ni.isConnectedOrConnecting())
-                    availableConns.add(ni.getType());
-            }
-
-        }
-        if(availableConns.size()>0)
-            record.put(TXTRECORD_NETWORK_INFO, availableConns.toString() );
-        //Log.i(TAG, availableConns.toString());
-
-        return record;
-    }
-
-    public WifiP2pDevice decideGroupOnwer(Map<String, ComleSenseDevice> compleSenseDevices)
+    public WifiP2pDevice decideGroupOnwer(Map<String, CompleSenseDevice> compleSenseDevices)
     {
         Log.i(TAG, "decideGroupOnwer");
-        for(Map.Entry<String, ComleSenseDevice> entry : compleSenseDevices.entrySet())
+        float maxBatteryLevel = 0;
+        WifiP2pDevice groupOwner = null;
+        for(Map.Entry<String, CompleSenseDevice> entry : compleSenseDevices.entrySet())
         {
-            Log.i(TAG,entry.getKey());
-            ComleSenseDevice compleSenseDevice = entry.getValue();
-
-            if(compleSenseDevice.getTxtRecord().get(TXTRECORD_NETWORK_INFO) != null)
+            CompleSenseDevice compleSenseDevice = entry.getValue();
+            //-------- decide group owner using battery level
+            if(compleSenseDevice.getTxtRecord().get(Constants.TXTRECORD_BATTERY_LEVEL)!=null)
             {
-                String networkInfo = compleSenseDevice.getTxtRecord().get(TXTRECORD_NETWORK_INFO).toString();
+                float batteryLevel = Float.parseFloat(
+                        compleSenseDevice.getTxtRecord().get(Constants.TXTRECORD_BATTERY_LEVEL));
+                Log.d(TAG,"battery " + entry.getKey()+": " + batteryLevel);
+
+                if(batteryLevel > maxBatteryLevel)
+                {
+                    maxBatteryLevel = batteryLevel;
+                    groupOwner = compleSenseDevice.getDevice();
+                }
+            }
+
+            /*
+            if(compleSenseDevice.getTxtRecord().get(Constants.TXTRECORD_NETWORK_INFO) != null)
+            {
+                String networkInfo = compleSenseDevice.getTxtRecord().get(Constants.TXTRECORD_NETWORK_INFO);
+                Log.i(TAG, "networkInfo: " + networkInfo);
                 if(networkInfo!=null)
                 {
                     networkInfo = networkInfo.substring(1,2);
@@ -359,11 +335,9 @@ public class WifiConnectionManager
                         return compleSenseDevice.getDevice();
                 }
             }
-
+            */
         }
-
-
-        return null;
+        return groupOwner;
     }
 
 
