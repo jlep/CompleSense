@@ -26,7 +26,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     implements UdpConnectionRunnable.UdpConnectionListner {
     private static final String TAG = "GroupOwnerServiceHandler";
     private final AcceptorUDP acceptorUDP;
-    private Timer timer;
+    //private Timer timer;
 
     private int clientCounter = 0;
 
@@ -38,7 +38,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                                     Context context)
     {
         super(serviceMessenger, name,context, true, null, 0);
-        timer = new Timer();
+//        timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
     }
 
@@ -49,17 +49,14 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
         int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
         Log.i(TAG,"sType: " + sType);
-
+/*
         if(acceptorUDP.getConnectionRunnable()!=null)
         {
             ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(
                     acceptorUDP.getConnectionRunnable(),this, fromAddr,sType);
             timer.schedule(sTask, 0, 3000);
         }
-
-        //AudioShareManager.WebSocketConnection webSocketConnection=
-        //        AudioShareManager.getWebSocketAudioRelayThread(fromAddr, this, acceptorUDP.getConnectionRunnable());
-
+*/
         RelayThread relayThread = RelayThread.getInstance(this, fromAddr,
                 acceptorUDP.getConnectionRunnable(), clientCounter);
 
@@ -214,7 +211,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     @Override
     public void stopServiceHandler()
     {
-        timer.cancel();
+//        timer.cancel();
         super.stopServiceHandler();
     }
 
@@ -222,7 +219,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     public void onValidTimeExpires(SocketAddress socketAddress)
     {
         super.onValidTimeExpires(socketAddress);
-        timer.cancel();
+//        timer.cancel();
     }
 
 

@@ -95,7 +95,6 @@ public class GroupBroadcastReceiver extends BroadcastReceiver
             if (networkInfo.isConnected())
             {
                 Log.i(TAG,"Network is connected");
-
                 // Device is connected with the other device as Group Owner
                 manager.requestConnectionInfo(channel, service);
             } else {

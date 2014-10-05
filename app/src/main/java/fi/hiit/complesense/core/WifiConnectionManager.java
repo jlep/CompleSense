@@ -300,6 +300,51 @@ public class WifiConnectionManager
         findService(servListener, txtListener);
     }
 
+    /**
+     * update the TxtRecord attached to the registered service
+     */
+    public void updateTxtRecord()
+    {
+        manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess()
+            {
+                String str = "Old Registered service removed";
+                Log.i(TAG, str);
+                SystemUtil.sendStatusTextUpdate(uiMessenger, str);
+
+                Map<String, String> record = abstractGroupService.getDiscoveredDevices().
+                        get(abstractGroupService.getDevice().deviceAddress).getTxtRecord();
+                WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
+                        SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
+
+                manager.addLocalService(channel, service, new WifiP2pManager.ActionListener()
+                {
+                    @Override
+                    public void onSuccess() {
+                        Log.i(TAG, "Added Local Service");
+                        SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
+                    }
+
+                    @Override
+                    public void onFailure(int error) {
+                        Log.i(TAG, "Failed to add a service");
+                        SystemUtil.sendStatusTextUpdate(uiMessenger,
+                                "Adding Service failed: " + SystemUtil.parseErrorCode(error));
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.i(TAG,"Stopping service DNS fails");
+                SystemUtil.sendStatusTextUpdate(uiMessenger,
+                        "Stopping service DNS fails");
+            }
+        });
+
+    }
+
     public WifiP2pDevice decideGroupOnwer(Map<String, CompleSenseDevice> compleSenseDevices)
     {
         Log.i(TAG, "decideGroupOnwer");

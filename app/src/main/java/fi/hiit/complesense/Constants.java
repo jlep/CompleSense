@@ -17,6 +17,7 @@ public class Constants
     public static final String TXTRECORD_SENSOR_TYPE_LIST = "tp";
     public static final String TXTRECORD_NETWORK_INFO = "cn";
     public static final String TXTRECORD_BATTERY_LEVEL = "bt";
+    public static final String TXTRECORD_NUM_CLIETNS = "nc";
 
 
     public static final int SERVER_PORT = 30243; // group owner port

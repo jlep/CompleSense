@@ -23,7 +23,6 @@ public class ClientOwnerService extends AbstractGroupService
     private static final String TAG = "ClientOwnerService";
 
     private boolean retryChannel = false;
-    private boolean receivedTxtRecord = false;
 
     WifiP2pManager.DnsSdTxtRecordListener txtListener =
             new WifiP2pManager.DnsSdTxtRecordListener()
@@ -33,14 +32,13 @@ public class ClientOwnerService extends AbstractGroupService
                         String fullDomain, Map record, WifiP2pDevice device)
                 {
                     Log.i(TAG, "DnsSdTxtRecord available from " + device.deviceAddress +": " + record.toString());
-                    receivedTxtRecord = true;
                     //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
                     SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
                             Constants.TXTRECORD_SENSOR_TYPE_LIST));
                     SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
                             Constants.TXTRECORD_NETWORK_INFO));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_battery: "+ (String)record.get(
-                            Constants.TXTRECORD_BATTERY_LEVEL));
+                    float batteryDiff = getBatteryLevel() - Float.parseFloat((String)record.get(Constants.TXTRECORD_BATTERY_LEVEL));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, " battery diff with " + device.deviceAddress + " is :" +batteryDiff);
                     discoveredDevices.put(device.deviceAddress, new CompleSenseDevice(device, record) );
                     //Log.i(TAG,"compleSenseDevices.size():" + nearbyDevices.size() );
 
@@ -51,6 +49,7 @@ public class ClientOwnerService extends AbstractGroupService
                         if(groupOwner == null)
                         {
                             Log.i(TAG,"groupOwner is null");
+                            SystemUtil.sendStatusTextUpdate(uiMessenger, "Cannot find valid group owner");
                             return;
                         }
                         Log.i(TAG,"Group Owner Addr: " + groupOwner.deviceAddress + " own addr: " + getDevice().deviceAddress);
@@ -58,12 +57,12 @@ public class ClientOwnerService extends AbstractGroupService
                         if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
                         {
                             Log.i(TAG,"Try to connect as group owner with highest priority");
-                            mWifiConnManager.connectP2p(device, 15);
+                            mWifiConnManager.connectP2p(device, 10);
                         }
                         else
                         {
                             Log.i(TAG,"Try to connect as group client");
-                            mWifiConnManager.connectP2p(groupOwner, 0);
+                            mWifiConnManager.connectP2p(groupOwner, 2);
                             mWifiConnManager.clearServiceAdvertisement();
                         }
                     }
