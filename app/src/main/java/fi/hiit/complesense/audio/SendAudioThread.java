@@ -113,14 +113,15 @@ public class SendAudioThread extends AbstractSystemThread
         WavFileWriter wavFileWriter = null;
 
         AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, Constants.SAMPLE_RATE,
-                AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
                 AudioRecord.getMinBufferSize(Constants.SAMPLE_RATE,
-                        AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                        AudioFormat.CHANNEL_IN_MONO,
                         AudioFormat.ENCODING_PCM_16BIT) * 10);
         int bytes_read = 0;
         int bytes_count = 0;
         byte[] buf = new byte[Constants.BUF_SIZE];
+        //byte[] buf = new byte[Constants.NUM_CHANNELS * Constants.SAMPLE_SIZE * Constants.FRAME_SIZE * Constants.SAMPLE_RATE / 1000 ];
         try
         {
             wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + ownerThreadId + ".wav");
@@ -137,6 +138,7 @@ public class SendAudioThread extends AbstractSystemThread
                 bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
                 mWebSocket.send(buf);
                 wavFileWriter.write(buf);
+                getSampleEnergy(buf);
                 bytes_count += bytes_read;
 
                 Thread.sleep(Constants.SAMPLE_INTERVAL);

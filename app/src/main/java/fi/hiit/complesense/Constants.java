@@ -69,10 +69,12 @@ public class Constants
     public static final int SAMPLE_RATE = 8000;
     public static final int SAMPLE_INTERVAL = 20; // milliseconds
     public static final int SAMPLE_SIZE = 2; // bytes per sample
+    public static final short BIT_SAMPLE = 16; // 16 bits per sample
     public static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 2;
     public static final short NUM_CHANNELS = 1;
-    public static final short BIT_SAMPLE = 16;
+
     public static final int LOCAL_WEBSOCKET_PORT = 12000;
+    public static final int FRAME_SIZE = 256; // milliseconds
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};

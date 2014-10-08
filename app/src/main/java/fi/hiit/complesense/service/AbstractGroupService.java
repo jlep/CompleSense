@@ -16,6 +16,7 @@ import android.os.BatteryManager;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
@@ -61,6 +62,7 @@ public abstract class AbstractGroupService extends Service
 
     //protected Map<String, CompleSenseDevice> nearbyDevices;
     protected Map<String, CompleSenseDevice> discoveredDevices;
+    protected PowerManager.WakeLock wakeLock;
 
     /**
      *
@@ -93,6 +95,9 @@ public abstract class AbstractGroupService extends Service
     {
         Log.i(TAG, "onCreate()");
         super.onCreate();
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "WAKELOCK_" + TAG);
+        wakeLock.acquire();
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
         groupOwner = null;
@@ -128,13 +133,14 @@ public abstract class AbstractGroupService extends Service
     public void onDestroy()
     {
         Log.i(TAG,"onDestroy()");
-        super.onDestroy();
+        wakeLock.release();
         stop();
         // Cancel the persistent notification.
         mNM.cancel(R.string.remote_service_started);
 
         // Tell the user we stopped.
         Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
+        super.onDestroy();
     }
 
     protected abstract void start();
