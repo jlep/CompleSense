@@ -138,7 +138,7 @@ public class SendAudioThread extends AbstractSystemThread
                 bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
                 mWebSocket.send(buf);
                 wavFileWriter.write(buf);
-                getSampleEnergy(buf);
+                //getSampleEnergy(buf);
                 bytes_count += bytes_read;
 
                 Thread.sleep(Constants.SAMPLE_INTERVAL);

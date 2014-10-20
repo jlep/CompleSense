@@ -6,6 +6,7 @@ import android.os.Messenger;
 import android.util.Log;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -15,9 +16,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.audio.LocalRecThread;
 import fi.hiit.complesense.audio.RelayThread;
+import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 21.8.2014.
@@ -40,6 +44,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
 //        timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
+
+        LocalRecThread localRecThread = new LocalRecThread(this);
+        eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
+
     }
 
     @Override
@@ -67,10 +75,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             relayThread.start();
         }
 
-        if(clientCounter >= 4)
+        if(clientCounter >= 5)
         {
             Log.e(TAG, "enough clients have joined");
-            CountDownTimer countDownTimer = new CountDownTimer(20000,1000) {
+            CountDownTimer countDownTimer = new CountDownTimer(300000,1000) {
                 @Override
                 public void onTick(long l) {
 
@@ -78,6 +86,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
                 @Override
                 public void onFinish() {
+                    LocalRecThread localRecThread = (LocalRecThread) eventHandlingThreads.remove(LocalRecThread.TAG);
+                    if(localRecThread != null)
+                        localRecThread.stopThread();
+
+
                     // send stop recording message
                     Iterator<Map.Entry<String, AbstractSystemThread> > iter = eventHandlingThreads.entrySet().iterator();
                     List<String> keys= new ArrayList<String>();
