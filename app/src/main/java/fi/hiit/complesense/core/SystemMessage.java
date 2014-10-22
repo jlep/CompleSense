@@ -56,6 +56,8 @@ public class SystemMessage implements Serializable
 
     public static final int TYPE_AUDIO_STREAM = 30;
     public static final short CLOCK_SYNC = 31;
+    public static final short STEREO_IMG = 0x30;
+
 
 
 
@@ -158,6 +160,9 @@ public class SystemMessage implements Serializable
                 return str;
             case SystemMessage.J:
                 str += "Relay response";
+                return str;
+            case SystemMessage.STEREO_IMG:
+                str += "StereoScopic Image request";
                 return str;
             default:
                 return null;
@@ -397,6 +402,12 @@ public class SystemMessage implements Serializable
     public static SystemMessage makeClockQueryRequest() {
         byte[] payload = (new String("")).getBytes();
         return new SystemMessage(SystemMessage.CLOCK_SYNC, payload);
+    }
+
+    public static SystemMessage makeStereoImageReq()
+    {
+        ByteBuffer bb = ByteBuffer.wrap((new String("")).getBytes() );
+        return new SystemMessage(SystemMessage.STEREO_IMG, bb.array());
     }
 
     /*

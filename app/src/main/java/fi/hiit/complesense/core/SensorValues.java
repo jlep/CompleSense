@@ -19,6 +19,12 @@ public class SensorValues
         key = src + ":" + Integer.toString(this.sensorType);
     }
 
+    /**
+     *
+     * @param src
+     * @param type
+     * @return socketAddr:type
+     */
     public static String genKey(String src, int type)
     {
         return src + ":" + Integer.toString(type);

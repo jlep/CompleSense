@@ -5,12 +5,14 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.MediaStore;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -22,6 +24,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.Serializable;
+import java.net.SocketAddress;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
@@ -38,7 +41,7 @@ public class DemoActivity extends AbstractGroupActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
-        Log.i(TAG, "onCreate");
+        Log.v(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -130,26 +133,17 @@ public class DemoActivity extends AbstractGroupActivity
     }
 
     @Override
-    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
-    {
-        this.statusTxtView = statusTxtView;
-        statusTxtView.setText("");
-        this.scrollView = statusTxtScroll;
-    }
-
-    @Override
     protected void onDestroy()
     {
-        Log.i(TAG,"onDestroy()");
+        Log.v(TAG,"onDestroy()");
         super.onDestroy();
-        doUnbindService();
         stopService(new Intent(this, TestingService.class));
     }
 
     @Override
     protected void doBindService()
     {
-        Log.i(TAG, "doBindService()");
+        Log.v(TAG, "doBindService()");
         bindService(new Intent(getApplicationContext(),
                 TestingService.class), mConnection, Context.BIND_AUTO_CREATE);
         mIsBound = true;
@@ -159,7 +153,7 @@ public class DemoActivity extends AbstractGroupActivity
     @Override
     public void onResume()
     {
-        Log.d(TAG, "onResume()");
+        Log.v(TAG, "onResume()");
         doBindService();
         super.onResume();
     }
@@ -167,14 +161,14 @@ public class DemoActivity extends AbstractGroupActivity
     @Override
     public void onPause()
     {
-        Log.d(TAG, "onPause()");
+        Log.v(TAG, "onPause()");
         doUnbindService();
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-        Log.i(TAG,"onStop()");
+        Log.v(TAG,"onStop()");
         super.onStop();
     }
 
@@ -207,6 +201,15 @@ public class DemoActivity extends AbstractGroupActivity
             {
                 case Constants.MSG_UPDATE_STATUS_TXT:
                     appendStatus((String)msg.obj);
+                    break;
+                case Constants.MSG_TAKE_IMAGE:
+                    SocketAddress socketAddress = (SocketAddress)msg.obj;
+                    appendStatus("Receive image taking request from " + socketAddress.toString() );
+                    Uri fileUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
+
+                    startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
                 default:
                     super.handleMessage(msg);

@@ -1,7 +1,9 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Messenger;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.net.InetAddress;
@@ -95,12 +97,10 @@ public class ClientServiceHandler extends ServiceHandler
                 int sensorType = SystemMessage.parseSensorType(sm);
                 Log.i(TAG,"sensorType " + sensorType);
                 values = sensorUtil.getLocalSensorValue(sensorType);
-
                 if(null!=values)
                 {
                     //if(foreignSocketAddrStr!=null)
                     //    SystemUtil.writeLogFile(startTime, foreignSocketAddrStr);
-
                     SystemMessage reply = SystemMessage.makeSensorValuesReplyMessage(sensorType, values);
                     if(connectorUDP!=null)
                         connectorUDP.write(reply, remoteSocketAddr);
@@ -115,8 +115,14 @@ public class ClientServiceHandler extends ServiceHandler
                 //        clientManager.getLocalSensorList()), remoteSocketAddr);
                 break;
 
+            case SystemMessage.STEREO_IMG:
+                startImageCapture(remoteSocketAddr);
+                break;
+
             default:
                 break;
         }
     }
+
+
 }

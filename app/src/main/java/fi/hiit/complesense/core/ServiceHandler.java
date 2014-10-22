@@ -19,6 +19,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +62,7 @@ public class ServiceHandler extends HandlerThread
         this.context = context;
         sensorUtil = new SensorUtil(context);
         eventHandlingThreads =  new TreeMap<String, AbstractSystemThread>();
-        peerList = new TreeMap<String, AliveConnection>();
+        peerList = new HashMap<String, AliveConnection>();
         this.isGroupOwner = isGroupOwner;
 
         this.delay = delay;
@@ -240,8 +241,21 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
+    protected void startImageCapture(SocketAddress remoteSocketAddr)
+    {
+        //Log.i(TAG,"updateStatusTxt()");
+        Message msg = Message.obtain();
+        msg.what = Constants.SERVICE_MSG_STEREO_IMG_REQ;
+        msg.obj = remoteSocketAddr;
+        try {
+            serviceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
-    public void onValidTimeExpires(SocketAddress socketAddress)
+    public void onConnectionTimeout(SocketAddress socketAddress)
     {
         Log.i(TAG, "onValidTimeExpires(" + socketAddress.toString() + ")");
         removeFromPeerList(socketAddress.toString());

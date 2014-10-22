@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -23,6 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.SocketAddress;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -158,6 +161,23 @@ public class SystemUtil {
 
     }
 
+    public static void sendTakeImageReq(Messenger uiMessenger, SocketAddress socketAddress)
+    {
+        if(uiMessenger!=null)
+        {
+            Message msg = Message.obtain();
+            msg.obj = socketAddress;
+            msg.what = Constants.MSG_TAKE_IMAGE;
+            try {
+                uiMessenger.send(msg);
+            } catch (RemoteException e) {
+                Log.i(TAG,e.toString());
+            }
+        }
+    }
+
+
+
     public static void sendClientsListUpdate(Messenger uiMessenger, WifiP2pGroup group)
     {
         if(uiMessenger!=null)
@@ -257,4 +277,44 @@ public class SystemUtil {
         rootFolder.mkdir();
     }
 
+    /** Create a file Uri for saving an image or video */
+    public static Uri getOutputMediaFileUri(int type){
+        return Uri.fromFile(getOutputMediaFile(type));
+    }
+
+    /** Create a File for saving an image or video */
+    private static File getOutputMediaFile(int type){
+        // To be safe, you should check that the SDCard is mounted
+        // using Environment.getExternalStorageState() before doing this.
+
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Constants.ROOT_DIR), "pic");
+        // This location works best if you want the created images to be shared
+        // between applications and persist after your app has been uninstalled.
+
+        // Create the storage directory if it does not exist
+        if (! mediaStorageDir.exists()){
+            if (! mediaStorageDir.mkdirs()){
+                Log.d(TAG, "Failed to create directory");
+                return null;
+            }
+        }
+
+        // Create a media file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File mediaFile;
+        if (type == Constants.MEDIA_TYPE_IMAGE)
+        {
+            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+                    "IMG_"+ timeStamp + ".jpg");
+        }
+        else if(type == Constants.MEDIA_TYPE_VIDEO)
+        {
+            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+                    "VID_"+ timeStamp + ".mp4");
+        } else {
+            return null;
+        }
+
+        return mediaFile;
+    }
 }

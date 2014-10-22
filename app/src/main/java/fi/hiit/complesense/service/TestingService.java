@@ -11,6 +11,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,10 @@ public class TestingService extends AbstractGroupService
                 case Constants.SERVICE_MSG_STATUS_TXT_UPDATE:
                     SystemUtil.sendStatusTextUpdate(uiMessenger,
                             (String) msg.obj);
+                    break;
+                case Constants.SERVICE_MSG_STEREO_IMG_REQ:
+                    SystemUtil.sendTakeImageReq(uiMessenger,
+                            (SocketAddress) msg.obj);
                     break;
                default:
                     super.handleMessage(msg);
@@ -253,7 +258,6 @@ public class TestingService extends AbstractGroupService
         }
         clientsList.clear();
         ownerServiceHanlder.stopServiceHandler();
-
     }
 
 }

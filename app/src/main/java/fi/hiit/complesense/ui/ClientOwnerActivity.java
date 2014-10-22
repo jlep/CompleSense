@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.MediaStore;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
@@ -39,7 +41,7 @@ public class ClientOwnerActivity extends AbstractGroupActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
-        Log.i(TAG, "onCreate");
+        Log.v(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.demo_activity_main);
         initUi((TextView) findViewById(R.id.status_text),
@@ -112,17 +114,9 @@ public class ClientOwnerActivity extends AbstractGroupActivity
     }
 
     @Override
-    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
-    {
-        this.statusTxtView = statusTxtView;
-        statusTxtView.setText("");
-        this.scrollView = statusTxtScroll;
-    }
-
-    @Override
     protected void onDestroy()
     {
-        Log.i(TAG,"onDestroy()");
+        Log.v(TAG, "onDestroy()");
         super.onDestroy();
         doUnbindService();
         stopService(new Intent(this, ClientOwnerService.class));
@@ -131,11 +125,11 @@ public class ClientOwnerActivity extends AbstractGroupActivity
     @Override
     protected void doBindService()
     {
-        Log.i(TAG, "doBindService()");
+        Log.v(TAG, "doBindService()");
         bindService(new Intent(getApplicationContext(),
                 ClientOwnerService.class), mConnection, Context.BIND_AUTO_CREATE);
         mIsBound = true;
-        appendStatus("Binding to GroupOwnerService");
+    //    appendStatus("Binding to GroupOwnerService");
     }
 
     class IncomingHandler extends Handler implements Serializable
@@ -165,13 +159,21 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     updateSelfInfoFragment(msg);
                     break;
 
+                case Constants.MSG_TAKE_IMAGE:
+                    Uri fileUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
+
+                    startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+                    break;
+
                 default:
                     super.handleMessage(msg);
             }
         }
-
-
     }
+
+
 
     private void updateServersListFragment(Message msg)
     {

@@ -12,6 +12,9 @@ public class Constants
 {
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
 
+    public static final int MEDIA_TYPE_IMAGE = 100;
+    public static final int MEDIA_TYPE_VIDEO = 101;
+
     // TXT RECORD properties
     public static final String TXTRECORD_PROP_VISIBILITY = "vb";
     public static final String TXTRECORD_SENSOR_TYPE_LIST = "tp";
@@ -36,7 +39,7 @@ public class Constants
 
 
     /**
-     * Messages sent from service
+     * Messages sent from service to Activity
      */
     public static final int MSG_SELF_INFO_UPDATE = 1;
     public static final int MSG_SERVICE_INIT_DONE = 2;
@@ -44,6 +47,7 @@ public class Constants
     public static final int MSG_UPDATE_STATUS_TXT = 7;
     public static final int MSG_SERVER_INFO = 8;
     public static final int MSG_CLIENTS_LISTS_UPDATE = 9;
+    public static final int MSG_TAKE_IMAGE = 10;
 
     /**
      * Messages send to service
@@ -60,8 +64,9 @@ public class Constants
     public static final int SERVICE_MSG_CONNECT = 26;
 
     public static final int SERVICE_MSG_STATUS_TXT_UPDATE = 30;
-
     public static final int SERVICE_MSG_STOP_CLIENT_SERVICE = 40;
+
+    public static final int SERVICE_MSG_STEREO_IMG_REQ = 50;
 
 
     public static final String INIT_CONNECTION = "INIT";
@@ -75,6 +80,7 @@ public class Constants
 
     public static final int LOCAL_WEBSOCKET_PORT = 12000;
     public static final int FRAME_SIZE = 256; // milliseconds
+
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};

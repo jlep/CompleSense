@@ -73,8 +73,6 @@ public class SensorUtil implements SensorEventListener
     {
         for(Integer type : typeList)
             setSensorValue(Constants.dummyValues, type, remoteSocketAddr);
-
-
     }
 
     public float[] getSensorValue(String srcSocketAddr, int sensorType)
@@ -153,7 +151,7 @@ public class SensorUtil implements SensorEventListener
     /**
      * Randomly select one sensor from a connected client
      */
-    public synchronized int randomlySelectSensor(String remoteSocketAddr)
+    public int randomlySelectSensor(String remoteSocketAddr)
     {
         Iterator<String> iter = sensorValues.keySet().iterator();
         List<String> typeList = new ArrayList<String>();
@@ -170,6 +168,10 @@ public class SensorUtil implements SensorEventListener
         Log.i(TAG,"substring: " + keySensorValues.substring(keySensorValues.lastIndexOf(":")+1));
         return sType;
     }
+
+
+
+
 
     public List<Integer> getLocalSensorTypeList()
     {
@@ -210,4 +212,5 @@ public class SensorUtil implements SensorEventListener
 
         return sensorsTypeList;
     }
+
 }

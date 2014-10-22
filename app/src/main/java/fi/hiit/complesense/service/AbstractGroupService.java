@@ -117,9 +117,7 @@ public abstract class AbstractGroupService extends Service
 
         // Register BroadcastReceiver to track connection changes.
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-
         SystemUtil.cleanRootDir();
-
     }
 
     @Override

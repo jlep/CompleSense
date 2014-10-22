@@ -23,7 +23,7 @@ public class AliveConnection
 
     public interface AliveConnectionListener
     {
-        public void onValidTimeExpires(SocketAddress socketAddress);
+        public void onConnectionTimeout(SocketAddress socketAddress);
     }
 
     public AliveConnection(final SocketAddress socketAddress, AliveConnectionListener listener)
@@ -56,7 +56,7 @@ public class AliveConnection
 
             @Override
             public void onFinish() {
-                mListener.onValidTimeExpires(socketAddress);
+                mListener.onConnectionTimeout(socketAddress);
             }
         };
         countDownTimer.start();

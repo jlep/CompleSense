@@ -1,6 +1,7 @@
 package fi.hiit.complesense.ui;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
@@ -25,6 +26,8 @@ import fi.hiit.complesense.Constants;
 public abstract class AbstractGroupActivity extends Activity
 {
     private static final String TAG = "AbstractGroupActivity";
+    protected static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 12341;
+    protected static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 12342;
 
     protected TextView statusTxtView;
     protected ScrollView scrollView;
@@ -47,7 +50,7 @@ public abstract class AbstractGroupActivity extends Activity
     @Override
     public void onResume()
     {
-        Log.d(TAG, "onResume()");
+        Log.v(TAG, "onResume()");
         super.onResume();
         doBindService();
     }
@@ -55,7 +58,7 @@ public abstract class AbstractGroupActivity extends Activity
     @Override
     public void onPause()
     {
-        Log.d(TAG, "onPause()");
+        Log.v(TAG, "onPause()");
         super.onPause();
         doUnbindService();
     }
@@ -63,23 +66,29 @@ public abstract class AbstractGroupActivity extends Activity
     @Override
     protected void onDestroy()
     {
-        Log.d(TAG, "onDestroy()");
+        Log.v(TAG, "onDestroy()");
         dumpTextView2File(statusTxtView.getText().toString() );
         super.onDestroy();
     }
 
     protected abstract void doBindService();
-    protected abstract void initUi(TextView statusTxtView, ScrollView statusTxtScroll);
 
     protected void doUnbindService()
     {
-        Log.i(TAG,"doUnbindService()");
+        Log.v(TAG, "doUnbindService()");
         if (mIsBound)
         {
             unbindService(mConnection);
             mIsBound = false;
             appendStatus("Unbinding from GroupOwnerService");
         }
+    }
+
+    protected void initUi(TextView statusTxtView, ScrollView statusTxtScroll)
+    {
+        this.statusTxtView = statusTxtView;
+        statusTxtView.setText("");
+        this.scrollView = statusTxtScroll;
     }
 
     /**
@@ -144,6 +153,35 @@ public abstract class AbstractGroupActivity extends Activity
         }
         catch (RemoteException e)
         {
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE)
+        {
+            if (resultCode == RESULT_OK) {
+                // Image captured and saved to fileUri specified in the Intent
+                appendStatus("Image saved to: " + data.getData().toString());
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the image capture
+                appendStatus("Image Capture canceled");
+            } else {
+                // Image capture failed, advise user
+                appendStatus("Image Capture failed");
+            }
+        }
+
+        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                // Video captured and saved to fileUri specified in the Intent
+                appendStatus("Video saved to: " + data.getData().toString());
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the video capture
+            } else {
+                // Video capture failed, advise user
+            }
         }
     }
 }

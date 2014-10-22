@@ -7,6 +7,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
+
+import java.net.SocketAddress;
 import java.util.Map;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
@@ -104,10 +106,10 @@ public class ClientOwnerService extends AbstractGroupService
                         SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
                         mWifiConnManager.setUiMessenger(uiMessenger);
 
-                        //clientManager = new ClientManager(mMessenger, context,false);
-                        isInitialized = true;
                         sendServiceInitComplete();
-                    }
+                    }                        //clientManager = new ClientManager(mMessenger, context,false);
+                    isInitialized = true;
+
                     break;
                 case Constants.SERVICE_MSG_START:
                     start();
@@ -132,6 +134,10 @@ public class ClientOwnerService extends AbstractGroupService
                 case Constants.SERVICE_MSG_STATUS_TXT_UPDATE:
                     SystemUtil.sendStatusTextUpdate(uiMessenger,
                             (String) msg.obj);
+                    break;
+                case Constants.SERVICE_MSG_STEREO_IMG_REQ:
+                    SystemUtil.sendTakeImageReq(uiMessenger,
+                            (SocketAddress) msg.obj);
                     break;
 
                 default:

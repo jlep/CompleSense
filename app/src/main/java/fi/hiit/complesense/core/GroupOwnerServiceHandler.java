@@ -21,7 +21,6 @@ import fi.hiit.complesense.audio.RelayThread;
 import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
-import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 21.8.2014.
@@ -45,8 +44,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 //        timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
 
-        LocalRecThread localRecThread = new LocalRecThread(this);
-        eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
+        //LocalRecThread localRecThread = new LocalRecThread(this);
+        //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
 
     }
 
@@ -55,62 +54,16 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
         super.onReceiveLastRttReply(startTimeMillis, fromAddr);
 
-        int sType = sensorUtil.randomlySelectSensor(fromAddr.toString() );
-        Log.i(TAG,"sType: " + sType);
-/*
-        if(acceptorUDP.getConnectionRunnable()!=null)
-        {
-            ScheduledUdpQueryTask sTask = new ScheduledUdpQueryTask(
-                    acceptorUDP.getConnectionRunnable(),this, fromAddr,sType);
-            timer.schedule(sTask, 0, 3000);
-        }
-*/
-        RelayThread relayThread = RelayThread.getInstance(this, fromAddr,
-                acceptorUDP.getConnectionRunnable(), clientCounter);
-
         ++clientCounter;
-        if(relayThread!=null)
-        {
-            eventHandlingThreads.put(RelayThread.TAG +"-"+fromAddr.toString(), relayThread);
-            relayThread.start();
-        }
-
-        if(clientCounter >= 5)
+        if(clientCounter >= 1)
         {
             Log.e(TAG, "enough clients have joined");
-            CountDownTimer countDownTimer = new CountDownTimer(300000,1000) {
-                @Override
-                public void onTick(long l) {
 
-                }
-
-                @Override
-                public void onFinish() {
-                    LocalRecThread localRecThread = (LocalRecThread) eventHandlingThreads.remove(LocalRecThread.TAG);
-                    if(localRecThread != null)
-                        localRecThread.stopThread();
-
-
-                    // send stop recording message
-                    Iterator<Map.Entry<String, AbstractSystemThread> > iter = eventHandlingThreads.entrySet().iterator();
-                    List<String> keys= new ArrayList<String>();
-                    while(iter.hasNext())
-                    {
-                        Map.Entry<String, AbstractSystemThread> entry = iter.next();
-                        if(entry.getKey().contains(RelayThread.TAG))
-                            keys.add(entry.getKey());
-                    }
-                    for(String key : keys)
-                    {
-                        Log.i(TAG, "stop rec on: " + key);
-                        RelayThread rt = (RelayThread)eventHandlingThreads.remove(key);
-                        SocketAddress clientAddr = rt.senderSocketAddr;
-                        acceptorUDP.write(SystemMessage.makeAudioStreamingRequest(0,0, false), clientAddr);
-                        rt.stopThread();
-                    }
-                }
-            };
-            countDownTimer.start();
+            for(String key: peerList.keySet() )
+            {
+                acceptorUDP.write(SystemMessage.makeStereoImageReq(),
+                        peerList.get(key).socketAddress);
+            }
         }
     }
 
@@ -226,13 +179,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
 //        timer.cancel();
         super.stopServiceHandler();
-    }
-
-    @Override
-    public void onValidTimeExpires(SocketAddress socketAddress)
-    {
-        super.onValidTimeExpires(socketAddress);
-//        timer.cancel();
     }
 
 
