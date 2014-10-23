@@ -9,6 +9,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketAddress;
@@ -21,6 +22,7 @@ import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -29,7 +31,6 @@ import fi.hiit.complesense.util.SystemUtil;
  */
 public class TestingService extends AbstractGroupService
 {
-    public static final int NUM_CLIENTS = 1;
     public static final int START_TESTING = 2;
     public static final int STOP_TESTING = 3;
     private ArrayList<ServiceHandler> clientsList;
@@ -52,13 +53,15 @@ public class TestingService extends AbstractGroupService
      */
     class IncomingHandler extends Handler
     {
+        private boolean hasSent = false;
+
         @Override
         public void handleMessage(Message msg)
         {
             switch (msg.what)
             {
                 case START_TESTING:
-                    startTesting(msg.replyTo, NUM_CLIENTS);
+                    startTesting(msg.replyTo, Constants.NUM_CLIENTS);
                     break;
                 case STOP_TESTING:
                     stopSelf();
@@ -71,8 +74,53 @@ public class TestingService extends AbstractGroupService
                     SystemUtil.sendTakeImageReq(uiMessenger,
                             (SocketAddress) msg.obj);
                     break;
+                case Constants.SERVICE_MSG_SEND_IMG:
+                    if(msg.obj==null)
+                        testSendImg2Server(null);
+                    else
+                        testSendImg2Server((File) msg.obj);
+                    hasSent = true;
+                    break;
                default:
                     super.handleMessage(msg);
+            }
+        }
+
+        private void testSendImg2Server(File imgFile)
+        {
+            if(hasSent)
+                return;
+        /*
+        * Send testing files
+         */
+            if(imgFile==null)
+            {
+                File testDir = new File(Constants.ROOT_DIR, "test_pic");
+                if(testDir.exists())
+                {
+                    File[] files = testDir.listFiles();
+                    for(File f:files)
+                    {
+                        if(f.getName().endsWith(".jpg"))
+                        {
+                            Log.i(TAG, "sendImg2Server(" + imgFile + ") @ thread id: " + Thread.currentThread().getId() );
+                            for(ServiceHandler s : clientsList)
+                            {
+                                Message msg = Message.obtain(s.getHandler(), Constants.THREAD_MSG_SEND_IMG, f);
+                                msg.sendToTarget();
+                            }
+
+                            return;
+                        }
+                    }
+                }
+
+            }
+        /*
+        * Use just captured files from camera
+         */
+            else{
+
             }
         }
     }
@@ -82,8 +130,9 @@ public class TestingService extends AbstractGroupService
     @Override
     public void onCreate()
     {
-        Log.i(TAG,"onCreate()");
-        clientsList = new ArrayList<ServiceHandler>(NUM_CLIENTS);
+        super.onCreate();
+        Log.v(TAG, "onCreate()");
+        clientsList = new ArrayList<ServiceHandler>(Constants.NUM_CLIENTS);
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -97,7 +146,6 @@ public class TestingService extends AbstractGroupService
         new Thread(runnable).start();
 
         mMessenger = new Messenger(new IncomingHandler());
-        super.onCreate();
     }
 
     @Override
@@ -149,14 +197,14 @@ public class TestingService extends AbstractGroupService
             Log.i(TAG, e.toString());
         }
 
-        for(int i=0;i<NUM_CLIENTS;i++)
+        for(int i=0;i<Constants.NUM_CLIENTS;i++)
         {
             Log.i(TAG,"Creating client thread");
             clientsList.add(new ClientManager(mMessenger,
                     getApplication(), false ));
         }
 
-        for(int i=0;i<NUM_CLIENTS;i++)
+        for(int i=0;i<Constants.NUM_CLIENTS;i++)
         {
             Log.i(TAG, "Starting client thread");
             try {
@@ -188,16 +236,17 @@ public class TestingService extends AbstractGroupService
             Log.i(TAG, "Creating GroupOwner thread");
             ownerServiceHanlder.startServiveHandler();
 
-            for(int i=0;i<NUM_CLIENTS;i++)
+            for(int i=0;i<Constants.NUM_CLIENTS;i++)
             {
                 Log.i(TAG,"Creating client thread");
                 int delay = (int)(1000 * Math.random());
 
-                clientsList.add(new ClientServiceHandler(mMessenger,
-                        "Client Handler", getApplicationContext(), localHost, delay));
+                ClientServiceHandler client = new ClientServiceHandler(mMessenger,
+                        "_Client_Handler", getApplicationContext(), localHost, delay);
+                clientsList.add(client);
             }
 
-            for(int i=0;i<NUM_CLIENTS;i++)
+            for(int i=0;i<Constants.NUM_CLIENTS;i++)
             {
                 Log.i(TAG, "Starting client thread");
                 clientsList.get(i).startServiveHandler();

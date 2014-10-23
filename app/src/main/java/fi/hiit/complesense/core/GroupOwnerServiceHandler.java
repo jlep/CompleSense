@@ -21,6 +21,7 @@ import fi.hiit.complesense.audio.RelayThread;
 import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.AcceptorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
+import fi.hiit.complesense.img.ImageWebSocketServer;
 
 /**
  * Created by hxguo on 21.8.2014.
@@ -30,6 +31,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private static final String TAG = "GroupOwnerServiceHandler";
     private final AcceptorUDP acceptorUDP;
     //private Timer timer;
+    private ImageWebSocketServer imageWebSocketServer;
 
     private int clientCounter = 0;
 
@@ -43,7 +45,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
 //        timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
-
+        imageWebSocketServer = null;
         //LocalRecThread localRecThread = new LocalRecThread(this);
         //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
 
@@ -55,15 +57,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super.onReceiveLastRttReply(startTimeMillis, fromAddr);
 
         ++clientCounter;
-        if(clientCounter >= 1)
+        if(clientCounter >= Constants.NUM_CLIENTS)
         {
             Log.e(TAG, "enough clients have joined");
-
-            for(String key: peerList.keySet() )
-            {
-                acceptorUDP.write(SystemMessage.makeStereoImageReq(),
-                        peerList.get(key).socketAddress);
-            }
+            imageWebSocketServer = ImageWebSocketServer.getInstance(this, acceptorUDP.getConnectionRunnable());
+            imageWebSocketServer.startServer();
         }
     }
 
@@ -179,6 +177,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
 //        timer.cancel();
         super.stopServiceHandler();
+        if(imageWebSocketServer!=null)
+            imageWebSocketServer.stopServer();
     }
 
 

@@ -261,11 +261,19 @@ public class SystemUtil {
         }
     }
 
-    public static void deleteRecursive(File fileOrDirectory) {
+    public static void deleteRecursive(File fileOrDirectory)
+    {
         if (fileOrDirectory.isDirectory())
-            for (File child : fileOrDirectory.listFiles())
-                deleteRecursive(child);
-
+        {
+            /*
+            * Do not delete files for testing purpose
+             */
+            if(!fileOrDirectory.getName().startsWith("test_"))
+            {
+                for (File child : fileOrDirectory.listFiles())
+                    deleteRecursive(child);
+            }
+        }
         fileOrDirectory.delete();
     }
 
@@ -287,7 +295,7 @@ public class SystemUtil {
         // To be safe, you should check that the SDCard is mounted
         // using Environment.getExternalStorageState() before doing this.
 
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Constants.ROOT_DIR), "pic");
+        File mediaStorageDir = new File(Constants.ROOT_DIR, "pic");
         // This location works best if you want the created images to be shared
         // between applications and persist after your app has been uninstalled.
 

@@ -257,62 +257,9 @@ public class ServiceHandler extends HandlerThread
     @Override
     public void onConnectionTimeout(SocketAddress socketAddress)
     {
-        Log.i(TAG, "onValidTimeExpires(" + socketAddress.toString() + ")");
+        Log.i(TAG, "onConnectionTimeout(" + socketAddress.toString() + ")");
         removeFromPeerList(socketAddress.toString());
     }
-/*
-    public void forwardRttQuery(byte[] payload, SocketAddress remoteSocketAddr)
-    {
-        ByteBuffer bb = ByteBuffer.wrap(payload);
-        long timeStamp = bb.getLong();
-
-        ArrayDeque<String> hops = SystemMessage.parseRttQuery(payload);
-        Log.i(TAG, "RTT hops: " + hops.toString());
-
-        if(socket.getLocalSocketAddress().toString().contains("/:::"))
-        {
-            //must be the group owner socket
-            String nextHost = SystemUtil.getHost(hops.peek());
-            int nextPort = SystemUtil.getPort(hops.peek());
-
-            Log.i(TAG,"nextSocketAddr: " + nextHost+":"+nextPort);
-            write(SystemMessage.makeRttQuery(timeStamp, hops), new InetSocketAddress(nextHost, nextPort));
-
-        }
-        else
-        {
-            String socketAddrStr = hops.poll();
-            Log.i(TAG,"poll socketAddr: " + socketAddrStr);
-            if(!socketAddrStr.equals(socket.getLocalSocketAddress().toString()))
-            {
-                Log.e(TAG,"packet wrong host: " + socketAddrStr + "/" +
-                        socket.getLocalSocketAddress().toString());
-                return;
-            }
-            if(hops.size()==0)
-            {
-                //Log.i(TAG,"RTT: " + Long.toString(System.currentTimeMillis()- timeStamp));
-                long rtt = System.currentTimeMillis()-timeStamp;
-                Log.i(TAG,"pacekt has reached its destination: " + rtt);
-
-                rttMeasurements.add(rtt);
-                Iterator<Long> iter = rttMeasurements.iterator();
-                long sum = 0;
-                while(iter.hasNext())
-                    sum += (Long)iter.next();
-
-                serviceHandler.updateStatusTxt("RTT: "
-                        + Float.toString((float) (sum / rttMeasurements.size())));
-                return;
-            }
-
-            if(timeStamp==0)
-                timeStamp = System.currentTimeMillis();
-            write(SystemMessage.makeRttQuery(timeStamp, hops), remoteSocketAddr);
-        }
-
-    }
-*/
 
     /**
      * Event is fired when the RTT query sender receives enough RTT reply from a peer

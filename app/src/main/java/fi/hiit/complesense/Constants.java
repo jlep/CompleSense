@@ -10,6 +10,8 @@ import java.net.URL;
  */
 public class Constants
 {
+    public static final int NUM_CLIENTS = 3;
+
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
 
     public static final int MEDIA_TYPE_IMAGE = 100;
@@ -67,7 +69,13 @@ public class Constants
     public static final int SERVICE_MSG_STOP_CLIENT_SERVICE = 40;
 
     public static final int SERVICE_MSG_STEREO_IMG_REQ = 50;
+    public static final int SERVICE_MSG_SEND_IMG = 51;
 
+
+    /*
+     * Messages sent to thread
+     */
+    public static final int THREAD_MSG_SEND_IMG = 151;
 
     public static final String INIT_CONNECTION = "INIT";
     public static final int RTT_ROUNDS = 5;
@@ -80,6 +88,7 @@ public class Constants
 
     public static final int LOCAL_WEBSOCKET_PORT = 12000;
     public static final int FRAME_SIZE = 256; // milliseconds
+    public static final String PROTOCOL = "ws";
 
 
 

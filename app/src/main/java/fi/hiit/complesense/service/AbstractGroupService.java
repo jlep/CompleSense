@@ -93,7 +93,7 @@ public abstract class AbstractGroupService extends Service
     @Override
     public void onCreate()
     {
-        Log.i(TAG, "onCreate()");
+        Log.v(TAG, "onCreate()");
         super.onCreate();
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "WAKELOCK_" + TAG);
@@ -123,7 +123,7 @@ public abstract class AbstractGroupService extends Service
     @Override
     public IBinder onBind(Intent intent)
     {
-        Log.i(TAG, "onBInd()");
+        Log.i(TAG, "onBind()");
         return mMessenger.getBinder();
     }
 

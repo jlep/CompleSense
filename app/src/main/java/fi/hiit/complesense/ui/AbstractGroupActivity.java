@@ -1,17 +1,22 @@
 package fi.hiit.complesense.ui;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -19,6 +24,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.R;
+import fi.hiit.complesense.service.TestingService;
 
 /**
  * Created by hxguo on 7/17/14.
@@ -36,15 +43,84 @@ public abstract class AbstractGroupActivity extends Activity
     protected Messenger uiMessenger = null;
 
     /** Messenger for communicating with service. */
-    protected Messenger mService = null;
+    protected Messenger serviceMessenger = null;
     protected final String outputFile = Constants.ROOT_DIR +
             Long.toString(System.currentTimeMillis()) + ".textview";
 
     protected ServiceConnection mConnection = null;
+    protected Button stopButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        setContentView(R.layout.demo_activity_main);
+        initUi((TextView) findViewById(R.id.status_text),
+                (ScrollView) findViewById(R.id.scroll_text));
+
+        stopButton = (Button)findViewById(R.id.stop_app);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(serviceMessenger!=null)
+                {
+                    try
+                    {
+                        Message msg = Message.obtain(null,
+                                TestingService.STOP_TESTING);
+                        msg.replyTo = uiMessenger;
+                        serviceMessenger.send(msg);
+                    }
+                    catch (RemoteException e)
+                    {
+                    }
+                    finish();
+                }
+            }
+        });
+
+        /**
+         * Class for interacting with the main interface of the service.
+         */
+        mConnection = new ServiceConnection()
+        {
+            public void onServiceConnected(ComponentName className,
+                                           IBinder service)
+            {
+                serviceMessenger = new Messenger(service);
+                Log.i(TAG, "onServiceConnected()");
+                try
+                {
+                    Message msg = Message.obtain(null,
+                            TestingService.START_TESTING);
+                    msg.replyTo = uiMessenger;
+                    serviceMessenger.send(msg);
+                }
+                catch (RemoteException e)
+                {
+                    // In this case the service has crashed before we could even
+                    // do anything with it; we can count on soon being
+                    // disconnected (and then reconnected if it can be restarted)
+                    // so there is no need to do anything here.
+                }
+            }
+
+            public void onServiceDisconnected(ComponentName className)
+            {
+                // This is called when the connection with the service has been
+                // unexpectedly disconnected -- that is, its process crashed.
+                serviceMessenger = null;
+                mIsBound = false;
+                appendStatus("Disconnected from GroupClientService");
+
+                /**
+                 // As part of the sample, tell the user what happened.
+                 Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
+                 Toast.LENGTH_SHORT).show();
+                 */
+            }
+        };
     }
 
     @Override
@@ -58,8 +134,8 @@ public abstract class AbstractGroupActivity extends Activity
     @Override
     public void onPause()
     {
-        Log.v(TAG, "onPause()");
         super.onPause();
+        Log.v(TAG, "onPause()");
         doUnbindService();
     }
 
@@ -149,39 +225,11 @@ public abstract class AbstractGroupActivity extends Activity
             Message reply = Message.obtain();
             reply.what = Constants.SERVICE_MSG_START;
             reply.replyTo = uiMessenger;
-            mService.send(reply);
+            serviceMessenger.send(reply);
         }
         catch (RemoteException e)
         {
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
-    {
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE)
-        {
-            if (resultCode == RESULT_OK) {
-                // Image captured and saved to fileUri specified in the Intent
-                appendStatus("Image saved to: " + data.getData().toString());
-            } else if (resultCode == RESULT_CANCELED) {
-                // User cancelled the image capture
-                appendStatus("Image Capture canceled");
-            } else {
-                // Image capture failed, advise user
-                appendStatus("Image Capture failed");
-            }
-        }
-
-        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                // Video captured and saved to fileUri specified in the Intent
-                appendStatus("Video saved to: " + data.getData().toString());
-            } else if (resultCode == RESULT_CANCELED) {
-                // User cancelled the video capture
-            } else {
-                // Video capture failed, advise user
-            }
-        }
-    }
 }

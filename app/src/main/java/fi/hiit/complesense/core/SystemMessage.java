@@ -26,7 +26,6 @@ public class SystemMessage implements Serializable
     private static final String TAG = "SystemMessage";
     public static final int ID_SYSTEM_MESSAGE = 10245;
 
-
     /**
      * Fields of SystemMessage class
      */
@@ -395,7 +394,6 @@ public class SystemMessage implements Serializable
         bb.putLong(timeStamp);
         bb.putInt(rounds);
         bb.put(localSocketAddr.toString().getBytes() );
-
         return new SystemMessage(SystemMessage.RTT, bb.array());
     }
 
@@ -404,10 +402,11 @@ public class SystemMessage implements Serializable
         return new SystemMessage(SystemMessage.CLOCK_SYNC, payload);
     }
 
-    public static SystemMessage makeStereoImageReq()
+    public static SystemMessage makeStereoImageReq(int webSocektPort)
     {
-        ByteBuffer bb = ByteBuffer.wrap((new String("")).getBytes() );
-        return new SystemMessage(SystemMessage.STEREO_IMG, bb.array());
+        ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / 8);
+        bb.putInt(webSocektPort);
+        return new SystemMessage(SystemMessage.STEREO_IMG, bb.array() );
     }
 
     /*

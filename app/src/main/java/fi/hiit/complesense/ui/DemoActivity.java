@@ -22,6 +22,7 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.Serializable;
 import java.net.SocketAddress;
@@ -36,87 +37,18 @@ public class DemoActivity extends AbstractGroupActivity
 {
 
     public static final String TAG = "DemoActivity";
-    private Button stopButton;
+    private Uri fileUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
-        Log.v(TAG, "onCreate");
+        Log.v(TAG, "onCreate()");
         super.onCreate(savedInstanceState);
 
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(R.layout.demo_activity_main);
-        initUi((TextView) findViewById(R.id.status_text),
-                (ScrollView) findViewById(R.id.scroll_text));
-
+        /*
+        * Activity specific settings
+        */
         uiMessenger = new Messenger(new IncomingHandler());
-
-        stopButton = (Button)findViewById(R.id.stop_app);
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(mService!=null)
-                {
-                    try
-                    {
-                        Message msg = Message.obtain(null,
-                                TestingService.STOP_TESTING);
-                        msg.replyTo = uiMessenger;
-                        mService.send(msg);
-                    }
-                    catch (RemoteException e)
-                    {
-                        // In this case the service has crashed before we could even
-                        // do anything with it; we can count on soon being
-                        // disconnected (and then reconnected if it can be restarted)
-                        // so there is no need to do anything here.
-                    }
-                    finish();
-                }
-            }
-        });
-
-        /**
-         * Class for interacting with the main interface of the service.
-         */
-        mConnection = new ServiceConnection()
-        {
-            public void onServiceConnected(ComponentName className,
-                                           IBinder service)
-            {
-                mService = new Messenger(service);
-                Log.i(TAG, "onServiceConnected()");
-                try
-                {
-                    Message msg = Message.obtain(null,
-                            TestingService.START_TESTING);
-                    msg.replyTo = uiMessenger;
-                    mService.send(msg);
-                }
-                catch (RemoteException e)
-                {
-                    // In this case the service has crashed before we could even
-                    // do anything with it; we can count on soon being
-                    // disconnected (and then reconnected if it can be restarted)
-                    // so there is no need to do anything here.
-                }
-            }
-
-            public void onServiceDisconnected(ComponentName className)
-            {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
-                mService = null;
-                mIsBound = false;
-                appendStatus("Disconnected from GroupClientService");
-
-                /**
-                 // As part of the sample, tell the user what happened.
-                 Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
-                 Toast.LENGTH_SHORT).show();
-                 */
-            }
-        };
 
         Intent intent = new Intent(this, TestingService.class);
         String serviceName = TestingService.class.getCanonicalName();
@@ -133,45 +65,14 @@ public class DemoActivity extends AbstractGroupActivity
     }
 
     @Override
-    protected void onDestroy()
-    {
-        Log.v(TAG,"onDestroy()");
-        super.onDestroy();
-        stopService(new Intent(this, TestingService.class));
-    }
-
-    @Override
     protected void doBindService()
     {
         Log.v(TAG, "doBindService()");
         bindService(new Intent(getApplicationContext(),
                 TestingService.class), mConnection, Context.BIND_AUTO_CREATE);
         mIsBound = true;
-        appendStatus("Binding to GroupOwnerService");
+        //appendStatus("Binding to GroupOwnerService");
     }
-
-    @Override
-    public void onResume()
-    {
-        Log.v(TAG, "onResume()");
-        doBindService();
-        super.onResume();
-    }
-
-    @Override
-    public void onPause()
-    {
-        Log.v(TAG, "onPause()");
-        doUnbindService();
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-        Log.v(TAG,"onStop()");
-        super.onStop();
-    }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -205,14 +106,63 @@ public class DemoActivity extends AbstractGroupActivity
                 case Constants.MSG_TAKE_IMAGE:
                     SocketAddress socketAddress = (SocketAddress)msg.obj;
                     appendStatus("Receive image taking request from " + socketAddress.toString() );
-                    Uri fileUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
+                    fileUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
+                    Log.i(TAG, "fileUri: " + fileUri.toString() );
                     Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                     intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
 
-                    startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+                    Message msg2Service = Message.obtain(null, Constants.SERVICE_MSG_SEND_IMG);
+                    msg2Service.replyTo = uiMessenger;
+                    msg2Service.obj = null;
+                    try {
+                        serviceMessenger.send(msg2Service);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+
+                    //startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
                 default:
                     super.handleMessage(msg);
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        Log.i(TAG, "onActivityResult(requestCode: "+ requestCode + ")");
+        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE)
+        {
+            if (resultCode == RESULT_OK) {
+                // Image captured and saved to fileUri specified in the Intent
+                //Toast.makeText(this, "Image saved to: " + data.getData().toString(), Toast.LENGTH_SHORT).show();
+                appendStatus("Image saved to: " + fileUri.toString() );
+                Message msg = Message.obtain(null, Constants.SERVICE_MSG_SEND_IMG);
+                msg.replyTo = uiMessenger;
+                msg.obj = null;
+                try {
+                    serviceMessenger.send(msg);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the image capture
+                appendStatus("Image Capture canceled");
+            } else {
+                // Image capture failed, advise user
+                appendStatus("Image Capture failed");
+            }
+        }
+
+        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                // Video captured and saved to fileUri specified in the Intent
+                appendStatus("Video saved to: " + data.getData().toString());
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the video capture
+            } else {
+                // Video capture failed, advise user
             }
         }
     }

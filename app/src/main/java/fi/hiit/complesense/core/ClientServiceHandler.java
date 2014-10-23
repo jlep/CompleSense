@@ -2,18 +2,22 @@ package fi.hiit.complesense.core;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Message;
 import android.os.Messenger;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
+import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -23,7 +27,7 @@ public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
     private final ConnectorUDP connectorUDP;
-    //private String foreignSocketAddrStr = null;
+    private final InetAddress ownerAddr;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -33,6 +37,7 @@ public class ClientServiceHandler extends ServiceHandler
     {
         super(serviceMessenger, name, context, false, ownerAddr, delay);
         connectorUDP = (ConnectorUDP)eventHandlingThreads.get(ConnectorUDP.TAG);
+        this.ownerAddr = ownerAddr;
     }
 
     @Override
@@ -124,5 +129,23 @@ public class ClientServiceHandler extends ServiceHandler
         }
     }
 
+    @Override
+    public boolean handleMessage(Message msg) {
+        super.handleMessage(msg);
+        if(msg.what == Constants.THREAD_MSG_SEND_IMG)
+        {
+            File imgFile = (File)msg.obj;
+            sendImg2Server(imgFile);
+        }
 
+        return false;
+    }
+
+    public void sendImg2Server(File imgFile)
+    {
+        Log.i(TAG, "sendImg2Server(imgFile: "+ imgFile +") @ thread id: " + Thread.currentThread().getId() );
+        SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), Constants.LOCAL_WEBSOCKET_PORT);
+        ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
+        socketClient.connect();
+    }
 }

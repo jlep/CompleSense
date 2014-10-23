@@ -36,72 +36,22 @@ public class ClientOwnerActivity extends AbstractGroupActivity
 {
 
     private static final String TAG = "ClientOwnerActivity";
-    private Button stopButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         Log.v(TAG, "onCreate");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.demo_activity_main);
-        initUi((TextView) findViewById(R.id.status_text),
-                (ScrollView) findViewById(R.id.scroll_text));
 
-        stopButton = (Button)findViewById(R.id.stop_app);
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        /*
+        * Activity specific settings
+        */
+        setContentView(R.layout.demo_activity_main);
 
         selfInfoFragment = (SelfInfoFragment)getFragmentManager().
                 findFragmentById(R.id.self_info_frag_client_owner);
 
         uiMessenger = new Messenger(new IncomingHandler());
-
-        /**
-         * Class for interacting with the main interface of the service.
-         */
-        mConnection = new ServiceConnection()
-        {
-            public void onServiceConnected(ComponentName className,
-                                           IBinder service)
-            {
-                mService = new Messenger(service);
-                Log.i(TAG, "onServiceConnected()");
-                try
-                {
-                    Message msg = Message.obtain(null,
-                            Constants.SERVICE_MSG_INIT_SERVICE);
-                    msg.replyTo = uiMessenger;
-                    mService.send(msg);
-                }
-                catch (RemoteException e)
-                {
-                    // In this case the service has crashed before we could even
-                    // do anything with it; we can count on soon being
-                    // disconnected (and then reconnected if it can be restarted)
-                    // so there is no need to do anything here.
-                }
-            }
-
-            public void onServiceDisconnected(ComponentName className)
-            {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
-                mService = null;
-                mIsBound = false;
-                appendStatus("Disconnected from GroupClientService");
-
-                /**
-                 // As part of the sample, tell the user what happened.
-                 Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
-                 Toast.LENGTH_SHORT).show();
-                 */
-            }
-        };
-
         Intent intent = new Intent(this, ClientOwnerService.class);
         String serviceName = ClientOwnerService.class.getCanonicalName();
         if(!SystemUtil.isServiceRunning(serviceName, this))
