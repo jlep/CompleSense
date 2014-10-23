@@ -31,7 +31,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private static final String TAG = "GroupOwnerServiceHandler";
     private final AcceptorUDP acceptorUDP;
     //private Timer timer;
-    private ImageWebSocketServer imageWebSocketServer;
 
     private int clientCounter = 0;
 
@@ -45,7 +44,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         super(serviceMessenger, name,context, true, null, 0);
 //        timer = new Timer();
         acceptorUDP = (AcceptorUDP)eventHandlingThreads.get(AcceptorUDP.TAG);
-        imageWebSocketServer = null;
         //LocalRecThread localRecThread = new LocalRecThread(this);
         //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
 
@@ -60,8 +58,16 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         if(clientCounter >= Constants.NUM_CLIENTS)
         {
             Log.e(TAG, "enough clients have joined");
-            imageWebSocketServer = ImageWebSocketServer.getInstance(this, acceptorUDP.getConnectionRunnable());
-            imageWebSocketServer.startServer();
+            int count = 0;
+            for(AliveConnection connection : peerList.values())
+            {
+                ImageWebSocketServer imageWebSocketServer = new ImageWebSocketServer(
+                        this, acceptorUDP.getConnectionRunnable(), connection.socketAddress, count);
+                eventHandlingThreads.put(ImageWebSocketServer.TAG+"_"+count, imageWebSocketServer);
+                count++;
+                imageWebSocketServer.start();
+            }
+
         }
     }
 
@@ -177,8 +183,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
 //        timer.cancel();
         super.stopServiceHandler();
-        if(imageWebSocketServer!=null)
-            imageWebSocketServer.stopServer();
     }
 
 

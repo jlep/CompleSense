@@ -4,8 +4,11 @@ import android.content.Intent;
 import android.hardware.Sensor;
 import android.util.Log;
 
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,7 +25,8 @@ import fi.hiit.complesense.core.ServiceHandler;
 /**
  * Created by hxguo on 23.10.2014.
  */
-public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCallback
+public class ImageWebSocketClient implements
+        AsyncHttpClient.WebSocketConnectCallback
 {
     private static final String TAG = ImageWebSocketClient.class.getSimpleName();
 
@@ -68,6 +72,21 @@ public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCal
         }
         serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
         mWebSocket = webSocket;
+
+        mWebSocket.setStringCallback(new WebSocket.StringCallback()
+        {
+            @Override
+            public void onStringAvailable(String s) {
+                Log.v(TAG, "recv String: " + s);
+                if(s.startsWith(ImageWebSocketServer.IMG_FILE_RECV))
+                {
+                    Log.i(TAG,"server has received whole file");
+                    mWebSocket.close();
+                }
+            }
+        });
+
+
         sendImg2Server();
     }
 
@@ -76,7 +95,7 @@ public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCal
         Log.i(TAG, "sendImg2Server() with id: " + Thread.currentThread().getId());
         if(imgFile!=null)
         {
-            mWebSocket.send(ImageWebSocketServer.IMG_FILE_NAME + ":" +imgFile.getName());
+            mWebSocket.send(ImageWebSocketServer.IMG_FILE_SIZE + ":" +imgFile.length());
             sendSensorValues();
 
             try {
@@ -85,10 +104,9 @@ public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCal
                 Log.i(TAG, e.toString() );
             }
             mWebSocket.send(ImageWebSocketServer.IMG_SEND_DONE);
-            Log.i(TAG, "sendImg2Server() with Complete!!!");
-            mWebSocket.close();
-        }
 
+            //mWebSocket.close();
+        }
     }
 
     private void sendImage(File sourceFile) throws IOException
@@ -97,15 +115,20 @@ public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCal
 
         int bufferSize = 1024, bytesAvailable = 0;
         byte[] buffer = new byte[bufferSize];
+
         int bytesRead = fis.read(buffer, 0, bufferSize);
+        long byteSend = 0;
 
         while (bytesRead > 0)
         {
+            byteSend += bytesRead;
             mWebSocket.send(buffer);
             bytesAvailable = fis.available();
             bufferSize = Math.min(bytesAvailable, bufferSize);
             bytesRead = fis.read(buffer, 0, bufferSize);
         }
+
+        Log.i(TAG, "sendImage(byteSend: " + byteSend +") Complete!!!");
     }
 
     private void sendSensorValues()
@@ -116,4 +139,5 @@ public class ImageWebSocketClient implements AsyncHttpClient.WebSocketConnectCal
         sensorValues.put(Sensor.TYPE_MAGNETIC_FIELD, -1f);
         mWebSocket.send(sensorValues.toString());
     }
+
 }

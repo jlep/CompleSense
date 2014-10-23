@@ -28,6 +28,7 @@ public class ClientServiceHandler extends ServiceHandler
     private static final String TAG = "ClientServiceHandler";
     private final ConnectorUDP connectorUDP;
     private final InetAddress ownerAddr;
+    private int serverWebSocketPort;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -45,6 +46,7 @@ public class ClientServiceHandler extends ServiceHandler
     {
         super.handleSystemMessage(sm, remoteSocketAddr);
         float[] values;
+        ByteBuffer bb;
         Log.i(TAG, sm.toString());
 
         switch (sm.getCmd())
@@ -57,10 +59,10 @@ public class ClientServiceHandler extends ServiceHandler
                 String host = SystemUtil.getHost(socketAddrStr);
                 Log.i(TAG,"remote host is " + host);
 
-                ByteBuffer bb = ByteBuffer.wrap(sm.getPayload());
+                bb = ByteBuffer.wrap(sm.getPayload());
 
-                int port = bb.getInt();
-                Log.i(TAG,"streaming recv port is " + port);
+                serverWebSocketPort = bb.getInt();
+                Log.i(TAG,"streaming recv port is " + serverWebSocketPort);
                 long threadId = bb.getLong();
                 Log.i(TAG, "threadId: " + threadId);
 
@@ -71,7 +73,7 @@ public class ClientServiceHandler extends ServiceHandler
                 {
                     SystemUtil.writeAlivenessFile(threadId);
                     SendAudioThread sendAudioThread = SendAudioThread.getInstancce(
-                            new InetSocketAddress(host, port), this, threadId,true);
+                            new InetSocketAddress(host, serverWebSocketPort), this, threadId,true);
 
                     eventHandlingThreads.put(SendAudioThread.TAG, sendAudioThread);
                 }
@@ -121,6 +123,10 @@ public class ClientServiceHandler extends ServiceHandler
                 break;
 
             case SystemMessage.STEREO_IMG:
+                bb = ByteBuffer.wrap(sm.getPayload());
+
+                serverWebSocketPort = bb.getInt();
+                Log.i(TAG,"webSocketPort recv port is " + serverWebSocketPort);
                 startImageCapture(remoteSocketAddr);
                 break;
 
@@ -144,7 +150,7 @@ public class ClientServiceHandler extends ServiceHandler
     public void sendImg2Server(File imgFile)
     {
         Log.i(TAG, "sendImg2Server(imgFile: "+ imgFile +") @ thread id: " + Thread.currentThread().getId() );
-        SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), Constants.LOCAL_WEBSOCKET_PORT);
+        SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), serverWebSocketPort);
         ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
         socketClient.connect();
     }
