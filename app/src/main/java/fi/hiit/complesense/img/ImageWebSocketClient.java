@@ -16,11 +16,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 23.10.2014.
@@ -128,15 +130,22 @@ public class ImageWebSocketClient implements
             bytesRead = fis.read(buffer, 0, bufferSize);
         }
 
+
         Log.i(TAG, "sendImage(byteSend: " + byteSend +") Complete!!!");
     }
 
     private void sendSensorValues()
     {
-        Map<Integer, Float> sensorValues= new HashMap<Integer, Float>();
-        sensorValues.put(Sensor.TYPE_ACCELEROMETER, -1f);
-        sensorValues.put(Sensor.TYPE_GYROSCOPE, -1f);
-        sensorValues.put(Sensor.TYPE_MAGNETIC_FIELD, -1f);
+        Map<Integer, String> sensorValues= new HashMap<Integer, String>();
+        float[] values = serviceHandler.sensorUtil.getLocalSensorValue(Sensor.TYPE_ACCELEROMETER);
+        sensorValues.put(Sensor.TYPE_ACCELEROMETER, SensorUtil.formatSensorValues(values));
+
+        values = serviceHandler.sensorUtil.getLocalSensorValue(Sensor.TYPE_GYROSCOPE);
+        sensorValues.put(Sensor.TYPE_GYROSCOPE, SensorUtil.formatSensorValues(values));
+
+        values = serviceHandler.sensorUtil.getLocalSensorValue(Sensor.TYPE_MAGNETIC_FIELD);
+        sensorValues.put(Sensor.TYPE_MAGNETIC_FIELD,SensorUtil.formatSensorValues(values));
+
         mWebSocket.send(sensorValues.toString());
     }
 

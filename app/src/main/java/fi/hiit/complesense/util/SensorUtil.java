@@ -213,4 +213,16 @@ public class SensorUtil implements SensorEventListener
         return sensorsTypeList;
     }
 
+    public static String formatSensorValues(float[] values)
+    {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<values.length;i++)
+        {
+            sb.append(String.format("%3.1f", values[i]));
+            if(i<values.length-1)
+                sb.append(",");
+        }
+        return sb.toString();
+    }
+
 }

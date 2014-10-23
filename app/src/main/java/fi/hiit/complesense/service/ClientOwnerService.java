@@ -1,5 +1,6 @@
 package fi.hiit.complesense.service;
 
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -8,12 +9,14 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import java.io.File;
 import java.net.SocketAddress;
 import java.util.Map;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
+import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -139,10 +142,26 @@ public class ClientOwnerService extends AbstractGroupService
                     SystemUtil.sendTakeImageReq(uiMessenger,
                             (SocketAddress) msg.obj);
                     break;
+                case Constants.SERVICE_MSG_SEND_IMG:
+                    sendImg2ServerCommand((Uri)msg.obj);
+                    break;
 
                 default:
                     super.handleMessage(msg);
             }
+        }
+    }
+
+    private void sendImg2ServerCommand(Uri imgUri)
+    {
+        if(imgUri!=null)
+        {
+            Log.i(TAG, "sendImg2ServerCommand(" + imgUri.getPath() +
+                    ") @ thread id: " + Thread.currentThread().getId() );
+            File imgFile = new File(imgUri.getPath());
+            Message msg = Message.obtain(serviceHandler.getHandler(),
+                    Constants.THREAD_MSG_SEND_IMG, imgFile);
+            msg.sendToTarget();
         }
     }
 

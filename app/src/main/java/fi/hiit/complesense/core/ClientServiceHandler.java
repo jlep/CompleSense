@@ -2,6 +2,7 @@ package fi.hiit.complesense.core;
 
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
 import android.os.Message;
 import android.os.Messenger;
 import android.provider.MediaStore;
@@ -127,6 +128,9 @@ public class ClientServiceHandler extends ServiceHandler
 
                 serverWebSocketPort = bb.getInt();
                 Log.i(TAG,"webSocketPort recv port is " + serverWebSocketPort);
+                sensorUtil.registerSensorListener(Sensor.TYPE_ACCELEROMETER);
+                sensorUtil.registerSensorListener(Sensor.TYPE_GYROSCOPE);
+                sensorUtil.registerSensorListener(Sensor.TYPE_MAGNETIC_FIELD);
                 startImageCapture(remoteSocketAddr);
                 break;
 

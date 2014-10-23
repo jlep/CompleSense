@@ -2,6 +2,7 @@ package fi.hiit.complesense.service;
 
 import android.app.Service;
 import android.content.Intent;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -78,7 +79,7 @@ public class TestingService extends AbstractGroupService
                     if(msg.obj==null)
                         testSendImg2Server(null);
                     else
-                        testSendImg2Server((File) msg.obj);
+                        testSendImg2Server((Uri) msg.obj);
                     hasSent = true;
                     break;
                default:
@@ -86,14 +87,14 @@ public class TestingService extends AbstractGroupService
             }
         }
 
-        private void testSendImg2Server(File imgFile)
+        private void testSendImg2Server(Uri imgUri)
         {
             if(hasSent)
                 return;
         /*
         * Send testing files
          */
-            if(imgFile==null)
+            if(imgUri==null)
             {
                 File testDir = new File(Constants.ROOT_DIR, "test_pic");
                 if(testDir.exists())
@@ -103,7 +104,7 @@ public class TestingService extends AbstractGroupService
                     {
                         if(f.getName().endsWith(".jpg"))
                         {
-                            Log.i(TAG, "sendImg2Server(" + imgFile + ") @ thread id: " + Thread.currentThread().getId() );
+                            Log.i(TAG, "sendImg2Server(null" + ") @ thread id: " + Thread.currentThread().getId() );
                             for(ServiceHandler s : clientsList)
                             {
                                 Message msg = Message.obtain(s.getHandler(), Constants.THREAD_MSG_SEND_IMG, f);
@@ -116,10 +117,17 @@ public class TestingService extends AbstractGroupService
                 }
 
             }
-        /*
-        * Use just captured files from camera
-         */
-            else{
+            /*
+            * Use just captured files from camera
+             */
+            else
+            {
+                Log.i(TAG, "sendImg2Server(" + imgUri.getPath() + ") @ thread id: " + Thread.currentThread().getId() );
+                for(ServiceHandler s : clientsList)
+                {
+                    Message msg = Message.obtain(s.getHandler(), Constants.THREAD_MSG_SEND_IMG, new File(imgUri.getPath()));
+                    msg.sendToTarget();
+                }
 
             }
         }

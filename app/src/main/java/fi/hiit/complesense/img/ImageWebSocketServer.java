@@ -57,11 +57,6 @@ public class ImageWebSocketServer extends AbstractSystemThread
     @Override
     public void stopThread()
     {
-        if(server!=null)
-            server.stop();
-        if(clientWebSocket!=null)
-            clientWebSocket.close();
-
         if(outStream!=null)
         {
             try {
@@ -70,6 +65,11 @@ public class ImageWebSocketServer extends AbstractSystemThread
                 Log.i(TAG,e.toString() );
             }
         }
+        if(clientWebSocket!=null)
+            clientWebSocket.close();
+
+        if(server!=null)
+            server.stop();
     }
 
     @Override
@@ -110,7 +110,9 @@ public class ImageWebSocketServer extends AbstractSystemThread
     @Override
     public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders)
     {
-        Log.i(TAG, "onConnected(threadId:" + Thread.currentThread().getId() + ")");
+        String str = "onConnected(threadId:" + Thread.currentThread().getId() + ")";
+        Log.i(TAG, str);
+        serviceHandler.updateStatusTxt(str);
         clientWebSocket = webSocket;
 
         try
@@ -131,7 +133,15 @@ public class ImageWebSocketServer extends AbstractSystemThread
                 if(s.startsWith(IMG_FILE_SIZE))
                 {
                     fileSize = Long.parseLong(s.substring(s.lastIndexOf(":")+1));
+                    serviceHandler.updateStatusTxt("fileSize: " + fileSize);
                     Log.i(TAG, "fileSize: " + fileSize);
+                }
+                else if(s.startsWith(IMG_SEND_DONE))
+                {
+                    String txt = "Client sending completes(payloadSize: " + payloadSize;
+                    serviceHandler.updateStatusTxt(txt);
+                    Log.i(TAG, txt);
+                    stopThread();
                 }
                 else
                     serviceHandler.updateStatusTxt(s);
@@ -154,11 +164,14 @@ public class ImageWebSocketServer extends AbstractSystemThread
             {
                 try {
                     payloadSize +=  byteBufferList.remaining();
-                    if(payloadSize == fileSize)
+                    /*
+                    if(payloadSize >= fileSize)
                     {
+                        serviceHandler.updateStatusTxt("File: " + outFile.getName() + " has been received");
                         clientWebSocket.send(IMG_FILE_RECV);
                         return;
                     }
+                    */
                     ByteBufferList.writeOutputStream(outStream, byteBufferList.getAll());
                 } catch (IOException e) {
                     Log.i(TAG, e.toString());

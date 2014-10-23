@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -49,6 +50,8 @@ public abstract class AbstractGroupActivity extends Activity
 
     protected ServiceConnection mConnection = null;
     protected Button stopButton;
+    protected boolean hasImage;
+    protected Uri imageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,67 +63,7 @@ public abstract class AbstractGroupActivity extends Activity
                 (ScrollView) findViewById(R.id.scroll_text));
 
         stopButton = (Button)findViewById(R.id.stop_app);
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(serviceMessenger!=null)
-                {
-                    try
-                    {
-                        Message msg = Message.obtain(null,
-                                TestingService.STOP_TESTING);
-                        msg.replyTo = uiMessenger;
-                        serviceMessenger.send(msg);
-                    }
-                    catch (RemoteException e)
-                    {
-                    }
-                    finish();
-                }
-            }
-        });
-
-        /**
-         * Class for interacting with the main interface of the service.
-         */
-        mConnection = new ServiceConnection()
-        {
-            public void onServiceConnected(ComponentName className,
-                                           IBinder service)
-            {
-                serviceMessenger = new Messenger(service);
-                Log.i(TAG, "onServiceConnected()");
-                try
-                {
-                    Message msg = Message.obtain(null,
-                            TestingService.START_TESTING);
-                    msg.replyTo = uiMessenger;
-                    serviceMessenger.send(msg);
-                }
-                catch (RemoteException e)
-                {
-                    // In this case the service has crashed before we could even
-                    // do anything with it; we can count on soon being
-                    // disconnected (and then reconnected if it can be restarted)
-                    // so there is no need to do anything here.
-                }
-            }
-
-            public void onServiceDisconnected(ComponentName className)
-            {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
-                serviceMessenger = null;
-                mIsBound = false;
-                appendStatus("Disconnected from GroupClientService");
-
-                /**
-                 // As part of the sample, tell the user what happened.
-                 Toast.makeText(GroupClientActivity.this, R.string.remote_service_disconnected,
-                 Toast.LENGTH_SHORT).show();
-                 */
-            }
-        };
+        hasImage = false;
     }
 
     @Override
@@ -156,7 +99,7 @@ public abstract class AbstractGroupActivity extends Activity
         {
             unbindService(mConnection);
             mIsBound = false;
-            appendStatus("Unbinding from GroupOwnerService");
+     //       appendStatus("Unbinding from GroupOwnerService");
         }
     }
 
