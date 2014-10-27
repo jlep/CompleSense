@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.RspHandler;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
@@ -241,8 +242,8 @@ public class TestingService extends AbstractGroupService
             ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
                     "GroupOwner Handler", getApplicationContext());
 
-            Log.i(TAG, "Creating GroupOwner thread");
-            ownerServiceHanlder.startServiveHandler();
+            Log.i(TAG, "Starting GroupOwner from thread: " + Thread.currentThread().getId());
+            ownerServiceHanlder.start();
 
             for(int i=0;i<Constants.NUM_CLIENTS;i++)
             {
@@ -254,10 +255,10 @@ public class TestingService extends AbstractGroupService
                 clientsList.add(client);
             }
 
+            Log.i(TAG, "Starting Client from thread: " + Thread.currentThread().getId());
             for(int i=0;i<Constants.NUM_CLIENTS;i++)
             {
-                Log.i(TAG, "Starting client thread");
-                clientsList.get(i).startServiveHandler();
+                clientsList.get(i).start();
             }
             //killClients();
         }

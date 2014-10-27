@@ -1,5 +1,7 @@
 package fi.hiit.complesense.connection;
 
+import android.util.Log;
+
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,12 +11,14 @@ import java.util.List;
  */
 public class EchoWorker implements Runnable
 {
+    private static final String TAG = EchoWorker.class.getSimpleName();
     private List<ServerDataEvent> queue = new LinkedList<ServerDataEvent>();
 
     public void processData(AsyncServer server, SocketChannel socket, byte[] data, int count)
     {
         byte[] dataCopy = new byte[count];
         System.arraycopy(data, 0, dataCopy, 0, count);
+        Log.i(TAG, new String(data));
         synchronized(queue)
         {
             queue.add(new ServerDataEvent(server, socket, dataCopy));
@@ -25,6 +29,7 @@ public class EchoWorker implements Runnable
     @Override
     public void run()
     {
+        Log.i(TAG, "starts running at thread: " + Thread.currentThread().getId());
         ServerDataEvent dataEvent;
 
         while(!Thread.currentThread().isInterrupted())
@@ -39,6 +44,7 @@ public class EchoWorker implements Runnable
                     }
                 }
                 dataEvent = (ServerDataEvent) queue.remove(0);
+                Log.i(TAG, new String(dataEvent.data));
             }
 
             // Return to sender

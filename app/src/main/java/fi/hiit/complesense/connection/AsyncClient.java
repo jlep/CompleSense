@@ -1,18 +1,16 @@
-package fi.hiit.complesense.connection.remote;
+package fi.hiit.complesense.connection;
 
 import android.util.Log;
-import android.widget.ScrollView;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -21,9 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AbsAsyncIO;
-import fi.hiit.complesense.connection.AsyncServer;
-import fi.hiit.complesense.connection.ChangeRequest;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
@@ -83,7 +78,9 @@ public class AsyncClient extends AbsAsyncIO
     }
 
     @Override
-    public void run() {
+    public void run()
+    {
+        Log.i(TAG, "Client running at thread: " + Thread.currentThread().getId());
         while (keepRunning)
         {
             try {
@@ -128,9 +125,16 @@ public class AsyncClient extends AbsAsyncIO
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.i(TAG, "main loop: " + e.toString());
             }
         }
+        Log.i(TAG, "exit main loop");
+        closeConnection();
+
+    }
+
+    private void closeConnection() {
+
     }
 
     private void finishConnection(SelectionKey key) throws IOException
@@ -147,9 +151,34 @@ public class AsyncClient extends AbsAsyncIO
             key.cancel();
             return;
         }
-
+        serviceHandler.updateStatusTxt("Server Connection established");
         // Register an interest in writing on this channel
         key.interestOps(SelectionKey.OP_WRITE);
+
+    }
+
+
+    public void send(byte[] data, RspHandler handler) throws IOException
+    {
+        Log.i(TAG, "send()");
+        // Start a new connection
+        SocketChannel socket = this.initiateConnection();
+
+        // Register the response handler
+        this.rspHandlers.put(socket, handler);
+
+        // And queue the data we want written
+        synchronized (this.pendingData) {
+            List queue = (List) this.pendingData.get(socket);
+            if (queue == null) {
+                queue = new ArrayList<SocketChannel>();
+                this.pendingData.put(socket, queue);
+            }
+            queue.add(ByteBuffer.wrap(data));
+        }
+
+        // Finally, wake up our selecting thread so it can make the required changes
+        this.selector.wakeup();
     }
 
     private void write(SelectionKey key) throws IOException {

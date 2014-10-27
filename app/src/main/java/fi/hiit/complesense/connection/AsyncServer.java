@@ -48,16 +48,17 @@ public class AsyncServer extends AbsAsyncIO
     private EchoWorker worker;
 
 
-    protected AsyncServer(ServiceHandler serviceHandler) throws IOException
+    protected AsyncServer(ServiceHandler serviceHandler ,EchoWorker worker) throws IOException
     {
         super(serviceHandler);
         selector = initSelector();
+        this.worker = worker;
     }
 
-    public static AsyncServer getInstance(ServiceHandler serviceHandler)
+    public static AsyncServer getInstance(ServiceHandler serviceHandler, EchoWorker echoWorker)
     {
         try {
-            AsyncServer asyncServer = new AsyncServer(serviceHandler);
+            AsyncServer asyncServer = new AsyncServer(serviceHandler, echoWorker);
             return asyncServer;
         } catch (IOException e)
         {
@@ -92,6 +93,7 @@ public class AsyncServer extends AbsAsyncIO
     @Override
     public void run()
     {
+        Log.i(TAG, "Server running at thread: " + Thread.currentThread().getId());
         while (keepRunning)
         {
             try {
@@ -135,13 +137,21 @@ public class AsyncServer extends AbsAsyncIO
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.i(TAG, "main loop: " + e.toString());
             }
+
         }
+        Log.i(TAG, "exit main loop");
+        closeConnections();
+    }
+
+    private void closeConnections() {
+
     }
 
     private void write(SelectionKey key) throws IOException
     {
+        Log.i(TAG, "write()");
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
         synchronized (this.pendingData) {
@@ -150,6 +160,7 @@ public class AsyncServer extends AbsAsyncIO
             // Write until there's not more data ...
             while (!queue.isEmpty()) {
                 ByteBuffer buf = (ByteBuffer) queue.get(0);
+                Log.i(TAG, new String(buf.array()));
                 socketChannel.write(buf);
                 if (buf.remaining() > 0) {
                     // ... or the socket's buffer fills up
@@ -192,7 +203,7 @@ public class AsyncServer extends AbsAsyncIO
             key.cancel();
             return;
         }
-
+        Log.i(TAG, "read(): " + new String(readBuffer.array()));
         // Hand the data off to our worker thread
         this.worker.processData(this, socketChannel, this.readBuffer.array(), numRead);
 
@@ -206,6 +217,8 @@ public class AsyncServer extends AbsAsyncIO
         // Accept the connection and make it non-blocking
         SocketChannel socketChannel = serverSocketChannel.accept();
         Socket socket = socketChannel.socket();
+        serviceHandler.updateStatusTxt("Server receives connectin request from: " + socket.getRemoteSocketAddress());
+
         socketChannel.configureBlocking(false);
 
         // Register the new SocketChannel with our Selector, indicating
@@ -216,6 +229,7 @@ public class AsyncServer extends AbsAsyncIO
 
     public void send(SocketChannel socket, byte[] data)
     {
+        Log.i(TAG, "send(): " + new String(data));
         synchronized (this.changeRequests)
         {
             // Indicate we want the interest ops set changed

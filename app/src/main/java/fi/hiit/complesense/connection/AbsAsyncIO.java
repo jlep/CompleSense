@@ -14,4 +14,9 @@ public abstract class AbsAsyncIO extends Thread
     {
         this.serviceHandler = serviceHandler;
     }
+
+    public void stopAsyncIO()
+    {
+        keepRunning = false;
+    }
 }

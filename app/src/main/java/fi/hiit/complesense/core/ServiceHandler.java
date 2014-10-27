@@ -1,9 +1,6 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -14,23 +11,21 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AbsAsyncIO;
 import fi.hiit.complesense.connection.AcceptorUDP;
+import fi.hiit.complesense.connection.AsyncServer;
 import fi.hiit.complesense.connection.ConnectorUDP;
+import fi.hiit.complesense.connection.EchoWorker;
+import fi.hiit.complesense.connection.RspHandler;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
+import fi.hiit.complesense.connection.AsyncClient;
 import fi.hiit.complesense.util.SensorUtil;
 
 /**
@@ -52,6 +47,7 @@ public class ServiceHandler extends HandlerThread
     public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
+    protected AbsAsyncIO absAsyncIO;
 
     public ServiceHandler(Messenger serviceMessenger, String name,
                           Context context, boolean isGroupOwner, InetAddress ownerAddr,
@@ -71,32 +67,41 @@ public class ServiceHandler extends HandlerThread
 
     protected void init(InetAddress ownerAddr)
     {
-        if(isGroupOwner)
+        try
         {
-            AcceptorUDP acceptor = null;
-            try {
-                acceptor = new AcceptorUDP(this);
-                eventHandlingThreads.put(AcceptorUDP.TAG, acceptor);
-            } catch (IOException e) {
-                Log.e(TAG, e.toString());
+            if(isGroupOwner)
+            {
+                EchoWorker worker = new EchoWorker();
+                absAsyncIO = AsyncServer.getInstance(this, worker);
+                new Thread(worker).start();
+            }
+            else
+                absAsyncIO = new AsyncClient(this, ownerAddr);
+        } catch (IOException e)
+        {
+            Log.e(TAG, e.toString());
+            absAsyncIO = null;
+        }
 
-            }
-        }
-        else
-        {
-            ConnectorUDP connector = null;
-            try {
-                connector = new ConnectorUDP(this, ownerAddr);
-                eventHandlingThreads.put(ConnectorUDP.TAG, connector);
-            } catch (IOException e) {
-                Log.e(TAG, e.toString());
-            }
-        }
     }
 
     @Override
-    protected void onLooperPrepared() {
+    protected void onLooperPrepared()
+    {
+        Log.i(TAG, "onLooperPrepared() ");
         handler = new Handler(getLooper(), this);
+        startWorkerThreads();
+        if(!isGroupOwner)
+        {
+            RspHandler handler = new RspHandler();
+            try {
+                ((AsyncClient)absAsyncIO).send("Hello ".getBytes(), handler);
+            } catch (IOException e)
+            {
+                Log.i(TAG, e.toString());
+            }
+            handler.waitForResponse();
+        }
     }
 
     @Override
@@ -166,15 +171,15 @@ public class ServiceHandler extends HandlerThread
         return handler;
     }
 
-    public void startServiveHandler()
+    private void startWorkerThreads()
     {
-        Log.i(TAG,"startServiceHandler(delay: " + delay +")");
+        Log.i(TAG,"startWorkerThreads(delay: " + delay +")");
         try {
             Thread.sleep(delay);
         } catch (InterruptedException e) {
             Log.e(TAG, e.toString());
         }
-        this.start();
+        absAsyncIO.start();
         Iterator<Map.Entry<String, AbstractSystemThread>> iterator
                 = eventHandlingThreads.entrySet().iterator();
 
@@ -197,6 +202,8 @@ public class ServiceHandler extends HandlerThread
             Log.e(TAG, "Stop thread: " + entry.getKey());
             entry.getValue().stopThread();
         }
+        absAsyncIO.stopAsyncIO();
+
         quit();
     }
 

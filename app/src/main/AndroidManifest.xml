@@ -42,7 +42,7 @@
         -->
 
         <activity
-            android:name=".ui.ClientOwnerActivity"
+            android:name=".ui.DemoActivity"
             android:label="@string/app_name"
             android:noHistory="false"
             android:screenOrientation="portrait">

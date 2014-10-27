@@ -1,4 +1,4 @@
-package fi.hiit.complesense.connection.remote;
+package fi.hiit.complesense.connection;
 
 import android.util.Log;
 
@@ -26,5 +26,6 @@ public class RspHandler
 
         }
         Log.i(TAG, new String(this.rsp));
+
     }
 }

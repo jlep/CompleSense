@@ -239,7 +239,7 @@ public class ClientOwnerService extends AbstractGroupService
                         //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
                         serviceHandler = new GroupOwnerServiceHandler(mMessenger,
                                 "GroupOwnerServiceHandler", context);
-                        serviceHandler.startServiveHandler();
+                        serviceHandler.start();
                     }
                 }
                 else
@@ -264,7 +264,7 @@ public class ClientOwnerService extends AbstractGroupService
                             "ClientServiceHandler", context, p2pInfo.groupOwnerAddress, 0);
 
                     Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
-                    serviceHandler.startServiveHandler();
+                    serviceHandler.start();
                 }
             }
         }
