@@ -93,11 +93,11 @@ public class AsyncServer extends AbsAsyncIO
     @Override
     public void run()
     {
-        Log.i(TAG, "Server running at thread: " + Thread.currentThread().getId());
-        while (keepRunning)
+        try
         {
-            try {
-                // Process any pending changes
+            Log.i(TAG, "Server running at thread: " + Thread.currentThread().getId());
+            while(keepRunning)
+            {
                 synchronized(this.changeRequests)
                 {
                     Iterator changes = this.changeRequests.iterator();
@@ -115,11 +115,12 @@ public class AsyncServer extends AbsAsyncIO
                 }
 
                 // Wait for an event one of the registered channels
-                this.selector.select();
+                selector.select();
 
                 // Iterate over the set of keys for which events are available
                 Iterator selectedKeys = this.selector.selectedKeys().iterator();
-                while (selectedKeys.hasNext()) {
+                while (selectedKeys.hasNext())
+                {
                     SelectionKey key = (SelectionKey) selectedKeys.next();
                     selectedKeys.remove();
 
@@ -136,17 +137,31 @@ public class AsyncServer extends AbsAsyncIO
                         this.write(key);
                     }
                 }
-            } catch (Exception e) {
-                Log.i(TAG, "main loop: " + e.toString());
-            }
 
+            }
         }
-        Log.i(TAG, "exit main loop");
-        closeConnections();
+        catch (IOException e)
+        {
+            Log.e(TAG, e.toString());
+        }finally {
+            Log.i(TAG, "exit main loop");
+            try
+            {
+                closeConnections();
+            } catch (IOException e) {
+                Log.e(TAG, e.toString());
+            }
+        }
+
+
     }
 
-    private void closeConnections() {
-
+    private void closeConnections() throws IOException
+    {
+        Log.i(TAG, "closeConnections()");
+        selector.close();
+        serverChannel.socket().close();
+        serverChannel.close();
     }
 
     private void write(SelectionKey key) throws IOException
