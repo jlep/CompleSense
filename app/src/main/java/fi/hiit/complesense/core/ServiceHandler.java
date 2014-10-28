@@ -8,15 +8,22 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -31,6 +38,7 @@ import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.connection.AsyncClient;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.*;
 
@@ -38,7 +46,7 @@ import static fi.hiit.complesense.json.JsonSSI.*;
  * Created by hxguo on 20.8.2014.
  */
 public class ServiceHandler extends HandlerThread
-        implements Handler.Callback,AliveConnection.AliveConnectionListener, UdpConnectionRunnable.UdpConnectionListner
+        implements Handler.Callback,AliveConnection.AliveConnectionListener
 {
     private static final String TAG = "ServiceHandler";
     public static final int JSON_RESPONSE_BYTES = 2697337;
@@ -107,13 +115,35 @@ public class ServiceHandler extends HandlerThread
         {
             try
             {
-                JSONObject jsonObject = new JSONObject(new String((byte[]) msg.obj));
+                JSONObject jsonObject = (JSONObject)msg.obj;
                 Log.i(TAG, "Receive: " + jsonObject.toString());
+
+                SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
+                Socket socket = socketChannel.socket();
 
                 switch(jsonObject.getInt(COMMAND))
                 {
+                    case JsonSSI.NEW_CONNECTION:
+
+                        JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
+                                Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
+                        absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
+                        break;
                     case JsonSSI.C:
-                        //absAsyncIO.sensorUtil.getLocalSensorTypeList();
+                        absAsyncIO.send(socketChannel,
+                                JsonSSI.makeSensorDiscvoeryRep(sensorUtil.getLocalSensorTypeList()).toString().getBytes());
+                        break;
+
+                    case JsonSSI.N:
+                        handleSensorTypesReply(jsonObject, socket);
+                        updateStatusTxt("sensor list from " + socket +
+                                ": " + jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES));
+                        break;
+                    case JsonSSI.RTT_QUERY:
+                        forwarRttQuery(jsonObject, socketChannel);
+                        break;
+                    default:
+                        Log.i(TAG, "Unknown command...");
                         break;
                 }
 
@@ -123,23 +153,18 @@ public class ServiceHandler extends HandlerThread
             return false;
         }
 
-
-
-        if(msg.what == UdpConnectionRunnable.ID_DATAGRAM_PACKET)
-        {
-            DatagramPacket packet = (DatagramPacket)msg.obj;
-            SocketAddress fromAddr = packet.getSocketAddress();
-            Log.d(TAG,"recv UDP packet from " +  fromAddr );
-
-            if(msg.arg1 == SystemMessage.ID_SYSTEM_MESSAGE)
-            {
-                // received a SystemMessage
-                SystemMessage sm = SystemMessage.getFromBytes(packet.getData());
-                handleSystemMessage(sm, fromAddr);
-            }
-        }
-
         return false;
+    }
+
+    private void handleSensorTypesReply(JSONObject jsonObject, Socket socket) throws JSONException
+    {
+        JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
+        List<Integer> arrayList = new ArrayList<Integer>(jsonArray.length());
+        for(int i=0;i<jsonArray.length();i++)
+        {
+            arrayList.add(jsonArray.getInt(i));
+        }
+        sensorUtil.initSensorValues(arrayList, socket.toString());
     }
 
     protected void handleSystemMessage(SystemMessage sm, SocketAddress fromAddr)
@@ -161,7 +186,7 @@ public class ServiceHandler extends HandlerThread
 
             if(runnable==null)
                 Log.e(TAG,"runnable is null");
-            runnable.replyRttQuery(sm.getPayload(), fromAddr, this);
+            //runnable.replyRttQuery(sm.getPayload(), fromAddr, this);
         }
     }
 
@@ -291,13 +316,47 @@ public class ServiceHandler extends HandlerThread
      * @param startTimeMillis: requester local time, when RTT query was sent
      * @param fromAddr: peer's address
      */
-    @Override
     public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
     {
         //Log.i(TAG, "startTimeMillis: " + startTimeMillis + "currentTime: " + System.currentTimeMillis());
         long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
         peerList.get(fromAddr.toString()).setTimeDiff(rttMeasurement / 2);
         Log.i(TAG,"RTT between "+ fromAddr.toString() +" : " + rttMeasurement+ " ms");
+    }
+
+    private void forwarRttQuery(JSONObject jsonObject, SocketChannel socketChannel) throws JSONException {
+
+        long startTime = jsonObject.getLong(JsonSSI.TIMESTAMP);
+        int rounds = jsonObject.getInt(JsonSSI.ROUNDS);
+        String originHost = (String)jsonObject.get(JsonSSI.ORIGIN_HOST);
+        int originPort = jsonObject.getInt(JsonSSI.ORIGIN_PORT);
+        String senderSocketAddrStr = socketChannel.socket().getRemoteSocketAddress().toString();
+
+        Log.i(TAG, "replyRttQuery(rounds: " + rounds + " senderSocketAddrStr: " + senderSocketAddrStr + ")");
+        String localSocketAddrStr = socketChannel.socket().getLocalSocketAddress().toString();
+        Log.i(TAG, "replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
+
+        if(rounds <=0 && isOrigin(originHost, originPort, socketChannel.socket()))
+        {
+            onReceiveLastRttReply(startTime, socketChannel.socket().getLocalSocketAddress() );
+        }
+        else
+        {
+            if(isOrigin(originHost,originPort, socketChannel.socket())){
+                --rounds;
+            }
+            JSONObject jsonForward = JsonSSI.makeRttQuery(startTime, rounds, originHost, originPort);
+            absAsyncIO.send(socketChannel,jsonForward.toString().getBytes());
+        }
+    }
+
+    private boolean isOrigin(String host, int port, Socket localSocket)
+    {
+        if(host.equalsIgnoreCase(localSocket.getLocalAddress().toString()) &&
+                port == localSocket.getLocalPort())
+            return true;
+
+        return false;
     }
 
 }

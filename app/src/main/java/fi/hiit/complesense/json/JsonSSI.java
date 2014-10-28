@@ -1,9 +1,19 @@
 package fi.hiit.complesense.json;
 
+import android.os.Handler;
+import android.os.Message;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.SocketChannel;
 import java.util.List;
+
+import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 24.10.2014.
@@ -15,9 +25,19 @@ public class JsonSSI
     public static final short C = 0x43; //Discover sensors
     public static final short N = 0x4E; //Discover reply
 
+    public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
+    public static final short RTT_QUERY = 0x10; // rtt query
+
     public static final String COMMAND = "command";
-    private static final String DESC = "description";
-    private static final String SENSOR_TYPES = "sensor_types";
+    public static final String DESC = "description";
+    public static final String SENSOR_TYPES = "sensor_types";
+    public static final String SOCKET_CHANNEL = "socket_channel";
+    public static final String TIMESTAMP = "timestamp";
+    public static final String ROUNDS = "rrt_rounds";
+    public static final String ORIGIN_HOST = "origin_host";
+    public static final String ORIGIN_PORT = "origin_port";
+    public static final String REMOTE_SOCKET_ADDRESS = "remote_socket_address";
+
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
     {
@@ -36,4 +56,29 @@ public class JsonSSI
         return rep;
     }
 
+    public static void send2ServiceHandler(Handler handler, SocketChannel socketChannel, byte[] data)
+    {
+        try
+        {
+            JSONObject jsonObject = new JSONObject(new String(data));
+            jsonObject.put(JsonSSI.SOCKET_CHANNEL, socketChannel);
+            Message msg = Message.obtain(handler, ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            msg.sendToTarget();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static JSONObject makeRttQuery(long timeStamp,
+                                          int rounds, String host, int port) throws JSONException
+    {
+        JSONObject query = new JSONObject();
+        query.put(COMMAND, RTT_QUERY);
+        query.put(TIMESTAMP, timeStamp);
+        query.put(ROUNDS, rounds);
+        query.put(ORIGIN_HOST, host);
+        query.put(ORIGIN_PORT, port);
+
+        return query;
+    }
 }
