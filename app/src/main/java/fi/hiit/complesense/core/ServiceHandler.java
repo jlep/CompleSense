@@ -8,6 +8,9 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -26,7 +29,10 @@ import fi.hiit.complesense.connection.EchoWorker;
 import fi.hiit.complesense.connection.RspHandler;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.connection.AsyncClient;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
+
+import static fi.hiit.complesense.json.JsonSSI.*;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -35,6 +41,7 @@ public class ServiceHandler extends HandlerThread
         implements Handler.Callback,AliveConnection.AliveConnectionListener, UdpConnectionRunnable.UdpConnectionListner
 {
     private static final String TAG = "ServiceHandler";
+    public static final int JSON_RESPONSE_BYTES = 2697337;
 
     public final String startTime = Long.toString(System.currentTimeMillis());
 
@@ -91,22 +98,33 @@ public class ServiceHandler extends HandlerThread
         Log.i(TAG, "onLooperPrepared() ");
         handler = new Handler(getLooper(), this);
         startWorkerThreads();
-        if(!isGroupOwner)
-        {
-            RspHandler handler = new RspHandler();
-            try {
-                ((AsyncClient)absAsyncIO).send("Hello ".getBytes(), handler);
-            } catch (IOException e)
-            {
-                Log.i(TAG, e.toString());
-            }
-            handler.waitForResponse();
-        }
     }
 
     @Override
     public boolean handleMessage(Message msg)
     {
+        if(msg.what == JSON_RESPONSE_BYTES)
+        {
+            try
+            {
+                JSONObject jsonObject = new JSONObject(new String((byte[]) msg.obj));
+                Log.i(TAG, "Receive: " + jsonObject.toString());
+
+                switch(jsonObject.getInt(COMMAND))
+                {
+                    case JsonSSI.C:
+                        //absAsyncIO.sensorUtil.getLocalSensorTypeList();
+                        break;
+                }
+
+            } catch (JSONException e) {
+                Log.i(TAG, e.toString());
+            }
+            return false;
+        }
+
+
+
         if(msg.what == UdpConnectionRunnable.ID_DATAGRAM_PACKET)
         {
             DatagramPacket packet = (DatagramPacket)msg.obj;

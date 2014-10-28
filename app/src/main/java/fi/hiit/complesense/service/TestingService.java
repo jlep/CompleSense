@@ -185,46 +185,6 @@ public class TestingService extends AbstractGroupService
 
     }
 
-    /*
-    public void startTesting(Messenger uiMessenger, int numClients)
-    {
-        Log.i(TAG,"startTesting(client="+numClients+")");
-
-
-        if(localHost==null)
-            return;
-
-        this.uiMessenger = uiMessenger;
-        Log.i(TAG,"Creating GroupOwner thread");
-
-        //serverManager = new GroupOwnerManager(mMessenger,
-        //        getApplication(), false);
-
-        try {
-            serverManager.start();
-        } catch (IOException e) {
-            Log.i(TAG, e.toString());
-        }
-
-        for(int i=0;i<Constants.NUM_CLIENTS;i++)
-        {
-            Log.i(TAG,"Creating client thread");
-            clientsList.add(new ClientManager(mMessenger,
-                    getApplication(), false ));
-        }
-
-        for(int i=0;i<Constants.NUM_CLIENTS;i++)
-        {
-            Log.i(TAG, "Starting client thread");
-            try {
-                clientsList.get(i).start(localHost, (int)(Math.random()*1000) );
-            } catch (IOException e) {
-                Log.i(TAG,e.toString());
-            }
-        }
-
-    }
-    */
     public void startTesting(Messenger uiMessenger, int numClients)
     {
         Log.i(TAG,"startTesting(client="+numClients+")");

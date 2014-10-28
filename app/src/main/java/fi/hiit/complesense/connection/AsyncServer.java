@@ -2,6 +2,8 @@ package fi.hiit.complesense.connection;
 
 import android.util.Log;
 
+import org.json.JSONException;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -13,7 +15,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 27.10.2014.
@@ -158,6 +160,7 @@ public class AsyncServer extends AbsAsyncIO
 
     private void closeConnections() throws IOException
     {
+        keepRunning = false;
         Log.i(TAG, "closeConnections()");
         selector.close();
         serverChannel.socket().close();
@@ -238,8 +241,13 @@ public class AsyncServer extends AbsAsyncIO
 
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
-        socketChannel.register(this.selector, SelectionKey.OP_READ);
-
+        //socketChannel.register(this.selector, SelectionKey.OP_READ);
+        socketChannel.register(this.selector, SelectionKey.OP_WRITE);
+        try {
+            send(socketChannel, JsonSSI.makeSensorDiscvoeryReq().toString().getBytes());
+        } catch (JSONException e) {
+            Log.i(TAG, e.toString());
+        }
     }
 
     public void send(SocketChannel socket, byte[] data)

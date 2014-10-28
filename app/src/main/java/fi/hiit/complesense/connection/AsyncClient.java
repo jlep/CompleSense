@@ -1,11 +1,13 @@
 package fi.hiit.complesense.connection;
 
+import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -43,6 +45,7 @@ public class AsyncClient extends AbsAsyncIO
 
     // Maps a SocketChannel to a RspHandler
     private Map rspHandlers = Collections.synchronizedMap(new HashMap());
+    private SocketChannel socket;
 
     public AsyncClient(ServiceHandler serviceHandler, InetAddress serverSocketAddr) throws IOException
     {
@@ -81,11 +84,16 @@ public class AsyncClient extends AbsAsyncIO
     public void run()
     {
         Log.i(TAG, "Client running at thread: " + Thread.currentThread().getId());
-        while (keepRunning)
+
+        try
         {
-            try {
+            socket = this.initiateConnection();
+
+            while(keepRunning)
+            {
                 // Process any pending changes
-                synchronized (this.pendingChanges) {
+                synchronized (this.pendingChanges)
+                {
                     Iterator changes = this.pendingChanges.iterator();
                     while (changes.hasNext()) {
                         ChangeRequest change = (ChangeRequest) changes.next();
@@ -107,7 +115,8 @@ public class AsyncClient extends AbsAsyncIO
 
                 // Iterate over the set of keys for which events are available
                 Iterator selectedKeys = this.selector.selectedKeys().iterator();
-                while (selectedKeys.hasNext()) {
+                while (selectedKeys.hasNext())
+                {
                     SelectionKey key = (SelectionKey) selectedKeys.next();
                     selectedKeys.remove();
 
@@ -124,17 +133,28 @@ public class AsyncClient extends AbsAsyncIO
                         this.write(key);
                     }
                 }
-            } catch (Exception e) {
-                Log.i(TAG, "main loop: " + e.toString());
             }
         }
-        Log.i(TAG, "exit main loop");
-        closeConnection();
+        catch (ClosedChannelException e) {
+            Log.e(TAG, e.toString());
+        } catch (IOException e) {
+            Log.e(TAG, e.toString());
+        }finally {
+            Log.i(TAG, "exit main loop");
+            try {
+                closeConnection();
+            } catch (IOException e) {
+                Log.e(TAG, e.toString());
+            }
+        }
 
     }
 
-    private void closeConnection() {
-
+    private void closeConnection()  throws IOException
+    {
+        keepRunning = false;
+        if(selector!=null)
+            selector.close();
     }
 
     private void finishConnection(SelectionKey key) throws IOException
@@ -153,7 +173,8 @@ public class AsyncClient extends AbsAsyncIO
         }
         serviceHandler.updateStatusTxt("Server Connection established");
         // Register an interest in writing on this channel
-        key.interestOps(SelectionKey.OP_WRITE);
+        //key.interestOps(SelectionKey.OP_WRITE);
+        key.interestOps(SelectionKey.OP_READ);
 
     }
 
@@ -161,9 +182,6 @@ public class AsyncClient extends AbsAsyncIO
     public void send(byte[] data, RspHandler handler) throws IOException
     {
         Log.i(TAG, "send()");
-        // Start a new connection
-        SocketChannel socket = this.initiateConnection();
-
         // Register the response handler
         this.rspHandlers.put(socket, handler);
 
@@ -243,6 +261,9 @@ public class AsyncClient extends AbsAsyncIO
         byte[] rspData = new byte[numRead];
         System.arraycopy(data, 0, rspData, 0, numRead);
 
+        Message msg = Message.obtain(serviceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, data);
+        msg.sendToTarget();
+        /*
         // Look up the handler for this channel
         RspHandler handler = (RspHandler) this.rspHandlers.get(socketChannel);
 
@@ -252,5 +273,6 @@ public class AsyncClient extends AbsAsyncIO
             socketChannel.close();
             socketChannel.keyFor(this.selector).cancel();
         }
+        */
     }
 }
