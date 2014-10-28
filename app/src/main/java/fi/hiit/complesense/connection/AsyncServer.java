@@ -1,5 +1,6 @@
 package fi.hiit.complesense.connection;
 
+import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
@@ -180,17 +181,24 @@ public class AsyncServer extends AbsAsyncIO
 
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
-        //socketChannel.register(this.selector, SelectionKey.OP_READ);
-        socketChannel.register(this.selector, SelectionKey.OP_WRITE);
+        socketChannel.register(this.selector, SelectionKey.OP_READ);
+        //socketChannel.register(this.selector, SelectionKey.OP_WRITE);
         try
         {
-            JSONObject jsonAccept = new JSONObject();
-            jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
-            JsonSSI.send2ServiceHandler(serviceHandler.getHandler(), socketChannel, jsonAccept.toString().getBytes());
-
+            handleNewConnection(serviceHandler.getHandler(), socketChannel);
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }
+    }
+
+    private void handleNewConnection(Handler handler, SocketChannel socketChannel) throws JSONException {
+        JSONObject jsonAccept = new JSONObject();
+        jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
+        jsonAccept.put(JsonSSI.DESC, "New Connection");
+        JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
+        //JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
+        //        Constants.RTT_ROUNDS, socketChannel.socket().getLocalAddress().toString(), socketChannel.socket().getLocalPort());
+        //send(socketChannel, jsonRtt.toString().getBytes());
     }
 
 

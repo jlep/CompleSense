@@ -124,7 +124,7 @@ public class ServiceHandler extends HandlerThread
                 switch(jsonObject.getInt(COMMAND))
                 {
                     case JsonSSI.NEW_CONNECTION:
-
+                        addNewConnection(socket.getRemoteSocketAddress());
                         JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
                                 Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
                         absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
@@ -338,7 +338,7 @@ public class ServiceHandler extends HandlerThread
 
         if(rounds <=0 && isOrigin(originHost, originPort, socketChannel.socket()))
         {
-            onReceiveLastRttReply(startTime, socketChannel.socket().getLocalSocketAddress() );
+            onReceiveLastRttReply(startTime, socketChannel.socket().getRemoteSocketAddress() );
         }
         else
         {

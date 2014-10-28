@@ -27,6 +27,7 @@ import fi.hiit.complesense.json.JsonSSI;
  */
 public abstract class AbsAsyncIO extends Thread
 {
+    private static final String TAG = AbsAsyncIO.class.getSimpleName();
     protected final ServiceHandler serviceHandler;
     protected Selector selector;
 
@@ -59,7 +60,7 @@ public abstract class AbsAsyncIO extends Thread
 
     public void send(SocketChannel socketChannel, byte[] data)
     {
-        //Log.i(TAG, "send(): " + new String(data));
+        //Log.i(TAG, "send(): " + socketChannel.toString());
         synchronized (this.pendingChanges)
         {
             // Indicate we want the interest ops set changed
