@@ -19,7 +19,7 @@ public class AliveConnection
 
     public static final long VALID_TIME = 1000000, COUNT_DOWN_INTERVAL = 1000;
     private long nextCheckTime;
-    private long timeDiff = 0;
+    private long delay = 0;
 
     public interface AliveConnectionListener
     {
@@ -28,6 +28,7 @@ public class AliveConnection
 
     public AliveConnection(final SocketAddress socketAddress, AliveConnectionListener listener)
     {
+
         this.socketAddress = socketAddress;
         startTime = System.currentTimeMillis();
         mListener = listener;
@@ -36,14 +37,14 @@ public class AliveConnection
         initCountDownTimer();
     }
 
-    public void setTimeDiff(long timeDiff)
+    public void setDelay(long timeDiff)
     {
-        this.timeDiff = timeDiff;
+        this.delay = timeDiff;
     }
 
-    public long getTimeDiff()
+    public long getDelay()
     {
-        return this.timeDiff;
+        return this.delay;
     }
 
     private void initCountDownTimer()

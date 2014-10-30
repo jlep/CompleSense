@@ -34,25 +34,20 @@ import fi.hiit.complesense.json.JsonSSI;
  */
 public class AsyncServer extends AbsAsyncIO
 {
-    private static final String TAG = AsyncServer.class.getSimpleName();
+    public static final String TAG = AsyncServer.class.getSimpleName();
 
     // The channel on which we'll accept connections
     private ServerSocketChannel serverChannel;
 
-    private EchoWorker worker;
-
-
-    protected AsyncServer(ServiceHandler serviceHandler ,EchoWorker worker) throws IOException
+    protected AsyncServer(ServiceHandler serviceHandler) throws IOException
     {
-        super(serviceHandler);
-        selector = initSelector();
-        this.worker = worker;
+        super(TAG, serviceHandler);
     }
 
-    public static AsyncServer getInstance(ServiceHandler serviceHandler, EchoWorker echoWorker)
+    public static AsyncServer getInstance(ServiceHandler serviceHandler)
     {
         try {
-            AsyncServer asyncServer = new AsyncServer(serviceHandler, echoWorker);
+            AsyncServer asyncServer = new AsyncServer(serviceHandler);
             return asyncServer;
         } catch (IOException e)
         {
@@ -98,6 +93,8 @@ public class AsyncServer extends AbsAsyncIO
         try
         {
             Log.i(TAG, "Server running at thread: " + Thread.currentThread().getId());
+            selector = initSelector();
+
             while(keepRunning)
             {
                 synchronized(this.pendingChanges)
@@ -149,7 +146,7 @@ public class AsyncServer extends AbsAsyncIO
             Log.i(TAG, "exit main loop");
             try
             {
-                closeConnections();
+                close();
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
             }
@@ -158,16 +155,20 @@ public class AsyncServer extends AbsAsyncIO
 
     }
 
-    private void closeConnections() throws IOException
+    @Override
+    public void close() throws IOException
     {
         keepRunning = false;
-        Log.i(TAG, "closeConnections()");
-        selector.close();
-        serverChannel.socket().close();
-        serverChannel.close();
+        Log.i(TAG, "close()");
+        if(selector!=null)
+        {
+            selector.close();
+            //serverChannel.socket().close();
+            //serverChannel.close();
+        }
     }
 
-    private void accept(SelectionKey key) throws IOException
+    protected void accept(SelectionKey key) throws IOException
     {
         // For an accept to be pending the channel must be a server socket channel.
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
@@ -182,7 +183,6 @@ public class AsyncServer extends AbsAsyncIO
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
         socketChannel.register(this.selector, SelectionKey.OP_READ);
-        //socketChannel.register(this.selector, SelectionKey.OP_WRITE);
         try
         {
             handleNewConnection(serviceHandler.getHandler(), socketChannel);
@@ -191,7 +191,7 @@ public class AsyncServer extends AbsAsyncIO
         }
     }
 
-    private void handleNewConnection(Handler handler, SocketChannel socketChannel) throws JSONException {
+    protected void handleNewConnection(Handler handler, SocketChannel socketChannel) throws JSONException {
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
         jsonAccept.put(JsonSSI.DESC, "New Connection");
@@ -201,6 +201,8 @@ public class AsyncServer extends AbsAsyncIO
         //send(socketChannel, jsonRtt.toString().getBytes());
     }
 
-
-
+    @Override
+    public void stopThread() {
+        keepRunning = false;
+    }
 }

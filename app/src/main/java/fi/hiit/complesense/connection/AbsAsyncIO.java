@@ -1,37 +1,31 @@
 package fi.hiit.complesense.connection;
 
-import android.util.Log;
-
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 27.10.2014.
  */
-public abstract class AbsAsyncIO extends Thread
+public abstract class AbsAsyncIO extends AbsSystemThread
 {
-    private static final String TAG = AbsAsyncIO.class.getSimpleName();
-    protected final ServiceHandler serviceHandler;
-    protected Selector selector;
+    public static final int BUF_SIZE = 8192;
 
-    protected volatile boolean keepRunning = true;
+    private static final String TAG = AbsAsyncIO.class.getSimpleName();
+
+    protected Selector selector;
 
     // A list of PendingChange instances
     protected List<ChangeRequest> pendingChanges = new LinkedList<ChangeRequest>();
@@ -41,21 +35,15 @@ public abstract class AbsAsyncIO extends Thread
             new HashMap<SocketChannel, List<ByteBuffer> >();
 
     // The buffer into which we'll read data when it's available
-    protected ByteBuffer readBuffer = ByteBuffer.allocate(8192);
+    protected ByteBuffer readBuffer = ByteBuffer.allocate(BUF_SIZE);
 
-    protected AbsAsyncIO(ServiceHandler serviceHandler)
+    protected AbsAsyncIO(String name, ServiceHandler serviceHandler)
     {
-        this.serviceHandler = serviceHandler;
+        super(name, serviceHandler);
     }
 
     protected abstract Selector initSelector() throws IOException;
-
-
-    public void stopAsyncIO()
-    {
-        keepRunning = false;
-    }
-
+    public abstract void close() throws IOException;
     public abstract SocketAddress getLocalSocketAddress();
 
     public void send(SocketChannel socketChannel, byte[] data)
@@ -82,14 +70,15 @@ public abstract class AbsAsyncIO extends Thread
         selector.wakeup();
     }
 
-    protected void write(SelectionKey key) throws IOException {
+    protected void write(SelectionKey key) throws IOException
+    {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
         synchronized (this.pendingData) {
             List queue = (List) this.pendingData.get(socketChannel);
-
             // Write until there's not more data ...
-            while (!queue.isEmpty()) {
+            while (!queue.isEmpty())
+            {
                 ByteBuffer buf = (ByteBuffer) queue.get(0);
                 socketChannel.write(buf);
                 if (buf.remaining() > 0) {

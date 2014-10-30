@@ -203,7 +203,7 @@ public class RelayThread extends AbstractSystemThread
                 if(firstPacket)
                 {
                     recStartTime = System.currentTimeMillis() -
-                            serviceHandler.getPeerList().get(senderSocketAddr.toString()).getTimeDiff();
+                            serviceHandler.getPeerList().get(senderSocketAddr.toString()).getDelay();
                     firstPacket = false;
                 }
                 try

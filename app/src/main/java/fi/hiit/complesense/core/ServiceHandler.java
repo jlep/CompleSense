@@ -8,39 +8,29 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AbsAsyncIO;
 import fi.hiit.complesense.connection.AcceptorUDP;
+import fi.hiit.complesense.connection.AsyncClient;
 import fi.hiit.complesense.connection.AsyncServer;
 import fi.hiit.complesense.connection.ConnectorUDP;
-import fi.hiit.complesense.connection.EchoWorker;
-import fi.hiit.complesense.connection.RspHandler;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
-import fi.hiit.complesense.connection.AsyncClient;
 import fi.hiit.complesense.json.JsonSSI;
-import fi.hiit.complesense.util.SensorUtil;
-import fi.hiit.complesense.util.SystemUtil;
 
-import static fi.hiit.complesense.json.JsonSSI.*;
+import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -54,15 +44,16 @@ public class ServiceHandler extends HandlerThread
     public final String startTime = Long.toString(System.currentTimeMillis());
 
     protected final Messenger serviceMessenger;
-    private final Context context;
+    protected final Context context;
     private Handler handler;
-    protected Map<String, AbstractSystemThread> eventHandlingThreads;
     protected Map<String, AliveConnection> peerList; // Store all the alive connections
 
-    public final SensorUtil sensorUtil;
+    //public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
     protected AbsAsyncIO absAsyncIO;
+    public Map<String, AbsSystemThread> workerThreads;
+
 
     public ServiceHandler(Messenger serviceMessenger, String name,
                           Context context, boolean isGroupOwner, InetAddress ownerAddr,
@@ -71,8 +62,8 @@ public class ServiceHandler extends HandlerThread
         super(name);
         this.serviceMessenger = serviceMessenger;
         this.context = context;
-        sensorUtil = new SensorUtil(context);
-        eventHandlingThreads =  new TreeMap<String, AbstractSystemThread>();
+        //sensorUtil = new SensorUtil(context);
+        workerThreads = new HashMap<String, AbsSystemThread>();
         peerList = new HashMap<String, AliveConnection>();
         this.isGroupOwner = isGroupOwner;
 
@@ -86,16 +77,16 @@ public class ServiceHandler extends HandlerThread
         {
             if(isGroupOwner)
             {
-                EchoWorker worker = new EchoWorker();
-                absAsyncIO = AsyncServer.getInstance(this, worker);
-                new Thread(worker).start();
+                absAsyncIO = AsyncServer.getInstance(this);
+                workerThreads.put(AsyncServer.TAG, absAsyncIO);
+            }else{
+                absAsyncIO = new AsyncClient(this, ownerAddr, Constants.SERVER_PORT);
+                workerThreads.put(AsyncClient.TAG, absAsyncIO);
             }
-            else
-                absAsyncIO = new AsyncClient(this, ownerAddr);
+
         } catch (IOException e)
         {
             Log.e(TAG, e.toString());
-            absAsyncIO = null;
         }
 
     }
@@ -119,82 +110,25 @@ public class ServiceHandler extends HandlerThread
                 Log.i(TAG, "Receive: " + jsonObject.toString());
 
                 SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-                Socket socket = socketChannel.socket();
 
                 switch(jsonObject.getInt(COMMAND))
                 {
-                    case JsonSSI.NEW_CONNECTION:
-                        addNewConnection(socket.getRemoteSocketAddress());
-                        JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
-                                Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
-                        absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
-                        break;
-                    case JsonSSI.C:
-                        absAsyncIO.send(socketChannel,
-                                JsonSSI.makeSensorDiscvoeryRep(sensorUtil.getLocalSensorTypeList()).toString().getBytes());
-                        break;
-
-                    case JsonSSI.N:
-                        handleSensorTypesReply(jsonObject, socket);
-                        updateStatusTxt("sensor list from " + socket +
-                                ": " + jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES));
-                        break;
                     case JsonSSI.RTT_QUERY:
                         forwarRttQuery(jsonObject, socketChannel);
-                        break;
-                    default:
-                        Log.i(TAG, "Unknown command...");
                         break;
                 }
 
             } catch (JSONException e) {
                 Log.i(TAG, e.toString());
             }
-            return false;
         }
-
         return false;
-    }
-
-    private void handleSensorTypesReply(JSONObject jsonObject, Socket socket) throws JSONException
-    {
-        JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-        List<Integer> arrayList = new ArrayList<Integer>(jsonArray.length());
-        for(int i=0;i<jsonArray.length();i++)
-        {
-            arrayList.add(jsonArray.getInt(i));
-        }
-        sensorUtil.initSensorValues(arrayList, socket.toString());
-    }
-
-    protected void handleSystemMessage(SystemMessage sm, SocketAddress fromAddr)
-    {
-        Log.d(TAG, "recv: " + sm.toString() + " from " + fromAddr);
-        //reply(msg.replyTo);
-        if(sm.getCmd()==SystemMessage.RTT)
-        {
-            UdpConnectionRunnable runnable = null;
-            if(eventHandlingThreads.get(AcceptorUDP.TAG)!=null){
-                runnable = ((AcceptorUDP)
-                        eventHandlingThreads.get(AcceptorUDP.TAG)).getConnectionRunnable();
-            }
-
-            if(eventHandlingThreads.get(ConnectorUDP.TAG)!=null){
-                runnable = ((ConnectorUDP)
-                        eventHandlingThreads.get(ConnectorUDP.TAG)).getConnectionRunnable();
-            }
-
-            if(runnable==null)
-                Log.e(TAG,"runnable is null");
-            //runnable.replyRttQuery(sm.getPayload(), fromAddr, this);
-        }
     }
 
     public Map<String, AliveConnection> getPeerList()
     {
         return peerList;
     }
-
 
     protected void reply(Messenger messenger)
     {
@@ -217,36 +151,26 @@ public class ServiceHandler extends HandlerThread
     private void startWorkerThreads()
     {
         Log.i(TAG,"startWorkerThreads(delay: " + delay +")");
-        try {
+        try
+        {
             Thread.sleep(delay);
+            for(String key : workerThreads.keySet())
+            {
+                workerThreads.get(key).start();
+            }
         } catch (InterruptedException e) {
             Log.e(TAG, e.toString());
-        }
-        absAsyncIO.start();
-        Iterator<Map.Entry<String, AbstractSystemThread>> iterator
-                = eventHandlingThreads.entrySet().iterator();
-
-        while(iterator.hasNext())
-        {
-            iterator.next().getValue().start();
         }
     }
 
     public void stopServiceHandler()
     {
         Log.i(TAG,"stopServiceHandler()");
-
-        Iterator<Map.Entry<String, AbstractSystemThread>> iterator
-                = eventHandlingThreads.entrySet().iterator();
-        while(iterator.hasNext())
+        for(String key : workerThreads.keySet())
         {
-            Map.Entry<String, AbstractSystemThread> entry = iterator.next();
-
-            Log.e(TAG, "Stop thread: " + entry.getKey());
-            entry.getValue().stopThread();
+            Log.e(TAG, "Stop thread: " + key);
+            workerThreads.get(key).stopThread();
         }
-        absAsyncIO.stopAsyncIO();
-
         quit();
     }
 
@@ -256,8 +180,8 @@ public class ServiceHandler extends HandlerThread
         Log.i(TAG,str);
         updateStatusTxt(str);
         AliveConnection aliveConnection = new AliveConnection(socketAddress, this);
-        if(!peerList.containsKey(socketAddress.toString()))
-            this.peerList.put(socketAddress.toString(), aliveConnection);
+        peerList.put(socketAddress.toString(), aliveConnection);
+
     }
 
 
@@ -314,14 +238,15 @@ public class ServiceHandler extends HandlerThread
     /**
      * Event is fired when the RTT query sender receives enough RTT reply from a peer
      * @param startTimeMillis: requester local time, when RTT query was sent
-     * @param fromAddr: peer's address
+     * @param socketChannel: peer's socketChannel
      */
-    public void onReceiveLastRttReply(long startTimeMillis, SocketAddress fromAddr)
+    public void onReceiveLastRttReply(long startTimeMillis, SocketChannel socketChannel)
     {
         //Log.i(TAG, "startTimeMillis: " + startTimeMillis + "currentTime: " + System.currentTimeMillis());
         long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
-        peerList.get(fromAddr.toString()).setTimeDiff(rttMeasurement / 2);
-        Log.i(TAG,"RTT between "+ fromAddr.toString() +" : " + rttMeasurement+ " ms");
+        String remoteSocketAddr = socketChannel.socket().getRemoteSocketAddress().toString();
+        peerList.get(remoteSocketAddr).setDelay(rttMeasurement / 2);
+        Log.i(TAG,"RTT between "+ remoteSocketAddr +" : " + rttMeasurement+ " ms");
     }
 
     private void forwarRttQuery(JSONObject jsonObject, SocketChannel socketChannel) throws JSONException {
@@ -332,13 +257,13 @@ public class ServiceHandler extends HandlerThread
         int originPort = jsonObject.getInt(JsonSSI.ORIGIN_PORT);
         String senderSocketAddrStr = socketChannel.socket().getRemoteSocketAddress().toString();
 
-        Log.i(TAG, "replyRttQuery(rounds: " + rounds + " senderSocketAddrStr: " + senderSocketAddrStr + ")");
+        Log.v(TAG, "replyRttQuery(rounds: " + rounds + " senderSocketAddrStr: " + senderSocketAddrStr + ")");
         String localSocketAddrStr = socketChannel.socket().getLocalSocketAddress().toString();
-        Log.i(TAG, "replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
+        Log.v(TAG, "replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
 
         if(rounds <=0 && isOrigin(originHost, originPort, socketChannel.socket()))
         {
-            onReceiveLastRttReply(startTime, socketChannel.socket().getRemoteSocketAddress() );
+            onReceiveLastRttReply(startTime, socketChannel);
         }
         else
         {
@@ -346,7 +271,7 @@ public class ServiceHandler extends HandlerThread
                 --rounds;
             }
             JSONObject jsonForward = JsonSSI.makeRttQuery(startTime, rounds, originHost, originPort);
-            absAsyncIO.send(socketChannel,jsonForward.toString().getBytes());
+            absAsyncIO.send(socketChannel, jsonForward.toString().getBytes());
         }
     }
 

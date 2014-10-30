@@ -37,7 +37,7 @@ public class ScheduledUdpQueryTask extends TimerTask
     {
         //Log.i(TAG, "run()");
         sendSensorQueryMessage();
-        sendSwitchSensorRequest();
+        //sendSwitchSensorRequest();
         //ArrayDeque<String> hops = selectHopsMeasureRtt();
         //Log.i(TAG, "Selected hops: " + hops.toString());
         //groupOwnerManager.sendMeasureRTTRequest(hops);
@@ -62,6 +62,7 @@ public class ScheduledUdpQueryTask extends TimerTask
         counter++;
     }
 
+    /*
     protected void sendSwitchSensorRequest()
     {
         if(counter >= counter2Switch)
@@ -76,5 +77,5 @@ public class ScheduledUdpQueryTask extends TimerTask
         }
 
     }
-
+    */
 }

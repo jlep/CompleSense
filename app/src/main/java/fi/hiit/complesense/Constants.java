@@ -5,6 +5,8 @@ import android.os.Environment;
 import java.io.File;
 import java.net.URL;
 
+import fi.hiit.complesense.core.SystemMessage;
+
 /**
  * Created by hxguo on 7/11/14.
  */
@@ -26,6 +28,7 @@ public class Constants
 
 
     public static final int SERVER_PORT = 30243; // group owner port
+    public static final int STREAM_SERVER_PORT = SERVER_PORT + 10; // stream server port
     public static final int CLOUD_SERVER_PORT = 10002; // cloud server port
     public static final String URL = "universe.hiit.fi";// server url
     public static final String URL_UPLOAD = URL+":"+CLOUD_SERVER_PORT+"/upload/";

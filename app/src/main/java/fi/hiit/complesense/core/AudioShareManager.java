@@ -351,7 +351,7 @@ public class AudioShareManager
                     Log.i(TAG, "Relay recv packetCount: " + packetCount);
                     if(packetCount == 1)
                     {
-                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
+                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getDelay();
                         recStartTime = System.currentTimeMillis() - timeDiff;
                     }
 
@@ -592,7 +592,7 @@ public class AudioShareManager
                     Log.i(TAG, "Relay recv packetCount: " + packetCount);
                     if(packetCount == 1)
                     {
-                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getTimeDiff();
+                        long timeDiff = serviceHandler.peerList.get(senderSocketAddr.toString()).getDelay();
 
                         String str = "timeDiff with "+ senderSocketAddr.toString() +": " + timeDiff;
                         Log.i(TAG, str);

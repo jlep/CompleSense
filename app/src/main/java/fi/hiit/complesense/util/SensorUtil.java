@@ -7,10 +7,14 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import fi.hiit.complesense.Constants;
@@ -23,6 +27,8 @@ public class SensorUtil implements SensorEventListener
 {
     public static final String TAG ="SensorUtil";
     public static final String KEY_LOCAL_SOCKET = "/0.0.0.0";
+    public static final int SENSOR_CAMERA = 100;
+    public static final int SENSOR_MIC = 101;
 
     private final SensorManager mSensorManager;
     // All sensor values stored by local device, values can be retrieved from
@@ -69,10 +75,16 @@ public class SensorUtil implements SensorEventListener
             sv.setValues(values);
     }
 
-    public void initSensorValues(List<Integer> typeList, String remoteSocketAddr)
+    public void initSensorValues(Set<Integer> typeList, String remoteSocketAddr)
     {
         for(Integer type : typeList)
             setSensorValue(Constants.dummyValues, type, remoteSocketAddr);
+    }
+
+    public void initSensorValues(JSONArray jsonArray, String remoteSocketAddr) throws JSONException
+    {
+        for(int i=0;i<jsonArray.length();i++)
+            setSensorValue(Constants.dummyValues, jsonArray.getInt(i), remoteSocketAddr);
     }
 
     public float[] getSensorValue(String srcSocketAddr, int sensorType)

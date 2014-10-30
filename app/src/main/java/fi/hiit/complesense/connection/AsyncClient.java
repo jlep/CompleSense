@@ -1,15 +1,10 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Message;
 import android.util.Log;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -18,16 +13,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 27.10.2014.
@@ -35,15 +24,17 @@ import fi.hiit.complesense.json.JsonSSI;
 public class AsyncClient extends AbsAsyncIO
 {
 
-    private static final String TAG = AsyncClient.class.getSimpleName();
+    public static final String TAG = AsyncClient.class.getSimpleName();
 
     private final InetAddress serverSocketAddr;
-    private SocketChannel socketChannel;
+    private final int port;
+    protected SocketChannel socketChannel;
 
-    public AsyncClient(ServiceHandler serviceHandler, InetAddress serverSocketAddr) throws IOException
+    public AsyncClient(ServiceHandler serviceHandler, InetAddress serverSocketAddr, int port) throws IOException
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
         selector = initSelector();
+        this.port = port;
         this.serverSocketAddr = serverSocketAddr;
     }
 
@@ -54,6 +45,13 @@ public class AsyncClient extends AbsAsyncIO
     }
 
     @Override
+    public void close() throws IOException {
+        keepRunning = false;
+        if(selector!=null)
+            selector.close();
+    }
+
+    @Override
     public SocketAddress getLocalSocketAddress() {
         if(socketChannel==null)
             return null;
@@ -61,14 +59,14 @@ public class AsyncClient extends AbsAsyncIO
     }
 
 
-    private SocketChannel initiateConnection() throws IOException
+    protected SocketChannel initiateConnection() throws IOException
     {
         // Create a non-blocking socket channel
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
 
         // Kick off connection establishment
-        socketChannel.connect(new InetSocketAddress(serverSocketAddr, Constants.SERVER_PORT));
+        socketChannel.connect(new InetSocketAddress(serverSocketAddr, port));
 
         // Queue a channel registration since the caller is not the
         // selecting thread. As part of the registration we'll register
@@ -144,7 +142,7 @@ public class AsyncClient extends AbsAsyncIO
         }finally {
             Log.i(TAG, "exit main loop");
             try {
-                closeConnection();
+                close();
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
             }
@@ -152,14 +150,7 @@ public class AsyncClient extends AbsAsyncIO
 
     }
 
-    private void closeConnection()  throws IOException
-    {
-        keepRunning = false;
-        if(selector!=null)
-            selector.close();
-    }
-
-    private void finishConnection(SelectionKey key) throws IOException
+    protected void finishConnection(SelectionKey key) throws IOException
     {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
@@ -180,6 +171,32 @@ public class AsyncClient extends AbsAsyncIO
 
     }
 
+    public void send(byte[] data)
+    {
+        //Log.i(TAG, "send(): " + socketChannel.toString());
+        synchronized (this.pendingChanges)
+        {
+            // Indicate we want the interest ops set changed
+            this.pendingChanges.add(new ChangeRequest(socketChannel, ChangeRequest.CHANGEOPS, SelectionKey.OP_WRITE));
 
+            // And queue the data we want written
+            synchronized (this.pendingData)
+            {
+                List queue = (List) this.pendingData.get(socketChannel);
+                if (queue == null) {
+                    queue = new ArrayList();
+                    this.pendingData.put(socketChannel, queue);
+                }
+                queue.add(ByteBuffer.wrap(data));
+            }
+        }
 
+        // Finally, wake up our selecting thread so it can make the required changes
+        selector.wakeup();
+    }
+
+    @Override
+    public void stopThread() {
+        keepRunning = false;
+    }
 }

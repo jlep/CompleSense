@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbstractSystemThread;
@@ -147,5 +148,10 @@ public class WavFileWriter
         {
             Log.e(TAG,"I/O exception occured while closing output file");
         }
+    }
+
+    public FileChannel getFileChannel()
+    {
+        return (randomAccessWriter==null)?null:randomAccessWriter.getChannel();
     }
 }

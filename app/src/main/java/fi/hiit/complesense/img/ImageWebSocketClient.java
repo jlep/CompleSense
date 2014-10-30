@@ -98,7 +98,7 @@ public class ImageWebSocketClient implements
         if(imgFile!=null)
         {
             mWebSocket.send(ImageWebSocketServer.IMG_FILE_SIZE + ":" +imgFile.length());
-            sendSensorValues();
+            //sendSensorValues();
 
             try {
                 sendImage(imgFile);
@@ -134,6 +134,7 @@ public class ImageWebSocketClient implements
         Log.i(TAG, "sendImage(byteSend: " + byteSend +") Complete!!!");
     }
 
+    /*
     private void sendSensorValues()
     {
         Map<Integer, String> sensorValues= new HashMap<Integer, String>();
@@ -148,5 +149,6 @@ public class ImageWebSocketClient implements
 
         mWebSocket.send(sensorValues.toString());
     }
+    */
 
 }
