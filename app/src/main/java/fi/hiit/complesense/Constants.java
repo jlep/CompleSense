@@ -12,7 +12,7 @@ import fi.hiit.complesense.core.SystemMessage;
  */
 public class Constants
 {
-    public static final int NUM_CLIENTS = 1;
+    public static final int NUM_CLIENTS = 3;
 
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
 

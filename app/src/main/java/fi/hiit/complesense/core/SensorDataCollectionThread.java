@@ -42,7 +42,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     @Override
     public void run()
     {
-        Log.i(TAG, "SensorDataColletionThread running at thread: " + Thread.currentThread().getId());
+        Log.i(TAG, "SensorDataCollectionThread running at thread: " + Thread.currentThread().getId());
         mListener = new SensorEventListener()
         {
             ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE/8);

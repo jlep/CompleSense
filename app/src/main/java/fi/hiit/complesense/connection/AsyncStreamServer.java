@@ -74,19 +74,7 @@ public class AsyncStreamServer extends AsyncServer
             Log.i(TAG, "Stream Server running at thread: " + Thread.currentThread().getId());
             selector = initSelector();
 
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_SERVER);
-                jsonObject.put(JsonSSI.SOCKET_CHANNEL, socketChannel);
-                jsonObject.put(JsonSSI.STREAM_PORT, serverChannel.socket().getLocalPort());
-                jsonObject.put(JsonSSI.DESC, "New Stream Server running at thread: "+ Thread.currentThread().getId());
-                Message msg = Message.obtain(serviceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
-                msg.sendToTarget();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-
+            notifyServerRunning(serviceHandler.getHandler(), socketChannel);
             while(keepRunning)
             {
                 synchronized(this.pendingChanges)
@@ -145,12 +133,27 @@ public class AsyncStreamServer extends AsyncServer
         }
     }
 
+    public void notifyServerRunning(Handler handler, SocketChannel socketChannel )
+    {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_SERVER);
+            jsonObject.put(JsonSSI.SOCKET_CHANNEL, socketChannel);
+            jsonObject.put(JsonSSI.STREAM_PORT, serverChannel.socket().getLocalPort());
+            jsonObject.put(JsonSSI.DESC, "New Stream Server running at thread: "+ Thread.currentThread().getId());
+            Message msg = Message.obtain(handler, ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            msg.sendToTarget();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     protected void handleNewConnection(Handler handler, SocketChannel socketChannel) throws JSONException
     {
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_CONNECTION);
-        jsonAccept.put(JsonSSI.DESC, "New Stream Connection");
+        jsonAccept.put(JsonSSI.DESC, "New Stream Connection: " + socketChannel.socket().getRemoteSocketAddress());
         JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
     }
 

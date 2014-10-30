@@ -71,62 +71,72 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     @Override
     public boolean handleMessage(Message msg)
     {
-        super.handleMessage(msg);
-        if(msg.what == JSON_RESPONSE_BYTES)
-        {
-            try
-            {
-                JSONObject jsonObject = (JSONObject)msg.obj;
+        if(!super.handleMessage(msg)){
+            if(msg.what == JSON_RESPONSE_BYTES){
+                try{
+                    JSONObject jsonObject = (JSONObject)msg.obj;
 
-                SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-                Socket socket = socketChannel.socket();
+                    SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
+                    Socket socket = socketChannel.socket();
 
-                switch(jsonObject.getInt(COMMAND))
-                {
-                    case JsonSSI.NEW_CONNECTION:
-                        addNewConnection(socket.getRemoteSocketAddress());
-                        JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
-                                Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
-                        absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
-                        break;
+                    switch(jsonObject.getInt(COMMAND))
+                    {
+                        case JsonSSI.NEW_CONNECTION:
+                            addNewConnection(socket.getRemoteSocketAddress());
+                            JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
+                                    Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
+                            absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
+                            return true;
 
-                    case JsonSSI.NEW_STREAM_SERVER:
-                        JSONArray testJson = new JSONArray();
-                        testJson.put(Sensor.TYPE_ACCELEROMETER);
-                        testJson.put(Sensor.TYPE_GYROSCOPE);
-                        testJson.put(Sensor.TYPE_MAGNETIC_FIELD);
-                        sendStartStreamClientReq(socketChannel, testJson, 8000, jsonObject.getInt(JsonSSI.STREAM_PORT));
-                        break;
+                        case JsonSSI.NEW_STREAM_SERVER:
+                            JSONArray testJson = new JSONArray();
+                            testJson.put(Sensor.TYPE_ACCELEROMETER);
+                            testJson.put(Sensor.TYPE_GYROSCOPE);
+                            testJson.put(Sensor.TYPE_MAGNETIC_FIELD);
+                            sendStartStreamClientReq(socketChannel, testJson, 8000, jsonObject.getInt(JsonSSI.STREAM_PORT));
+                            return true;
 
-                    case JsonSSI.NEW_STREAM_CONNECTION:
+                        case JsonSSI.NEW_STREAM_CONNECTION:
 
-                        break;
+                            return true;
 
-                    case JsonSSI.N:
-                        handleSensorTypesReply(jsonObject, socketChannel);
-                        Pipe pipe = Pipe.open();
-
-                        AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel, pipe.sink());
-                        workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
-                        asyncStreamServer.start();
-
-                        DataProcessingThread dataProcessingThread = new DataProcessingThread(this, pipe.source());
-                        workerThreads.put(DataProcessingThread.TAG, dataProcessingThread);
-                        dataProcessingThread.start();
-                        break;
-                    default:
-                        Log.i(TAG, "Unknown command...");
-                        break;
+                        case JsonSSI.N:
+                            handleSensorTypesReply(jsonObject, socketChannel);
+                            startStreamingServer(socketChannel);
+                            return true;
+                        default:
+                            Log.i(TAG, "Unknown command...");
+                            break;
+                    }
+                } catch (JSONException e) {
+                    Log.i(TAG, e.toString());
+                }catch (IOException e) {
+                    Log.i(TAG, e.toString());
                 }
-
-            } catch (JSONException e) {
-                Log.i(TAG, e.toString());
-            }catch (IOException e) {
-                Log.i(TAG, e.toString());
             }
         }
 
         return false;
+    }
+
+    private void startStreamingServer(SocketChannel socketChannel) throws IOException {
+        if(workerThreads.get(AsyncStreamServer.TAG)==null)
+        {
+            Pipe pipe = Pipe.open();
+
+            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel, pipe.sink());
+            workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
+            asyncStreamServer.start();
+
+            DataProcessingThread dataProcessingThread = new DataProcessingThread(this, pipe.source());
+            workerThreads.put(DataProcessingThread.TAG, dataProcessingThread);
+            dataProcessingThread.start();
+        }else{
+            Log.i(TAG, "Stream server is already running");
+            AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);
+            streamServer.notifyServerRunning(getHandler(), socketChannel);
+        }
+
     }
 
     private void handleSensorTypesReply(JSONObject jsonObject, SocketChannel socketChannel) throws JSONException

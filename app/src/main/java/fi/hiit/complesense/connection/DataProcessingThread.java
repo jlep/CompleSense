@@ -26,6 +26,7 @@ public class DataProcessingThread extends AbsSystemThread {
     @Override
     public void run()
     {
+        Log.i(TAG, "Start DataProcessingThread at thread: " + Thread.currentThread().getId());
         ByteBuffer sizeb = ByteBuffer.allocate(Integer.SIZE/8);
         ByteBuffer bb = ByteBuffer.allocate(AbsAsyncIO.BUF_SIZE);
         byte[] data;
@@ -51,11 +52,9 @@ public class DataProcessingThread extends AbsSystemThread {
 
                     data = new byte[len];
                     bb.get(data,0, len);
-                    Log.i(TAG, new String(data));
+                    //Log.i(TAG, new String(data));
 
                 }
-
-
             }
 
         }catch (IOException e) {

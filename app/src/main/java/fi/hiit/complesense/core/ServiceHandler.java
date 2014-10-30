@@ -107,17 +107,15 @@ public class ServiceHandler extends HandlerThread
             try
             {
                 JSONObject jsonObject = (JSONObject)msg.obj;
-                Log.i(TAG, "Receive: " + jsonObject.toString());
-
+                Log.v(TAG, "Receive: " + jsonObject.toString());
                 SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
 
                 switch(jsonObject.getInt(COMMAND))
                 {
                     case JsonSSI.RTT_QUERY:
                         forwarRttQuery(jsonObject, socketChannel);
-                        break;
+                        return true;
                 }
-
             } catch (JSONException e) {
                 Log.i(TAG, e.toString());
             }

@@ -57,38 +57,41 @@ public class ClientServiceHandler extends ServiceHandler
     @Override
     public boolean handleMessage(Message msg)
     {
-        super.handleMessage(msg);
-        if(msg.what == JSON_RESPONSE_BYTES)
+        if(!super.handleMessage(msg))
         {
-            JSONObject jsonObject = (JSONObject)msg.obj;
-            try
+            if(msg.what == JSON_RESPONSE_BYTES)
             {
-                SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-                Socket socket = socketChannel.socket();
-
-                switch(jsonObject.getInt(COMMAND))
+                JSONObject jsonObject = (JSONObject)msg.obj;
+                try
                 {
-                    case JsonSSI.C:
-                        absAsyncIO.send(socketChannel,
-                                JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)).toString().getBytes());
-                        break;
-                    case JsonSSI.R:
-                        JSONArray jsonSensorTypes = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                        int sampleRate = jsonObject.getInt(JsonSSI.SAMPLES_PER_SECOND);
-                        int streamServerPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+                    SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
+                    Socket socket = socketChannel.socket();
 
-                        startStreaming(jsonSensorTypes, sampleRate, streamServerPort);
-                        break;
-                    default:
-                        Log.i(TAG, "Unknown command...");
-                        break;
+                    switch(jsonObject.getInt(COMMAND))
+                    {
+                        case JsonSSI.C:
+                            absAsyncIO.send(socketChannel,
+                                    JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)).toString().getBytes());
+                            return true;
+                        case JsonSSI.R:
+                            JSONArray jsonSensorTypes = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
+                            int sampleRate = jsonObject.getInt(JsonSSI.SAMPLES_PER_SECOND);
+                            int streamServerPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+
+                            startStreaming(jsonSensorTypes, sampleRate, streamServerPort);
+                            return true;
+                        default:
+                            Log.i(TAG, "Unknown command...");
+                            break;
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
+
 
         return false;
     }
@@ -97,7 +100,7 @@ public class ClientServiceHandler extends ServiceHandler
                                 int sampleRate, int port) throws IOException, JSONException
     {
         AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port);
-        workerThreads.put(AsyncStreamClient.TAG,asyncStreamClient);
+        workerThreads.put(AsyncStreamClient.TAG, asyncStreamClient);
         asyncStreamClient.start();
 
         Set<Integer> requiredSensors = new HashSet<Integer>();
