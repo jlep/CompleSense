@@ -273,7 +273,13 @@ public class TestingService extends AbstractGroupService
         {
             Log.i(TAG, "Stopping client thread");
             clientsList.get(i).stopServiceHandler();
+            try {
+                clientsList.get(i).join();
+            } catch (InterruptedException e) {
+                Log.e(TAG, e.toString());
+            }
         }
+        Log.i(TAG, "All clients have been stoped");
         clientsList.clear();
         ownerServiceHanlder.stopServiceHandler();
     }

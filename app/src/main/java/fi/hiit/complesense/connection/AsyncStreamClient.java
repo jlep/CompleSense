@@ -9,15 +9,18 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import fi.hiit.complesense.audio.AudioStreamClient;
+import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.SensorDataCollectionThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.util.SensorUtil;
@@ -28,11 +31,13 @@ import fi.hiit.complesense.util.SensorUtil;
 public class AsyncStreamClient extends AsyncClient
 {
     public static final String TAG = AsyncStreamClient.class.getSimpleName();
+    private final CountDownLatch countDownLatch;
 
-    public AsyncStreamClient(ServiceHandler serviceHandler,
-                             InetAddress serverSocketAddr, int port) throws IOException, JSONException
+    public AsyncStreamClient(ClientServiceHandler clientServiceHandler,
+                             InetAddress ownerAddr, int port, CountDownLatch latch) throws IOException
     {
-        super(serviceHandler, serverSocketAddr, port);
+        super(clientServiceHandler, ownerAddr, port);
+        this.countDownLatch = latch;
     }
 
     @Override
@@ -42,6 +47,7 @@ public class AsyncStreamClient extends AsyncClient
         try
         {
             socketChannel = this.initiateConnection();
+            countDownLatch.countDown();
 
             while(keepRunning)
             {
@@ -88,11 +94,13 @@ public class AsyncStreamClient extends AsyncClient
                     }
                 }
             }
+        }catch (ClosedSelectorException e){
+            Log.v(TAG, e.toString());
         }
         catch (ClosedChannelException e) {
-            Log.e(TAG, e.toString());
+            Log.v(TAG, e.toString());
         } catch (IOException e) {
-            Log.e(TAG, e.toString());
+            Log.i(TAG, e.toString());
         }finally {
             Log.i(TAG, "exit main loop");
             try {

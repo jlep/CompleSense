@@ -268,7 +268,7 @@ public class SystemUtil {
             /*
             * Do not delete files for testing purpose
              */
-            if(!fileOrDirectory.getName().startsWith("test_"))
+            if(!fileOrDirectory.getName().startsWith("test_")||!fileOrDirectory.getName().startsWith("conf"))
             {
                 for (File child : fileOrDirectory.listFiles())
                     deleteRecursive(child);
@@ -324,5 +324,14 @@ public class SystemUtil {
         }
 
         return mediaFile;
+    }
+
+    public static int readConfigFile()
+    {
+        File rootFolder = new File(Constants.ROOT_DIR, "conf");
+        rootFolder.mkdirs();
+
+
+        return 0;
     }
 }

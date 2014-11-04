@@ -16,6 +16,7 @@ import java.util.Set;
 
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 24.10.2014.
@@ -45,6 +46,7 @@ public class JsonSSI
     public static final String STREAM_PORT = "stream_port";
     public static final String SENSOR_TYPE = "sensor_type";
     public static final String SENSOR_VALUES = "sensor_values";
+    public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -59,7 +61,12 @@ public class JsonSSI
     {
         JSONObject rep = new JSONObject();
         rep.put(COMMAND, N);
-        rep.put(SENSOR_TYPES, new JSONArray(sensorTypes));
+        JSONArray jsonArray = new JSONArray(sensorTypes);
+        // add microphone and camera for testing
+        jsonArray.put(SensorUtil.SENSOR_MIC);
+        jsonArray.put(SensorUtil.SENSOR_CAMERA);
+
+        rep.put(SENSOR_TYPES, jsonArray);
         rep.put(DESC, "Discover sensors reply");
         return rep;
     }

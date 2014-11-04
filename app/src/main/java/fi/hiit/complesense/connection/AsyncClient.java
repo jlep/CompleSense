@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -46,7 +47,6 @@ public class AsyncClient extends AbsAsyncIO
 
     @Override
     public void close() throws IOException {
-        keepRunning = false;
         if(selector!=null)
             selector.close();
     }
@@ -83,12 +83,10 @@ public class AsyncClient extends AbsAsyncIO
     @Override
     public void run()
     {
-        Log.i(TAG, "Client running at thread: " + Thread.currentThread().getId());
-
+        Log.i(TAG, "starts running at thread: " + Thread.currentThread().getId());
         try
         {
             socketChannel = this.initiateConnection();
-
             while(keepRunning)
             {
                 // Process any pending changes
@@ -134,6 +132,9 @@ public class AsyncClient extends AbsAsyncIO
                     }
                 }
             }
+
+        }catch (ClosedSelectorException e){
+            Log.e(TAG, e.toString());
         }
         catch (ClosedChannelException e) {
             Log.e(TAG, e.toString());
@@ -198,5 +199,10 @@ public class AsyncClient extends AbsAsyncIO
     @Override
     public void stopThread() {
         keepRunning = false;
+        try {
+            close();
+        } catch (IOException e) {
+            Log.i(TAG, e.toString());
+        }
     }
 }

@@ -3,71 +3,107 @@ package fi.hiit.complesense.audio;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.util.Log;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AsyncStreamClient;
+import fi.hiit.complesense.core.AbsSystemThread;
+import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by hxguo on 29.10.2014.
  */
-public class AudioStreamClient implements Callable<Integer>
+public class AudioStreamClient extends AbsSystemThread
 {
-    private final long groupOwnerThreadId;
-    private volatile boolean recording = false;
-    private ByteBuffer buffer = ByteBuffer.allocate(Constants.BUF_SIZE);
+    public static final String TAG = AudioStreamClient.class.getSimpleName();
+
+    private final AsyncStreamClient streamClient;
+    private final CountDownLatch startSignal;
+
     private WavFileWriter wavFileWriter;
+    private long threadID;
 
-    public AudioStreamClient(long groupOwnerThreadId)
+    public AudioStreamClient(ServiceHandler serviceHandler,
+                             AsyncStreamClient streamClient, CountDownLatch latch)
     {
-        this.groupOwnerThreadId = groupOwnerThreadId;
+        super(TAG, serviceHandler);
+        this.streamClient = streamClient;
+        this.startSignal = latch;
     }
-
 
     @Override
-    public Integer call() throws Exception
+    public void run()
     {
-        wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + groupOwnerThreadId + ".wav");
-        if(wavFileWriter==null)
-            throw new IOException("wavFileWrite is null");
-
-        FileChannel fileChannel = wavFileWriter.getFileChannel();
-
-        AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, Constants.SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                AudioRecord.getMinBufferSize(Constants.SAMPLE_RATE,
-                        AudioFormat.CHANNEL_IN_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT) * 10);
-
-
-        int bytes_read = 0;
-        int bytes_count = 0;
-        //byte[] buf = new byte[Constants.BUF_SIZE];
-
-        recording = true;
-        audio_recorder.startRecording();
-        while(recording)
+        threadID = Thread.currentThread().getId();
+        Log.i(TAG, "AudioStreamClient running at thread: " + threadID);
+        FileChannel fileChannel = null;
+        AudioRecord audio_recorder = null;
+        try
         {
-            buffer.clear();
-            bytes_read = audio_recorder.read(buffer, Constants.BUF_SIZE);
-            buffer.flip();
-            fileChannel.write(buffer);
-            //getSampleEnergy(buf);
-            bytes_count += bytes_read;
+            startSignal.await();
+            wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + threadID + ".wav");
+            if(wavFileWriter==null)
+                throw new IOException("wavFileWrite is null");
 
-            Thread.sleep(Constants.SAMPLE_INTERVAL);
+            fileChannel = wavFileWriter.getFileChannel();
+            audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
+                    Constants.SAMPLE_RATE,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    AudioRecord.getMinBufferSize(
+                            Constants.SAMPLE_RATE,
+                            AudioFormat.CHANNEL_IN_MONO,
+                            AudioFormat.ENCODING_PCM_16BIT) * 10);
+
+            int bytes_read = 0;
+            int bytes_count = 0;
+            byte[] buf = new byte[Constants.BUF_SIZE];
+            //ByteBuffer buffer;
+
+            keepRunning = true;
+            audio_recorder.startRecording();
+            while(keepRunning)
+            {
+                bytes_read = audio_recorder.read(buf, 0,Constants.BUF_SIZE);
+                //buffer = ByteBuffer.wrap(buf);
+                wavFileWriter.write(buf);
+                //fileChannel.write(buffer);
+                streamClient.send(buf);
+                bytes_count += bytes_read;
+
+                Thread.sleep(Constants.SAMPLE_INTERVAL);
+            }
+
+        } catch (IOException e) {
+            Log.i(TAG, e.toString());
+        } catch (InterruptedException e) {
+            Log.i(TAG, e.toString());
+
         }
-
-        fileChannel.close();
-        return bytes_count;
+        finally
+        {
+            Log.i(TAG, "Recording thread stops");
+            if(audio_recorder!=null)
+                audio_recorder.stop();
+            if(wavFileWriter!=null)
+                wavFileWriter.close();
+            if(fileChannel!=null)
+            {
+                try {
+                    fileChannel.close();
+                } catch (IOException e) {
+                    Log.i(TAG, e.toString());
+                }
+            }
+        }
     }
 
-    public void stopThread()
-    {
-        recording = false;
+    @Override
+    public void stopThread() {
+        keepRunning = false;
     }
 }

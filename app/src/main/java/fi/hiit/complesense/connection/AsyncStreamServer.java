@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -118,14 +119,14 @@ public class AsyncStreamServer extends AsyncServer
                 }
 
             }
-        }
-        catch (IOException e)
+        }catch (ClosedSelectorException e){
+            Log.v(TAG, e.toString());
+        }catch (IOException e)
         {
             Log.e(TAG, e.toString());
         }finally {
             Log.i(TAG, "exit main loop");
-            try
-            {
+            try{
                 close();
             } catch (IOException e) {
                 Log.e(TAG, e.toString());

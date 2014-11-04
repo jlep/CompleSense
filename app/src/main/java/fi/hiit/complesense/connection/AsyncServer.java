@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -138,14 +139,14 @@ public class AsyncServer extends AbsAsyncIO
                 }
 
             }
-        }
-        catch (IOException e)
+        }catch (ClosedSelectorException e){
+            Log.v(TAG, e.toString());
+        }catch (IOException e)
         {
             Log.e(TAG, e.toString());
         }finally {
             Log.i(TAG, "exit main loop");
-            try
-            {
+            try{
                 close();
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
@@ -204,5 +205,10 @@ public class AsyncServer extends AbsAsyncIO
     @Override
     public void stopThread() {
         keepRunning = false;
+        try{
+            close();
+        } catch (IOException e) {
+            Log.e(TAG, e.toString());
+        }
     }
 }

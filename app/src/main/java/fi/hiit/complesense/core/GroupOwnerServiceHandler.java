@@ -11,21 +11,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.Socket;
 import java.nio.channels.Pipe;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AsyncStreamServer;
-import fi.hiit.complesense.connection.DataProcessingThread;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.util.SensorUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 
@@ -93,6 +91,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             testJson.put(Sensor.TYPE_ACCELEROMETER);
                             testJson.put(Sensor.TYPE_GYROSCOPE);
                             testJson.put(Sensor.TYPE_MAGNETIC_FIELD);
+                            testJson.put(SensorUtil.SENSOR_MIC);
                             sendStartStreamClientReq(socketChannel, testJson, 8000, jsonObject.getInt(JsonSSI.STREAM_PORT));
                             return true;
 
@@ -185,10 +184,4 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
     }
 
-    @Override
-    public void stopServiceHandler()
-    {
-//        timer.cancel();
-        super.stopServiceHandler();
-    }
 }

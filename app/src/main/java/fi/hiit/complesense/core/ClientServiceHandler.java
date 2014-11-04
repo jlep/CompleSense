@@ -20,10 +20,14 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.AsyncStreamClient;
 import fi.hiit.complesense.connection.ConnectorUDP;
@@ -99,17 +103,36 @@ public class ClientServiceHandler extends ServiceHandler
     private void startStreaming(JSONArray jsonSensorTypes,
                                 int sampleRate, int port) throws IOException, JSONException
     {
-        AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port);
+        int startSignal = 1;
+        CountDownLatch latch = new CountDownLatch(startSignal);
+        AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port, latch);
         workerThreads.put(AsyncStreamClient.TAG, asyncStreamClient);
         asyncStreamClient.start();
 
         Set<Integer> requiredSensors = new HashSet<Integer>();
         for(int i=0;i<jsonSensorTypes.length();i++)
             requiredSensors.add(jsonSensorTypes.getInt(i));
-        SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                this, context, requiredSensors, asyncStreamClient);
-        workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
-        sensorDataCollectionThread.start();
+
+        if(requiredSensors.contains(SensorUtil.SENSOR_MIC))
+        {
+            requiredSensors.remove(SensorUtil.SENSOR_MIC);
+            AudioStreamClient audioStreamClient = new AudioStreamClient(
+                    this, asyncStreamClient, latch);
+            workerThreads.put(AudioStreamClient.TAG,audioStreamClient);
+            audioStreamClient.start();
+        }
+
+        if(requiredSensors.contains(SensorUtil.SENSOR_CAMERA))
+        {
+            requiredSensors.remove(SensorUtil.SENSOR_CAMERA);
+        }
+
+        if(requiredSensors.size()>0)
+        {
+            //SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
+            //        this, context, requiredSensors, asyncStreamClient, latch);
+            //workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
+        }
 
     }
 

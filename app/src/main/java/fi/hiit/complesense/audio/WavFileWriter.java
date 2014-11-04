@@ -96,7 +96,7 @@ public class WavFileWriter
     }
 
 
-    public static void writeHeader(String outputFile)
+    public static void writeHeader(File outputFile)
             throws IOException
     {
         RandomAccessFile randomAccessWriter = new RandomAccessFile(outputFile, "rw");
@@ -117,14 +117,14 @@ public class WavFileWriter
         randomAccessWriter.close();
     }
 
-    public static void close(String outputFile, int payloadSize, long recStartTime)
+    public static void close(File inputFile, int payloadSize, long recStartTime)
     {
         try
         {
-            File f = new File(outputFile);
-            if(f.exists() && f.isFile())
+            Log.i(TAG,"stop(inputFile: " + inputFile.toString() +")");
+            if(inputFile.exists() && inputFile.isFile())
             {
-                RandomAccessFile randomAccessWriter = new RandomAccessFile(outputFile, "rw");
+                RandomAccessFile randomAccessWriter = new RandomAccessFile(inputFile, "rw");
                 randomAccessWriter.seek(4); // Write size to RIFF header
                 randomAccessWriter.writeInt(Integer.reverseBytes(36 + payloadSize));
 
@@ -132,16 +132,17 @@ public class WavFileWriter
                 randomAccessWriter.writeInt(Integer.reverseBytes(payloadSize));
                 randomAccessWriter.close();
 
-                String threadId = outputFile.substring(outputFile.lastIndexOf("/")+1, outputFile.lastIndexOf(".raw"));
+                String outputFileStr = inputFile.toString();
+                String threadId = outputFileStr.substring(outputFileStr.lastIndexOf("/")+1, outputFileStr.lastIndexOf(".raw"));
 
-                String newFilename = Constants.ROOT_DIR + threadId + "-" +Long.toString(recStartTime) + ".wav";
-                File oldFile = new File(outputFile);
+                String newFilename = threadId + "-" +Long.toString(recStartTime) + ".wav";
+
                 //Log.i(TAG,"stop(oldFile.length(): " +oldFile.length() +")");
-                File newFile = new File(newFilename);
-                oldFile.renameTo(newFile);
-                //Log.i(TAG,"stop(newFile.length(): " +newFile.length() +")");
+                File newFile = new File(inputFile.getParent(), newFilename);
+                inputFile.renameTo(newFile);
 
-                Log.i(TAG,"close(" +newFilename + " size: " + payloadSize +")");
+
+                Log.i(TAG,"static close(" +newFilename + " size: " + payloadSize +")");
             }
         }
         catch(IOException e)

@@ -167,8 +167,15 @@ public class ServiceHandler extends HandlerThread
         for(String key : workerThreads.keySet())
         {
             Log.e(TAG, "Stop thread: " + key);
-            workerThreads.get(key).stopThread();
+            AbsSystemThread absSystemThread = workerThreads.get(key);
+            absSystemThread.stopThread();
+            try {
+                absSystemThread.join();
+            } catch (InterruptedException e) {
+                Log.i(TAG, e.toString());
+            }
         }
+        Log.e(TAG, "All threads have been stopped");
         quit();
     }
 

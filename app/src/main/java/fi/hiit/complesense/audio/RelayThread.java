@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class RelayThread extends AbstractSystemThread
 
     private static final String PROTOCOL = "ws";
     private URI uri = URI.create(PROTOCOL +":/"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
-    private String tmpFilePath;
+    private File tmpFilePath;
     private OutputStream outStream = null;
     private boolean firstPacket = true;
     private int payloadSize = 0;
@@ -93,7 +94,7 @@ public class RelayThread extends AbstractSystemThread
 
         try
         {
-            tmpFilePath = Constants.ROOT_DIR + Thread.currentThread().getId() +".raw";
+            tmpFilePath = new File(Constants.ROOT_DIR, Thread.currentThread().getId() +".raw");
             WavFileWriter.writeHeader(tmpFilePath);
             outStream = new FileOutputStream(tmpFilePath, true);
 
