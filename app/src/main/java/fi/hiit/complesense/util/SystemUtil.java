@@ -15,8 +15,14 @@ import android.os.Environment;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.util.JsonReader;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.SocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.core.SystemConfig;
 import fi.hiit.complesense.service.AbstractGroupService;
 
 /**
@@ -268,7 +276,7 @@ public class SystemUtil {
             /*
             * Do not delete files for testing purpose
              */
-            if(!fileOrDirectory.getName().startsWith("test_")||!fileOrDirectory.getName().startsWith("conf"))
+            if(!fileOrDirectory.getName().startsWith("config")&&!fileOrDirectory.getName().startsWith("test_"))
             {
                 for (File child : fileOrDirectory.listFiles())
                     deleteRecursive(child);
@@ -326,12 +334,37 @@ public class SystemUtil {
         return mediaFile;
     }
 
-    public static int readConfigFile()
-    {
-        File rootFolder = new File(Constants.ROOT_DIR, "conf");
-        rootFolder.mkdirs();
+    public static SystemConfig loadConfigFile() throws IOException, JSONException {
+        File configDir = new File(Constants.ROOT_DIR, "config");
+        configDir.mkdirs();
 
+        String line;
+        StringBuilder builder = new StringBuilder();
+        for (File child : configDir.listFiles())
+        {
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(child)) );
+            while ((line = br.readLine()) != null) {
+                builder.append(line);
+            }
+            break;
+        }
 
-        return 0;
+        if(builder.length()>0)
+        {
+            JSONObject reader = new JSONObject(builder.toString());
+            double version  = reader.getDouble("version");
+            SystemConfig systemConfig = new SystemConfig(version);
+
+            JSONArray parameters = reader.getJSONArray("parameters");
+            for(int i=0;i<parameters.length();i++)
+            {
+                JSONObject param = (JSONObject) parameters.get(i);
+                systemConfig.addParam(param);
+            }
+
+            return systemConfig;
+        }
+
+        return null;
     }
 }

@@ -10,6 +10,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.channels.Pipe;
@@ -17,6 +19,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +27,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AsyncStreamServer;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 
@@ -46,6 +50,19 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                                     Context context)
     {
         super(serviceMessenger, name,context, true, null, 0);
+        try {
+            SystemConfig sysConfig = SystemUtil.loadConfigFile();
+            if(sysConfig!=null)
+                updateStatusTxt(sysConfig.toString());
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
 //        timer = new Timer();
         //LocalRecThread localRecThread = new LocalRecThread(this);
         //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
@@ -121,15 +138,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private void startStreamingServer(SocketChannel socketChannel) throws IOException {
         if(workerThreads.get(AsyncStreamServer.TAG)==null)
         {
-            Pipe pipe = Pipe.open();
-
-            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel, pipe.sink());
+            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel);
             workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
             asyncStreamServer.start();
 
-            DataProcessingThread dataProcessingThread = new DataProcessingThread(this, pipe.source());
-            workerThreads.put(DataProcessingThread.TAG, dataProcessingThread);
-            dataProcessingThread.start();
         }else{
             Log.i(TAG, "Stream server is already running");
             AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);

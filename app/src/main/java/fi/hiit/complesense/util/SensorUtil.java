@@ -27,8 +27,9 @@ public class SensorUtil implements SensorEventListener
 {
     public static final String TAG ="SensorUtil";
     public static final String KEY_LOCAL_SOCKET = "/0.0.0.0";
-    public static final int SENSOR_CAMERA = 100;
-    public static final int SENSOR_MIC = 101;
+    public static final int SENSOR_CAMERA = 500;
+    public static final int SENSOR_MIC = 505;
+    public static final int SENSOR_GPS = 510;
 
     private final SensorManager mSensorManager;
     // All sensor values stored by local device, values can be retrieved from

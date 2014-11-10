@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
+import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
 
@@ -33,18 +34,18 @@ public class AsyncStreamServer extends AsyncServer
 {
     public static final String TAG = AsyncStreamServer.class.getSimpleName();
     private final SocketChannel socketChannel;
-    private final WritableByteChannel out;
 
     // The channel on which we'll accept connections
     private ServerSocketChannel serverChannel;
+    private DataProcessingThread dataProcessingThread;
 
 
     public AsyncStreamServer(ServiceHandler serviceHandler,
-                             SocketChannel socketChannel, WritableByteChannel out) throws IOException
+                             SocketChannel socketChannel) throws IOException
     {
         super(serviceHandler);
         this.socketChannel = socketChannel;
-        this.out = out;
+        dataProcessingThread = new DataProcessingThread(this, serviceHandler);
     }
 
     @Override
@@ -74,6 +75,7 @@ public class AsyncStreamServer extends AsyncServer
         try{
             Log.i(TAG, "Stream Server running at thread: " + Thread.currentThread().getId());
             selector = initSelector();
+            dataProcessingThread.start();
 
             notifyServerRunning(serviceHandler.getHandler(), socketChannel);
             while(keepRunning)
@@ -195,33 +197,12 @@ public class AsyncStreamServer extends AsyncServer
     {
         //byte[] rspData = new byte[numRead];
         //System.arraycopy(readBuffer.array(), 0, rspData, 0, numRead);
-        //Log.i(TAG, new String(rspData));
-
-        /*
-        if(numRead==4)
-        {
-            ByteBuffer bb = ByteBuffer.wrap(readBuffer.array(),0,numRead);
-            Log.i(TAG, "length: " + bb.getInt());
-        }
-        else
-            Log.i(TAG, new String(readBuffer.array()));
-        */
-        ByteBuffer sizeb = ByteBuffer.allocate(Integer.SIZE/8);
-        sizeb.putInt(numRead);
-        sizeb.flip();
-        while(sizeb.hasRemaining())
-            out.write(sizeb);
-        sizeb.clear();
-
-        readBuffer.flip();
-        while(readBuffer.hasRemaining())
-            out.write(readBuffer);
+        dataProcessingThread.addDataToThreadBuffer(socketChannel, readBuffer.array(), numRead);
     }
 
     @Override
-    public void close() throws IOException
-    {
-        out.close();
-        super.close();
+    public void stopThread() {
+        dataProcessingThread.stopThread();
+        super.stopThread();
     }
 }
