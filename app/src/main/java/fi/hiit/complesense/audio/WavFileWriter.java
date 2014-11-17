@@ -74,6 +74,16 @@ public class WavFileWriter
         }
     }
 
+    public void write(byte[] data, int offset, int byteCount)
+    {
+        try {
+            randomAccessWriter.write(data,offset, byteCount);
+            payLoadSize += data.length;
+        } catch (IOException e) {
+            Log.i(TAG,e.toString());
+        }
+    }
+
     public int getPayLoadSize()
     {
         return payLoadSize;

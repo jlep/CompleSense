@@ -5,6 +5,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.LocationManager;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -213,7 +214,14 @@ public class SensorUtil implements SensorEventListener
         List<Sensor> allSensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
         List<Integer> sensorsTypeList = new ArrayList<Integer>();
 
-        //Log.i(TAG, "Total number of sensors = " + allSensorsList.size());
+        // -- Check if GPS is enabled
+        final LocationManager manager = (LocationManager) context.getSystemService( Context.LOCATION_SERVICE );
+        if ( manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            sensorsTypeList.add(SENSOR_GPS);
+        }
+
+        sensorsTypeList.add(SENSOR_MIC);
+        sensorsTypeList.add(SENSOR_CAMERA);
 
         for (int i = 0; i < allSensorsList.size(); i++) {
             //Log.i(TAG, "all sensor type = " + i);
@@ -222,7 +230,6 @@ public class SensorUtil implements SensorEventListener
                 sensorsTypeList.add(i);
             }
         }
-
         return sensorsTypeList;
     }
 

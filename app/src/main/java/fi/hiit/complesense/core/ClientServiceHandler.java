@@ -3,6 +3,10 @@ package fi.hiit.complesense.core;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
 import android.provider.MediaStore;
@@ -47,6 +51,8 @@ public class ClientServiceHandler extends ServiceHandler
     private static final String TAG = "ClientServiceHandler";
     private final InetAddress ownerAddr;
     private int serverWebSocketPort;
+    private LocationManager locationManager = null;
+    private LocationListener mLocationDataListener = null;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -74,15 +80,14 @@ public class ClientServiceHandler extends ServiceHandler
                     switch(jsonObject.getInt(COMMAND))
                     {
                         case JsonSSI.C:
-                            absAsyncIO.send(socketChannel,
-                                    JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)).toString().getBytes());
+                            absAsyncIO.send(socketChannel,JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)));
                             return true;
                         case JsonSSI.R:
-                            JSONArray jsonSensorTypes = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            int sampleRate = jsonObject.getInt(JsonSSI.SAMPLES_PER_SECOND);
+                            JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                             int streamServerPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
 
-                            startStreaming(jsonSensorTypes, sampleRate, streamServerPort);
+                            Log.i(TAG, "sensorConfigJson:" + sensorConfigJson.toString());
+                            startStreaming(sensorConfigJson, streamServerPort);
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
@@ -91,7 +96,7 @@ public class ClientServiceHandler extends ServiceHandler
                 } catch (JSONException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.i(TAG, e.toString());
                 }
             }
         }
@@ -100,40 +105,46 @@ public class ClientServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreaming(JSONArray jsonSensorTypes,
-                                int sampleRate, int port) throws IOException, JSONException
+    private void startStreaming(JSONArray sensorConfigJson, int port) throws IOException, JSONException
     {
+        updateStatusTxt("Start Streaming client");
         int startSignal = 1;
         CountDownLatch latch = new CountDownLatch(startSignal);
         AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port, latch);
         workerThreads.put(AsyncStreamClient.TAG, asyncStreamClient);
         asyncStreamClient.start();
 
-        Set<Integer> requiredSensors = new HashSet<Integer>();
-        for(int i=0;i<jsonSensorTypes.length();i++)
-            requiredSensors.add(jsonSensorTypes.getInt(i));
 
-        if(requiredSensors.contains(SensorUtil.SENSOR_MIC))
+
+        Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
+        Log.i(TAG, requiredSensors.toString());
+        if(requiredSensors.remove(SensorUtil.SENSOR_MIC))
         {
-            requiredSensors.remove(SensorUtil.SENSOR_MIC);
             AudioStreamClient audioStreamClient = new AudioStreamClient(
                     this, asyncStreamClient, latch);
             workerThreads.put(AudioStreamClient.TAG,audioStreamClient);
             audioStreamClient.start();
         }
 
-        if(requiredSensors.contains(SensorUtil.SENSOR_CAMERA))
+        if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA))
         {
-            requiredSensors.remove(SensorUtil.SENSOR_CAMERA);
+
+        }
+
+        if(requiredSensors.remove(SensorUtil.SENSOR_GPS))
+        {
+            locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+            mLocationDataListener = new LocationDataListener(this, context);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
         }
 
         if(requiredSensors.size()>0)
         {
-            //SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-            //        this, context, requiredSensors, asyncStreamClient, latch);
-            //workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
+            SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
+                    this, context, requiredSensors, asyncStreamClient, latch);
+            workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
+            sensorDataCollectionThread.start();
         }
-
     }
 
     public void sendImg2Server(File imgFile)

@@ -10,6 +10,8 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import org.json.JSONException;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -196,14 +198,18 @@ public class TestingService extends AbstractGroupService
 
             this.uiMessenger = uiMessenger;
 
-
             //serverManager = new GroupOwnerManager(mMessenger,
             //        getApplication(), false);
-            ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
-                    "GroupOwner Handler", getApplicationContext());
-
-            Log.i(TAG, "Starting GroupOwner from thread: " + Thread.currentThread().getId());
-            ownerServiceHanlder.start();
+            try {
+                ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
+                        "GroupOwner Handler", getApplicationContext());
+                Log.i(TAG, "Starting GroupOwner from thread: " + Thread.currentThread().getId());
+                ownerServiceHanlder.start();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
             for(int i=0;i<Constants.NUM_CLIENTS;i++)
             {

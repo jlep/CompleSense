@@ -9,7 +9,10 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import org.json.JSONException;
+
 import java.io.File;
+import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.Map;
 import fi.hiit.complesense.Constants;
@@ -237,8 +240,14 @@ public class ClientOwnerService extends AbstractGroupService
                     if(serviceHandler == null)
                     {
                         //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
-                        serviceHandler = new GroupOwnerServiceHandler(mMessenger,
-                                "GroupOwnerServiceHandler", context);
+                        try {
+                            serviceHandler = new GroupOwnerServiceHandler(mMessenger,
+                                    "GroupOwnerServiceHandler", context);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                         serviceHandler.start();
                     }
                 }

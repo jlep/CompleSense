@@ -62,10 +62,6 @@ public class JsonSSI
         JSONObject rep = new JSONObject();
         rep.put(COMMAND, N);
         JSONArray jsonArray = new JSONArray(sensorTypes);
-        // add microphone and camera for testing
-        jsonArray.put(SensorUtil.SENSOR_MIC);
-        jsonArray.put(SensorUtil.SENSOR_CAMERA);
-
         rep.put(SENSOR_TYPES, jsonArray);
         rep.put(DESC, "Discover sensors reply");
         return rep;
@@ -97,12 +93,11 @@ public class JsonSSI
         return query;
     }
 
-    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, int samplesPerSeconds, long timeDiff, int port) throws JSONException
+    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff, int port) throws JSONException
     {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(COMMAND, R);
         jsonObject.put(SENSOR_TYPES, sensorTypes);
-        jsonObject.put(SAMPLES_PER_SECOND, samplesPerSeconds);
         jsonObject.put(TIME_DIFF, timeDiff);
         jsonObject.put(STREAM_PORT, port);
         jsonObject.put(DESC, "Start Streaming Request");

@@ -1,5 +1,6 @@
 package fi.hiit.complesense.core;
 
+import android.hardware.Sensor;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -8,7 +9,11 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 10.11.2014.
@@ -16,6 +21,7 @@ import java.util.List;
  */
 public class SystemConfig
 {
+    private static final String TAG = SystemConfig.class.getSimpleName();
     private final double version;
     private List<Parameter> paramters = new ArrayList<Parameter>();
 
@@ -46,10 +52,30 @@ public class SystemConfig
 
     @Override
     public String toString() {
-        return "SystemConfig\n{\n" +
-                "version=" + version +
-                ", paramters=" + paramters +
+        return "{" +
+                "\"version\": " + version +
+                ", \"parameters\": " + paramters +
                 '}';
+    }
+
+    public List<SensorConfig> reqSensors() {
+        List<SensorConfig> reqSensors = new ArrayList<SensorConfig>();
+        for(Parameter param : paramters)
+        {
+            for(SensorConfig sc : param.sensors)
+                reqSensors.add(sc);
+        }
+        return reqSensors;
+    }
+
+    public static Set<Integer> getSensorTypesFromJson(JSONArray sensorConfigJson) throws JSONException {
+        Set<Integer> reqSensorTypes = new HashSet<Integer>();
+        for(int i=0;i<sensorConfigJson.length();i++){
+            String jsonStr = sensorConfigJson.get(i).toString();
+            JSONObject jsonObject = new JSONObject(jsonStr);
+            reqSensorTypes.add(jsonObject.getInt(SensorConfig.TYPE));
+        }
+        return reqSensorTypes;
     }
 
     public static class Parameter
@@ -60,7 +86,7 @@ public class SystemConfig
         private List<SensorConfig> sensors = new ArrayList<SensorConfig>();
 
         public Parameter(JSONObject jsonDataDeliver, JSONObject jsonGroup) throws JSONException {
-            this.dataDeliver = new DataDeliver(jsonDataDeliver);;
+            this.dataDeliver = new DataDeliver(jsonDataDeliver);
             this.group = new Group(jsonGroup);
         }
 
@@ -76,13 +102,13 @@ public class SystemConfig
             for(SensorConfig sc:sensors)
             {
                 sb.append(sc.toString());
-                Log.i(TAG, "sc: " + sc.toString());
+                //Log.i(TAG, "sc: " + sc.toString());
             }
 
-            return "Parameter\n{\n" +
-                    "dataDeliver=" + dataDeliver +
-                    ",\n group=" + group +
-                    ",\n sensors=" + sensors + '\n' +
+            return "{" +
+                    "\"DataDeliver\": " + dataDeliver +
+                    ", \"Group\": " + group +
+                    ", \"Sensor\": " + sensors +
                     '}';
         }
 
@@ -124,10 +150,10 @@ public class SystemConfig
 
         @Override
         public String toString() {
-            return "Group{" +
-                    "maxMembers=" + maxMembers +
-                    ", minMemebers=" + minMemebers +
-                    ", lateJoins=" + lateJoins +
+            return "{" +
+                    "\""+ MAX_MEMBERS +"\": " + maxMembers +
+                    ", \""+ LATE_JOINS +"\": " + minMemebers +
+                    ", \""+ MIN_MEMBERS +"\": " + lateJoins +
                     '}';
         }
     }
@@ -168,12 +194,12 @@ public class SystemConfig
 
         @Override
         public String toString() {
-            return "DataDeliver{" +
-                    "deliveryType='" + deliveryType + '\'' +
-                    ", batchSize=" + batchSize +
-                    ", batchDelay=" + batchDelay +
-                    ", burstLength=" + burstLength +
-                    ", burstDelay=" + burstDelay +
+            return "{" +
+                    "\""+ DELIVERY_TYPE + "\": " + deliveryType +
+                    ", \""+ BATCH_SIZE +"\": " + batchSize +
+                    ", \""+ BATCH_DELAY +"\": " + batchDelay +
+                    ", \""+ BURST_LENGTH +"\": " + burstLength +
+                    ", \""+ BURST_DELAY +"\": " + burstDelay +
                     '}';
         }
     }
@@ -208,13 +234,13 @@ public class SystemConfig
             this.energyToAccuracyRatio = jsonObject.getInt(Energy_To_Accuracy_Ratio);
         }
 
+
         @Override
         public String toString() {
-            return "SensorSelection{" +
-                    "Energy_To_Accuracy_Ratio='" + Energy_To_Accuracy_Ratio + '\'' +
-                    ", informationGain='" + informationGain + '\'' +
-                    ", similarityFilter='" + similarityFilter + '\'' +
-                    ", energyToAccuracyRatio=" + energyToAccuracyRatio +
+            return "{" +
+                    "\""+ Energy_To_Accuracy_Ratio +"\": " + energyToAccuracyRatio +
+                    ", \""+ TRANSMIT_TRIGGER +"\": " + "\"" + similarityFilter +"\"" +
+                    ", \""+ INFORMATION_GAIN +"\": " + "\"" + informationGain +"\"" +
                     '}';
         }
     }
@@ -236,29 +262,68 @@ public class SystemConfig
         private static final String SAMPLE_RATE = "SamplingRate";
         private static final String SENSOR_SELECTION = "SensorSelection";
 
-        private final String type;
+        private static final String SENSOR_TYPE_ACCELEROMETER = "ACCELEROMETER";
+        private static final String SENSOR_TYPE_GYROSCOPE = "GYROSCOPE";
+        private static final String SENSOR_TYPE_MAGNETOMETER = "MAGNETOMETER";
+        private static final String SENSOR_TYPE_GPS = "GPS";
+        private static final String SENSOR_TYPE_MICROPHONE = "MICROPHONE";
+
+
+        private final int type;
         private final int sampleRate;
+
+        public int getType() {
+            return type;
+        }
+
+        public int getSampleRate() {
+            return sampleRate;
+        }
+
+        public SensorSelection getSensorSelection() {
+            return sensorSelection;
+        }
+
         private final SensorSelection sensorSelection;
 
         public SensorConfig(String type, int sampleRate, SensorSelection sensorSelection) {
-            this.type = type;
+            this.type = getTypeInt(type);
             this.sampleRate = sampleRate;
             this.sensorSelection = sensorSelection;
         }
 
         public SensorConfig(JSONObject sensor) throws JSONException {
-            this.type = sensor.getString(TYPE);
+            this.type = getTypeInt(sensor.getString(TYPE) );
             this.sampleRate = sensor.getInt(SAMPLE_RATE);
             JSONObject jsonObject = (JSONObject) sensor.get(SENSOR_SELECTION);
             this.sensorSelection = new SensorSelection(jsonObject);
         }
 
+        private int getTypeInt(String typeTxt)
+        {
+            Log.v(TAG, "sensor_type: " + typeTxt);
+            String typeStr = typeTxt.substring(typeTxt.lastIndexOf('.')+1);
+
+            if(typeStr.equals(SENSOR_TYPE_ACCELEROMETER))
+                return Sensor.TYPE_ACCELEROMETER;
+            if(typeStr.equals(SENSOR_TYPE_GYROSCOPE))
+                return Sensor.TYPE_GYROSCOPE;
+            if(typeStr.equals(SENSOR_TYPE_MAGNETOMETER))
+                return Sensor.TYPE_MAGNETIC_FIELD;
+            if(typeStr.equals(SENSOR_TYPE_GPS))
+                return SensorUtil.SENSOR_GPS;
+            if(typeStr.equals(SENSOR_TYPE_MICROPHONE))
+                return SensorUtil.SENSOR_MIC;
+
+            return -1;
+        }
+
         @Override
         public String toString() {
-            return "SensorConfig{" +
-                    "type='" + type + '\'' +
-                    ", sampleRate=" + sampleRate +
-                    ", " + sensorSelection +
+            return "{" +
+                    "\""+TYPE+"\": " + type +
+                    ", \""+SAMPLE_RATE+"\": " + sampleRate +
+                    ", \""+SENSOR_SELECTION+"\": " + sensorSelection +
                     '}';
         }
     }

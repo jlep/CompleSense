@@ -71,21 +71,24 @@ public class SystemUtil {
         record.put(Constants.TXTRECORD_PROP_VISIBILITY, "visible");
 
         //-------- get available sensor list
+        List<Integer> sensorList = new ArrayList<Integer>();
+        sensorList.add(SensorUtil.SENSOR_CAMERA);
+        sensorList.add(SensorUtil.SENSOR_MIC);
+        sensorList.add(SensorUtil.SENSOR_GPS);
+        sensorList.addAll(SensorUtil.getLocalSensorTypeList(abstractGroupService));
+
         record.put(Constants.TXTRECORD_SENSOR_TYPE_LIST,
-                SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
-        Log.i(TAG,SensorUtil.getLocalSensorTypeList(abstractGroupService).toString());
+                sensorList.toString());
+        Log.i(TAG,sensorList.toString());
 
         //-------- get available network connections
         List<Integer> availableConns = new ArrayList<Integer>();
         ConnectivityManager connMgr = (ConnectivityManager)
                 abstractGroupService.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo[] networkInfos = connMgr.getAllNetworkInfo();
-        for(NetworkInfo ni:networkInfos)
-        {
-            if(ni !=null)
-            {
-                if(ni.isConnectedOrConnecting())
-                {
+        for(NetworkInfo ni:networkInfos){
+            if(ni !=null){
+                if(ni.isConnectedOrConnecting()){
                     Log.i(TAG, ni.getTypeName());
                     availableConns.add(ni.getType());
                 }
@@ -361,7 +364,7 @@ public class SystemUtil {
                 JSONObject param = (JSONObject) parameters.get(i);
                 systemConfig.addParam(param);
             }
-
+            Log.i(TAG, systemConfig.toString());
             return systemConfig;
         }
 

@@ -1,5 +1,7 @@
 package fi.hiit.complesense.connection;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -68,6 +70,11 @@ public abstract class AbsAsyncIO extends AbsSystemThread
 
         // Finally, wake up our selecting thread so it can make the required changes
         selector.wakeup();
+    }
+
+    public void send(SocketChannel socketChannel, JSONObject jsonObject)
+    {
+        send(socketChannel, jsonObject.toString().getBytes());
     }
 
     protected void write(SelectionKey key) throws IOException

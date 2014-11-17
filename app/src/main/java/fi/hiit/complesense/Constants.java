@@ -14,6 +14,7 @@ public class Constants
 {
     public static final int NUM_CLIENTS = 1;
 
+    public static final int BYTES_INT = (int)(Integer.SIZE / 8);
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
 
     public static final int MEDIA_TYPE_IMAGE = 100;

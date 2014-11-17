@@ -37,6 +37,7 @@ import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 public class GroupOwnerServiceHandler extends ServiceHandler
 {
     private static final String TAG = GroupOwnerServiceHandler.class.getSimpleName();
+    private SystemConfig sysConfig = null;
     //private Timer timer;
 
     private int clientCounter = 0;
@@ -47,21 +48,14 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
 
     public GroupOwnerServiceHandler(Messenger serviceMessenger, String name,
-                                    Context context)
-    {
+                                    Context context) throws IOException, JSONException {
         super(serviceMessenger, name,context, true, null, 0);
-        try {
-            SystemConfig sysConfig = SystemUtil.loadConfigFile();
-            if(sysConfig!=null)
-                updateStatusTxt(sysConfig.toString());
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
+        sysConfig = SystemUtil.loadConfigFile();
+        if(sysConfig!=null)
+        {
+            List<SystemConfig.SensorConfig> reqSensors = sysConfig.reqSensors();
+            updateStatusTxt("Required Sensors: " + reqSensors.toString());
         }
-
 
 //        timer = new Timer();
         //LocalRecThread localRecThread = new LocalRecThread(this);
@@ -104,12 +98,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             return true;
 
                         case JsonSSI.NEW_STREAM_SERVER:
-                            JSONArray testJson = new JSONArray();
-                            testJson.put(Sensor.TYPE_ACCELEROMETER);
-                            testJson.put(Sensor.TYPE_GYROSCOPE);
-                            testJson.put(Sensor.TYPE_MAGNETIC_FIELD);
-                            testJson.put(SensorUtil.SENSOR_MIC);
-                            sendStartStreamClientReq(socketChannel, testJson, 8000, jsonObject.getInt(JsonSSI.STREAM_PORT));
+                            sendStartStreamClientReq(socketChannel, sysConfig.reqSensors(), jsonObject.getInt(JsonSSI.STREAM_PORT));
                             return true;
 
                         case JsonSSI.NEW_STREAM_CONNECTION:
@@ -169,12 +158,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }
     }
 
-    private void sendStartStreamClientReq(SocketChannel socketChannel, JSONArray reqSensorTypes, int samplesPerSecond, int recvPort) throws JSONException
+    private void sendStartStreamClientReq(SocketChannel socketChannel, List<SystemConfig.SensorConfig> requiredSensors, int recvPort) throws JSONException
     {
-        Set<Integer> requiredSensors = new HashSet<Integer>();
-        for(int i=0;i<reqSensorTypes.length();i++)
-            requiredSensors.add(reqSensorTypes.getInt(i));
-
         String key = socketChannel.socket().getRemoteSocketAddress().toString();
         Set<Integer> sensorSet = new HashSet<Integer>(availableSensors.get(key));
         if(sensorSet==null)
@@ -183,9 +168,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             return;
         }
 
-        if(sensorSet.containsAll(requiredSensors))
+        Set<Integer> availableSensorTypes = new HashSet<Integer>();
+        for(SystemConfig.SensorConfig sc: requiredSensors)
+            availableSensorTypes.add(sc.getType());
+
+        if(sensorSet.containsAll(availableSensorTypes))
         {
-            JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(reqSensorTypes, samplesPerSecond,
+            JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(new JSONArray(requiredSensors),
                     peerList.get(key).getDelay(), recvPort);
             absAsyncIO.send(socketChannel, jsonStartStream.toString().getBytes());
         }
