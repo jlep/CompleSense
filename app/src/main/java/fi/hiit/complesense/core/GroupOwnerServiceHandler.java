@@ -82,9 +82,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                                 webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
                             return true;
                         case JsonSSI.NEW_CONNECTION:
+                            addNewConnection(webSocket);
                             JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
                                     Constants.RTT_ROUNDS);
-                            absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
+                            webSocket.send(jsonRtt.toString());
                             return true;
 
                         case JsonSSI.NEW_STREAM_SERVER:

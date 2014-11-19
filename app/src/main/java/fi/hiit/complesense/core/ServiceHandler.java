@@ -152,7 +152,7 @@ public class ServiceHandler extends HandlerThread
         quit();
     }
 
-    public void addNewConnection(WebSocket webSocket)
+    protected void addNewConnection(WebSocket webSocket)
     {
         String str = "addNewConnection("+ webSocket.toString() +")";
         Log.i(TAG,str);

@@ -69,8 +69,6 @@ public class AcceptorWebSocket extends AbsSystemThread
     public void onConnected(final WebSocket webSocket, RequestHeaders requestHeaders)
     {
         _sockets.add(webSocket);
-        serviceHandler.addNewConnection(webSocket);
-
         Log.i(TAG, "New connection url: " + requestHeaders.getUri());
         try {
             notifyServiceHandlerNewConnection(webSocket);
