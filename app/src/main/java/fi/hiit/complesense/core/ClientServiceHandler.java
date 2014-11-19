@@ -12,6 +12,8 @@ import android.os.Messenger;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -71,16 +73,16 @@ public class ClientServiceHandler extends ServiceHandler
         {
             if(msg.what == JSON_RESPONSE_BYTES)
             {
-                JSONObject jsonObject = (JSONObject)msg.obj;
                 try
                 {
-                    SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-                    Socket socket = socketChannel.socket();
+                    JSONObject jsonObject = (JSONObject)msg.obj;
+                    String webSocketStr = jsonObject.getString(JsonSSI.WEB_SOCKET);
+                    WebSocket webSocket = peerList.get(webSocketStr).getWebSocket();
 
                     switch(jsonObject.getInt(COMMAND))
                     {
                         case JsonSSI.C:
-                            absAsyncIO.send(socketChannel,JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)));
+                            webSocket.send(JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)).toString());
                             return true;
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
@@ -108,6 +110,7 @@ public class ClientServiceHandler extends ServiceHandler
     private void startStreaming(JSONArray sensorConfigJson, int port) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
+        /*
         int startSignal = 1;
         CountDownLatch latch = new CountDownLatch(startSignal);
         AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port, latch);
@@ -142,11 +145,12 @@ public class ClientServiceHandler extends ServiceHandler
             workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
             sensorDataCollectionThread.start();
         }
+        */
     }
 
     public void sendImg2Server(File imgFile)
     {
-        Log.i(TAG, "sendImg2Server(imgFile: "+ imgFile +") @ thread id: " + Thread.currentThread().getId() );
+        Log.i(TAG, "sendImg2Server(imgFile: " + imgFile + ") @ thread id: " + Thread.currentThread().getId());
         SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), serverWebSocketPort);
         ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
         socketClient.connect();

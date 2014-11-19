@@ -8,29 +8,24 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AbsAsyncIO;
-import fi.hiit.complesense.connection.AcceptorUDP;
-import fi.hiit.complesense.connection.AsyncClient;
-import fi.hiit.complesense.connection.AsyncServer;
-import fi.hiit.complesense.connection.ConnectorUDP;
-import fi.hiit.complesense.connection.UdpConnectionRunnable;
+import fi.hiit.complesense.connection.AcceptorWebSocket;
+import fi.hiit.complesense.connection.AliveConnection;
+import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.connection.WebConnection;
 import fi.hiit.complesense.json.JsonSSI;
-
-import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -51,8 +46,8 @@ public class ServiceHandler extends HandlerThread
     //public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
-    protected AbsAsyncIO absAsyncIO;
     public Map<String, AbsSystemThread> workerThreads;
+    private WebConnection webConnection;
 
 
     public ServiceHandler(Messenger serviceMessenger, String name,
@@ -73,22 +68,13 @@ public class ServiceHandler extends HandlerThread
 
     protected void init(InetAddress ownerAddr)
     {
-        try
-        {
-            if(isGroupOwner)
-            {
-                absAsyncIO = AsyncServer.getInstance(this);
-                workerThreads.put(AsyncServer.TAG, absAsyncIO);
-            }else{
-                absAsyncIO = new AsyncClient(this, ownerAddr, Constants.SERVER_PORT);
-                workerThreads.put(AsyncClient.TAG, absAsyncIO);
-            }
-
-        } catch (IOException e)
-        {
-            Log.e(TAG, e.toString());
+        if(isGroupOwner){
+            webConnection = new AcceptorWebSocket(this);
+            workerThreads.put(AcceptorWebSocket.TAG, webConnection);
+        }else{
+            webConnection = new ConnectorWebSocket(this);
+            workerThreads.put(ConnectorWebSocket.TAG, webConnection);
         }
-
     }
 
     @Override
@@ -104,23 +90,10 @@ public class ServiceHandler extends HandlerThread
     {
         if(msg.what == JSON_RESPONSE_BYTES)
         {
-            try
-            {
-                JSONObject jsonObject = (JSONObject)msg.obj;
-                Log.v(TAG, "Receive: " + jsonObject.toString());
-                SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-
-                switch(jsonObject.getInt(COMMAND))
-                {
-                    case JsonSSI.RTT_QUERY:
-                        forwarRttQuery(jsonObject, socketChannel);
-                        return true;
-                }
-            } catch (JSONException e) {
-                Log.i(TAG, e.toString());
-            }
+            JSONObject jsonObject = (JSONObject)msg.obj;
+            Log.v(TAG, "Receive: " + jsonObject.toString());
         }
-        return false;
+        return true;
     }
 
     public Map<String, AliveConnection> getPeerList()
@@ -179,13 +152,13 @@ public class ServiceHandler extends HandlerThread
         quit();
     }
 
-    protected void addNewConnection(SocketAddress socketAddress)
+    public void addNewConnection(WebSocket webSocket)
     {
-        String str = "addNewConnection("+ socketAddress +")";
+        String str = "addNewConnection("+ webSocket.toString() +")";
         Log.i(TAG,str);
         updateStatusTxt(str);
-        AliveConnection aliveConnection = new AliveConnection(socketAddress, this);
-        peerList.put(socketAddress.toString(), aliveConnection);
+        AliveConnection aliveConnection = new AliveConnection(webSocket, this);
+        peerList.put(webSocket.toString(), aliveConnection);
 
     }
 
@@ -196,6 +169,17 @@ public class ServiceHandler extends HandlerThread
         Log.i(TAG,str);
         updateStatusTxt(str);
         peerList.remove(socketAddrStr);
+    }
+
+    public void send2Handler(WebSocket webSocket, String data)
+    {
+        try{
+            JSONObject jsonObject = new JSONObject(data);
+            Message msg = Message.obtain(handler, ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            msg.sendToTarget();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -234,10 +218,10 @@ public class ServiceHandler extends HandlerThread
     }
 
     @Override
-    public void onConnectionTimeout(SocketAddress socketAddress)
+    public void onConnectionTimeout(WebSocket webSocket)
     {
-        Log.i(TAG, "onConnectionTimeout(" + socketAddress.toString() + ")");
-        removeFromPeerList(socketAddress.toString());
+        Log.i(TAG, "onConnectionTimeout(" + webSocket.toString() + ")");
+        removeFromPeerList(webSocket.toString());
     }
 
     /**
@@ -254,19 +238,19 @@ public class ServiceHandler extends HandlerThread
         Log.i(TAG,"RTT between "+ remoteSocketAddr +" : " + rttMeasurement+ " ms");
     }
 
-    private void forwarRttQuery(JSONObject jsonObject, SocketChannel socketChannel) throws JSONException {
+    /*
+    private void forwarRttQuery(JSONObject jsonObject, WebSocket webSocket) throws JSONException {
 
         long startTime = jsonObject.getLong(JsonSSI.TIMESTAMP);
         int rounds = jsonObject.getInt(JsonSSI.ROUNDS);
         String originHost = (String)jsonObject.get(JsonSSI.ORIGIN_HOST);
         int originPort = jsonObject.getInt(JsonSSI.ORIGIN_PORT);
-        String senderSocketAddrStr = socketChannel.socket().getRemoteSocketAddress().toString();
 
         Log.v(TAG, "replyRttQuery(rounds: " + rounds + " senderSocketAddrStr: " + senderSocketAddrStr + ")");
         String localSocketAddrStr = socketChannel.socket().getLocalSocketAddress().toString();
         Log.v(TAG, "replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
 
-        if(rounds <=0 && isOrigin(originHost, originPort, socketChannel.socket()))
+        if(rounds <=0 && isOrigin(originHost, originPort, webSocket.getSocket().))
         {
             onReceiveLastRttReply(startTime, socketChannel);
         }
@@ -276,10 +260,10 @@ public class ServiceHandler extends HandlerThread
                 --rounds;
             }
             JSONObject jsonForward = JsonSSI.makeRttQuery(startTime, rounds, originHost, originPort);
-            absAsyncIO.send(socketChannel, jsonForward.toString().getBytes());
+            webConnection.send(socketChannel, jsonForward.toString().getBytes());
         }
     }
-
+    */
     private boolean isOrigin(String host, int port, Socket localSocket)
     {
         if(host.equalsIgnoreCase(localSocket.getLocalAddress().toString()) &&

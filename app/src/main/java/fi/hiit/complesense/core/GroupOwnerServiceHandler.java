@@ -1,20 +1,18 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
-import android.hardware.Sensor;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
+
+import com.koushikdutta.async.http.WebSocket;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.channels.Pipe;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +24,6 @@ import java.util.Set;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AsyncStreamServer;
 import fi.hiit.complesense.json.JsonSSI;
-import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
@@ -68,36 +65,25 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     }
 
     @Override
-    public void onReceiveLastRttReply(long startTimeMillis, SocketChannel socketChannel)
-    {
-        super.onReceiveLastRttReply(startTimeMillis, socketChannel);
-
-        ++clientCounter;
-        try
-        {
-            absAsyncIO.send(socketChannel, JsonSSI.makeSensorDiscvoeryReq().toString().getBytes());
-        } catch (JSONException e) {
-            Log.i(TAG, e.toString());
-        }
-    }
-
-    @Override
     public boolean handleMessage(Message msg)
     {
         if(!super.handleMessage(msg)){
             if(msg.what == JSON_RESPONSE_BYTES){
                 try{
                     JSONObject jsonObject = (JSONObject)msg.obj;
-
-                    SocketChannel socketChannel = (SocketChannel)jsonObject.get(JsonSSI.SOCKET_CHANNEL);
-                    Socket socket = socketChannel.socket();
+                    String webSocketStr = jsonObject.getString(JsonSSI.WEB_SOCKET);
+                    WebSocket webSocket = peerList.get(webSocketStr).getWebSocket();
 
                     switch(jsonObject.getInt(COMMAND))
                     {
+                        case JsonSSI.RTT_LAST:
+                            ++clientCounter;
+                            if(webSocket!=null)
+                                webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
+                            return true;
                         case JsonSSI.NEW_CONNECTION:
-                            addNewConnection(socket.getRemoteSocketAddress());
                             JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
-                                    Constants.RTT_ROUNDS, socket.getLocalAddress().toString(), socket.getLocalPort());
+                                    Constants.RTT_ROUNDS);
                             absAsyncIO.send(socketChannel, jsonRtt.toString().getBytes());
                             return true;
 

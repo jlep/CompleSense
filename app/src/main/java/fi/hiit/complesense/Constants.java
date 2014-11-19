@@ -91,8 +91,7 @@ public class Constants
 
     public static final int LOCAL_WEBSOCKET_PORT = 12000;
     public static final int FRAME_SIZE = 1000; // milliseconds
-    public static final String PROTOCOL = "ws";
-
+    public static final String WEB_PROTOCOL = "ws";
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};

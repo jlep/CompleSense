@@ -3,6 +3,8 @@ package fi.hiit.complesense.json;
 import android.os.Handler;
 import android.os.Message;
 
+import com.koushikdutta.async.http.WebSocket;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,7 +32,7 @@ public class JsonSSI
 
     public static final short NEW_STREAM_CONNECTION = 0x08;
     public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
-    public static final short RTT_QUERY = 0x10; // rtt query
+    public static final short RTT_LAST = 0x10; // rtt query
     public static final short NEW_STREAM_SERVER = 0x11;
 
     public static final String COMMAND = "command";
@@ -47,6 +49,7 @@ public class JsonSSI
     public static final String SENSOR_TYPE = "sensor_type";
     public static final String SENSOR_VALUES = "sensor_values";
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
+    public static final String WEB_SOCKET = "web_socket";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -67,28 +70,13 @@ public class JsonSSI
         return rep;
     }
 
-    public static void send2ServiceHandler(Handler handler, SocketChannel socketChannel, byte[] data)
-    {
-        try
-        {
-            JSONObject jsonObject = new JSONObject(new String(data));
-            jsonObject.put(JsonSSI.SOCKET_CHANNEL, socketChannel);
-            Message msg = Message.obtain(handler, ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
-            msg.sendToTarget();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
     public static JSONObject makeRttQuery(long timeStamp,
-                                          int rounds, String host, int port) throws JSONException
+                                          int rounds) throws JSONException
     {
         JSONObject query = new JSONObject();
-        query.put(COMMAND, RTT_QUERY);
+        //query.put(COMMAND, RTT_QUERY);
         query.put(TIMESTAMP, timeStamp);
         query.put(ROUNDS, rounds);
-        query.put(ORIGIN_HOST, host);
-        query.put(ORIGIN_PORT, port);
 
         return query;
     }
@@ -101,6 +89,15 @@ public class JsonSSI
         jsonObject.put(TIME_DIFF, timeDiff);
         jsonObject.put(STREAM_PORT, port);
         jsonObject.put(DESC, "Start Streaming Request");
+        return jsonObject;
+    }
+
+    public static JSONObject makeLastRttReceived(WebSocket webSocket) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put(COMMAND, RTT_LAST);
+        jsonObject.put(WEB_SOCKET, webSocket.toString());
+        jsonObject.put(DESC, "Last RTT pong message has been received");
         return jsonObject;
     }
 }

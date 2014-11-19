@@ -1,7 +1,9 @@
-package fi.hiit.complesense.core;
+package fi.hiit.complesense.connection;
 
 import android.os.CountDownTimer;
 import android.util.Log;
+
+import com.koushikdutta.async.http.WebSocket;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -12,7 +14,7 @@ import java.net.SocketAddress;
 public class AliveConnection
 {
     private static final String TAG = "AliveConnection";
-    public final SocketAddress socketAddress;
+    public final WebSocket webSocket;
     public final long startTime;
     private CountDownTimer countDownTimer;
     private final AliveConnectionListener mListener;
@@ -23,13 +25,13 @@ public class AliveConnection
 
     public interface AliveConnectionListener
     {
-        public void onConnectionTimeout(SocketAddress socketAddress);
+        public void onConnectionTimeout(WebSocket webSocket);
     }
 
-    public AliveConnection(final SocketAddress socketAddress, AliveConnectionListener listener)
+    public AliveConnection(final WebSocket webSocket, AliveConnectionListener listener)
     {
 
-        this.socketAddress = socketAddress;
+        this.webSocket = webSocket;
         startTime = System.currentTimeMillis();
         mListener = listener;
         nextCheckTime = VALID_TIME;
@@ -57,7 +59,7 @@ public class AliveConnection
 
             @Override
             public void onFinish() {
-                mListener.onConnectionTimeout(socketAddress);
+                mListener.onConnectionTimeout(webSocket);
             }
         };
         countDownTimer.start();
@@ -73,4 +75,8 @@ public class AliveConnection
         initCountDownTimer();
     }
 
+
+    public WebSocket getWebSocket() {
+        return webSocket;
+    }
 }

@@ -18,16 +18,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.audio.WavFileWriter;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.core.AbstractSystemThread;
-import fi.hiit.complesense.core.AliveConnection;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
