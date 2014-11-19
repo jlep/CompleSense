@@ -34,7 +34,7 @@ public class WifiConnectionManager
     protected WifiP2pManager.Channel channel;
     public boolean isWifiP2pEnabled = false;
 
-    public static final String SERVICE_INSTANCE = "_wifidemotest";
+    public static final String SERVICE_INSTANCE = "_complesense";
     public static final String SERVICE_REG_TYPE = "_presence._tcp";
     private Messenger uiMessenger;
     private WifiP2pDnsSdServiceRequest serviceRequest;

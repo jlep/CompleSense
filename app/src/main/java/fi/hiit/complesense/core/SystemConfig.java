@@ -68,6 +68,7 @@ public class SystemConfig
         return reqSensors;
     }
 
+
     public static Set<Integer> getSensorTypesFromJson(JSONArray sensorConfigJson) throws JSONException {
         Set<Integer> reqSensorTypes = new HashSet<Integer>();
         for(int i=0;i<sensorConfigJson.length();i++){
@@ -195,7 +196,7 @@ public class SystemConfig
         @Override
         public String toString() {
             return "{" +
-                    "\""+ DELIVERY_TYPE + "\": " + deliveryType +
+                    "\""+ DELIVERY_TYPE + "\": " + "\"" + deliveryType + "\"" +
                     ", \""+ BATCH_SIZE +"\": " + batchSize +
                     ", \""+ BATCH_DELAY +"\": " + batchDelay +
                     ", \""+ BURST_LENGTH +"\": " + burstLength +

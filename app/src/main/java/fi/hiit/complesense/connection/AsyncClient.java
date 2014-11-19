@@ -174,7 +174,7 @@ public class AsyncClient extends AbsAsyncIO
 
     public void send(byte[] data)
     {
-        //Log.i(TAG, "send(): " + socketChannel.toString());
+        //Log.i(TAG, "send(): " + new String(data));
         synchronized (this.pendingChanges)
         {
             // Indicate we want the interest ops set changed

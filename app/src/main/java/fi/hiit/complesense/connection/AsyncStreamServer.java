@@ -73,7 +73,7 @@ public class AsyncStreamServer extends AsyncServer
     public void run()
     {
         try{
-            Log.i(TAG, "Stream Server running at thread: " + Thread.currentThread().getId());
+            Log.i(TAG, "StreamServer running at thread: " + Thread.currentThread().getId());
             selector = initSelector();
             dataProcessingThread.start();
 
@@ -195,9 +195,31 @@ public class AsyncStreamServer extends AsyncServer
 
     private void handleStreamData(SocketChannel socketChannel, int numRead) throws IOException
     {
-        //byte[] rspData = new byte[numRead];
-        //System.arraycopy(readBuffer.array(), 0, rspData, 0, numRead);
-        dataProcessingThread.addDataToThreadBuffer(socketChannel, readBuffer.array(), numRead);
+        /*
+        Log.i(TAG, "numRead: " + numRead + " pos: " + readBuffer.position() + " remaining(): " + readBuffer.remaining());
+        if(numRead>Constants.BYTES_INT){
+            readBuffer.flip();
+            int payloadSize = readBuffer.getInt(0);
+            Log.i(TAG, "payloadSize: " + payloadSize + " pos: " + readBuffer.position() + " remaining(): " + readBuffer.remaining());
+            if((readBuffer.remaining()-Constants.BYTES_INT) >= payloadSize){
+                payloadSize = readBuffer.getInt();
+                Log.i(TAG, "payloadSize: " + payloadSize + " pos: " + readBuffer.position() + " remaining(): " + readBuffer.remaining());
+                byte[] payload = new byte[payloadSize];
+                readBuffer.get(payload);
+                //dataProcessingThread.addDataToThreadBuffer(socketChannel, payload, payloadSize);
+
+                Log.i(TAG, "pos: " + readBuffer.position() + " remaining(): " + readBuffer.remaining());
+
+            }else{ // not enough data has been received, wait for more data
+                Log.i(TAG, "need : " + (payloadSize-numRead+Constants.BYTES_INT) + " more bytes");
+            }
+        }
+        */
+        Log.i(TAG, "numRead: " + numRead + " from: " + socketChannel.socket().getRemoteSocketAddress().toString());
+        byte[] bytes = new byte[numRead];
+        readBuffer.flip();
+        readBuffer.get(bytes);
+        dataProcessingThread.addDataToThreadBuffer(socketChannel, bytes, numRead);
     }
 
     @Override

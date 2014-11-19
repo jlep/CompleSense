@@ -54,7 +54,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         if(sysConfig!=null)
         {
             List<SystemConfig.SensorConfig> reqSensors = sysConfig.reqSensors();
-            updateStatusTxt("Required Sensors: " + reqSensors.toString());
+            Set<Integer> reqSensorTypes = new HashSet<Integer>();
+            for(SystemConfig.SensorConfig sc : reqSensors){
+                reqSensorTypes.add(sc.getType());
+            }
+            updateStatusTxt("Required sensors: " + reqSensorTypes.toString());
         }
 
 //        timer = new Timer();
@@ -132,7 +136,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             asyncStreamServer.start();
 
         }else{
-            Log.i(TAG, "Stream server is already running");
+            Log.i(TAG, "Streaming server is already running");
             AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);
             streamServer.notifyServerRunning(getHandler(), socketChannel);
         }

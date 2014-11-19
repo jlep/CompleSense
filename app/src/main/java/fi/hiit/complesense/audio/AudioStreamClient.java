@@ -28,7 +28,7 @@ public class AudioStreamClient extends AbsSystemThread
 
     private WavFileWriter wavFileWriter;
     private long threadID;
-    private final int isJSON = 0;
+    private final short isJSON = 0;
 
     public AudioStreamClient(ServiceHandler serviceHandler,
                              AsyncStreamClient streamClient, CountDownLatch latch)
@@ -62,27 +62,28 @@ public class AudioStreamClient extends AbsSystemThread
                             AudioFormat.CHANNEL_IN_MONO,
                             AudioFormat.ENCODING_PCM_16BIT) * 10);
 
-            int bytes_read = 0, bytes_count = 0;
+            int bytes_read = 0, payloadSize = 0, bytes_count = 0;
 
             byte[] buf = new byte[Constants.BUF_SIZE];
-            ByteBuffer bb = null;
+            ByteBuffer bb = ByteBuffer.allocate(Constants.BYTES_SHORT + 2*Constants.BYTES_INT +  Constants.BUF_SIZE);
 
             keepRunning = true;
             audio_recorder.startRecording();
             while(keepRunning)
             {
-                bytes_read = audio_recorder.read(buf, Integer.SIZE / 8,Constants.BUF_SIZE);
+                bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
                 //buffer = ByteBuffer.wrap(buf);
                 wavFileWriter.write(buf);
                 //fileChannel.write(buffer);
                 bb.clear();
-                bb = ByteBuffer.allocate(2*Integer.SIZE + bytes_read);
-                bb.putInt(isJSON);
+
+                payloadSize = Constants.BYTES_SHORT + Constants.BYTES_INT + bytes_read;
+                bb.putInt(payloadSize);
+                bb.putShort(isJSON);
                 bb.putInt(SensorUtil.SENSOR_MIC);
                 bb.put(buf);
-                streamClient.send(bb.array());
                 bytes_count += bytes_read;
-
+                streamClient.send(bb.array());
                 Thread.sleep(Constants.SAMPLE_INTERVAL);
             }
 

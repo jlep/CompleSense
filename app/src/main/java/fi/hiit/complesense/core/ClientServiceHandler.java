@@ -114,12 +114,10 @@ public class ClientServiceHandler extends ServiceHandler
         workerThreads.put(AsyncStreamClient.TAG, asyncStreamClient);
         asyncStreamClient.start();
 
-
-
         Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
-        Log.i(TAG, requiredSensors.toString());
-        if(requiredSensors.remove(SensorUtil.SENSOR_MIC))
-        {
+        updateStatusTxt("Required sensors: "+ requiredSensors.toString());
+
+        if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
             AudioStreamClient audioStreamClient = new AudioStreamClient(
                     this, asyncStreamClient, latch);
             workerThreads.put(AudioStreamClient.TAG,audioStreamClient);
@@ -134,12 +132,11 @@ public class ClientServiceHandler extends ServiceHandler
         if(requiredSensors.remove(SensorUtil.SENSOR_GPS))
         {
             locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-            mLocationDataListener = new LocationDataListener(this, context);
+            mLocationDataListener = new LocationDataListener(this, context, asyncStreamClient);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
         }
 
-        if(requiredSensors.size()>0)
-        {
+        if(requiredSensors.size()>0){
             SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
                     this, context, requiredSensors, asyncStreamClient, latch);
             workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);

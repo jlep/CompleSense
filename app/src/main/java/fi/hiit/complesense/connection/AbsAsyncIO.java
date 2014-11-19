@@ -23,7 +23,7 @@ import fi.hiit.complesense.json.JsonSSI;
  */
 public abstract class AbsAsyncIO extends AbsSystemThread
 {
-    public static final int BUF_SIZE = 8192;
+    public static final int RECV_BUF_SIZE = 8192;
 
     private static final String TAG = AbsAsyncIO.class.getSimpleName();
 
@@ -37,7 +37,7 @@ public abstract class AbsAsyncIO extends AbsSystemThread
             new HashMap<SocketChannel, List<ByteBuffer> >();
 
     // The buffer into which we'll read data when it's available
-    protected ByteBuffer readBuffer = ByteBuffer.allocate(BUF_SIZE);
+    protected ByteBuffer readBuffer = ByteBuffer.allocate(RECV_BUF_SIZE);
 
     protected AbsAsyncIO(String name, ServiceHandler serviceHandler)
     {

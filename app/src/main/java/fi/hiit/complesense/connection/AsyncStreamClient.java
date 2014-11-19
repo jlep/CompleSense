@@ -8,6 +8,7 @@ import org.json.JSONException;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
@@ -43,11 +44,10 @@ public class AsyncStreamClient extends AsyncClient
     @Override
     public void run()
     {
-        Log.i(TAG, "Stream Client running at thread: " + Thread.currentThread().getId());
-        try
-        {
+        try{
             socketChannel = this.initiateConnection();
             countDownLatch.countDown();
+            Log.i(TAG, "StreamClient running at thread: " + Thread.currentThread().getId());
 
             while(keepRunning)
             {
@@ -95,6 +95,8 @@ public class AsyncStreamClient extends AsyncClient
                 }
             }
         }catch (ClosedSelectorException e){
+            Log.v(TAG, e.toString());
+        }catch(CancelledKeyException e){
             Log.v(TAG, e.toString());
         }
         catch (ClosedChannelException e) {

@@ -25,20 +25,23 @@ import fi.hiit.complesense.util.SensorUtil;
 public class LocationDataListener implements LocationListener
 {
     public static final String TAG = LocationDataCollectionThread.class.getSimpleName();
-    private static final int LATITUDE = 0;
+    public static final int LATITUDE = 0;
     public static final int LONGITUDE = 1;
+
+    private final AsyncStreamClient asyncStreamClient;
     private JSONObject jsonGeoCoords = new JSONObject();
 
     private final LocationManager locationManager;
     //private final AsyncStreamClient asyncStreamClient;
     private LocationListener mLocationListener = null;
     private ByteBuffer buffer;
-    private int isJSON = 1;
+    private short isJSON = 1;
 
-    public LocationDataListener(ServiceHandler serviceHandler,
-                            Context context) throws JSONException
+    public LocationDataListener(ServiceHandler serviceHandler, Context context,
+                                AsyncStreamClient asyncStreamClient) throws JSONException
     {
         locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+        this.asyncStreamClient = asyncStreamClient;
         initBuffer();
     }
 
@@ -47,10 +50,15 @@ public class LocationDataListener implements LocationListener
         jsonGeoCoords.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
         jsonGeoCoords.put(JsonSSI.SENSOR_TYPE, SensorUtil.SENSOR_GPS);
         JSONArray jsonArray = new JSONArray();
-        jsonArray.put(LATITUDE, 0d);
-        jsonArray.put(LONGITUDE, 0d);
+        double placeholder = Double.toString(Double.MIN_VALUE).length()>Double.toString(Double.MAX_VALUE).length()?Double.MIN_VALUE:Double.MAX_VALUE;
+        jsonArray.put(placeholder);
+        jsonArray.put(placeholder);
         jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
-        buffer = ByteBuffer.allocate(Constants.BYTES_INT + jsonGeoCoords.toString().getBytes().length);
+
+        int length = Constants.BYTES_INT + Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length;
+        Log.i(TAG, "length:" + length);
+        buffer = ByteBuffer.allocate(length);
+        buffer.clear();
     }
 
 
@@ -67,10 +75,14 @@ public class LocationDataListener implements LocationListener
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
 
             buffer.clear();
-            buffer.putInt(isJSON);
+
+            int payloadSize = Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length;
+            buffer.putInt(payloadSize);
+            buffer.putShort(isJSON);
+            Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
             buffer.put(jsonGeoCoords.toString().getBytes());
 
-            //asyncStreamClient.send(buffer.array());
+            asyncStreamClient.send(buffer.array());
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }

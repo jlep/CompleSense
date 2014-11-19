@@ -71,16 +71,14 @@ public class SystemUtil {
         record.put(Constants.TXTRECORD_PROP_VISIBILITY, "visible");
 
         //-------- get available sensor list
+        /*
         List<Integer> sensorList = new ArrayList<Integer>();
-        sensorList.add(SensorUtil.SENSOR_CAMERA);
-        sensorList.add(SensorUtil.SENSOR_MIC);
-        sensorList.add(SensorUtil.SENSOR_GPS);
         sensorList.addAll(SensorUtil.getLocalSensorTypeList(abstractGroupService));
 
         record.put(Constants.TXTRECORD_SENSOR_TYPE_LIST,
                 sensorList.toString());
         Log.i(TAG,sensorList.toString());
-
+        */
         //-------- get available network connections
         List<Integer> availableConns = new ArrayList<Integer>();
         ConnectivityManager connMgr = (ConnectivityManager)
@@ -100,7 +98,7 @@ public class SystemUtil {
         //-------- get battery level
         record.put(Constants.TXTRECORD_BATTERY_LEVEL,
                 Float.toString(abstractGroupService.getBatteryLevel()));
-
+        Log.i(TAG, "TXTRecord: " + record);
 
         return record;
     }

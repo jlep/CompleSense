@@ -41,8 +41,8 @@ public class ClientOwnerService extends AbstractGroupService
                 {
                     Log.i(TAG, "DnsSdTxtRecord available from " + device.deviceAddress +": " + record.toString());
                     //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
-                            Constants.TXTRECORD_SENSOR_TYPE_LIST));
+                    //SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
+                    //        Constants.TXTRECORD_SENSOR_TYPE_LIST));
                     SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
                             Constants.TXTRECORD_NETWORK_INFO));
                     float batteryDiff = getBatteryLevel() - Float.parseFloat((String)record.get(Constants.TXTRECORD_BATTERY_LEVEL));
