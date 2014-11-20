@@ -196,7 +196,7 @@ public class AsyncServer extends AbsAsyncIO
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
         jsonAccept.put(JsonSSI.DESC, "New Connection");
-        JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
+        //JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
         //JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
         //        Constants.RTT_ROUNDS, socketChannel.socket().getLocalAddress().toString(), socketChannel.socket().getLocalPort());
         //send(socketChannel, jsonRtt.toString().getBytes());

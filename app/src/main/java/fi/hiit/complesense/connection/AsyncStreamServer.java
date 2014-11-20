@@ -157,7 +157,7 @@ public class AsyncStreamServer extends AsyncServer
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_CONNECTION);
         jsonAccept.put(JsonSSI.DESC, "New Stream Connection: " + socketChannel.socket().getRemoteSocketAddress());
-        JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
+       // JsonSSI.send2ServiceHandler(handler, socketChannel, jsonAccept.toString().getBytes());
     }
 
     @Override

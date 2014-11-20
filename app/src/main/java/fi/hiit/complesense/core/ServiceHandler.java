@@ -19,13 +19,10 @@ import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
-
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
-import fi.hiit.complesense.connection.WebConnection;
-import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -47,7 +44,6 @@ public class ServiceHandler extends HandlerThread
     public final long delay;
     private boolean isGroupOwner;
     public Map<String, AbsSystemThread> workerThreads;
-    private WebConnection webConnection;
 
 
     public ServiceHandler(Messenger serviceMessenger, String name,
@@ -69,11 +65,11 @@ public class ServiceHandler extends HandlerThread
     protected void init(InetAddress ownerAddr)
     {
         if(isGroupOwner){
-            webConnection = new AcceptorWebSocket(this);
-            workerThreads.put(AcceptorWebSocket.TAG, webConnection);
+            AcceptorWebSocket acceptor = new AcceptorWebSocket(this);
+            workerThreads.put(AcceptorWebSocket.TAG, acceptor);
         }else{
-            webConnection = new ConnectorWebSocket(this);
-            workerThreads.put(ConnectorWebSocket.TAG, webConnection);
+            ConnectorWebSocket connector = new ConnectorWebSocket(this);
+            workerThreads.put(ConnectorWebSocket.TAG, connector);
         }
     }
 
@@ -171,7 +167,7 @@ public class ServiceHandler extends HandlerThread
         peerList.remove(socketAddrStr);
     }
 
-    public void send2Handler(WebSocket webSocket, String data)
+    public void send2Handler(String data)
     {
         try{
             JSONObject jsonObject = new JSONObject(data);

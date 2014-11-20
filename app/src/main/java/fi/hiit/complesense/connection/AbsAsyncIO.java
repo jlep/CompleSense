@@ -140,7 +140,7 @@ public abstract class AbsAsyncIO extends AbsSystemThread
         // to the client
         byte[] rspData = new byte[numRead];
         System.arraycopy(data, 0, rspData, 0, numRead);
-        JsonSSI.send2ServiceHandler(serviceHandler.getHandler(), socketChannel, data);
+        //JsonSSI.send2ServiceHandler(serviceHandler.getHandler(), socketChannel, data);
 
         /*
         // Look up the handler for this channel

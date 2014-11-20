@@ -140,8 +140,9 @@ public class AcceptorWebSocket extends AbsSystemThread
     private void notifyServiceHandlerNewConnection(WebSocket webSocket) throws JSONException {
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
+        jsonAccept.put(JsonSSI.WEB_SOCKET, webSocket);
         jsonAccept.put(JsonSSI.DESC, "New Connection");
-        serviceHandler.send2Handler(webSocket, jsonAccept.toString());
+        serviceHandler.send2Handler(jsonAccept.toString());
     }
 
     /**

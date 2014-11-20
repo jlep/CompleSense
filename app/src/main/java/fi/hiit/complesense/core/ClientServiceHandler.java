@@ -37,6 +37,7 @@ import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.audio.SendAudioThread;
 import fi.hiit.complesense.connection.AsyncStreamClient;
 import fi.hiit.complesense.connection.ConnectorUDP;
+import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.json.JsonSSI;
@@ -52,18 +53,20 @@ public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
     private final InetAddress ownerAddr;
+    private final WebSocket mServerWebSocket;
     private int serverWebSocketPort;
     private LocationManager locationManager = null;
     private LocationListener mLocationDataListener = null;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
-                                String name, Context context,
+                                Context context,
                                 InetAddress ownerAddr, int delay)
 
     {
-        super(serviceMessenger, name, context, false, ownerAddr, delay);
+        super(serviceMessenger, TAG, context, false, ownerAddr, delay);
         this.ownerAddr = ownerAddr;
+        this.mServerWebSocket = ((ConnectorWebSocket)workerThreads.get(ConnectorWebSocket.TAG)).getWebSocket();
     }
 
     @Override
@@ -73,21 +76,18 @@ public class ClientServiceHandler extends ServiceHandler
         {
             if(msg.what == JSON_RESPONSE_BYTES)
             {
-                try
-                {
+                try{
                     JSONObject jsonObject = (JSONObject)msg.obj;
-                    String webSocketStr = jsonObject.getString(JsonSSI.WEB_SOCKET);
-                    WebSocket webSocket = peerList.get(webSocketStr).getWebSocket();
+                    //WebSocket webSocket = (WebSocket)jsonObject.get(JsonSSI.WEB_SOCKET);
 
-                    switch(jsonObject.getInt(COMMAND))
-                    {
+                    switch(jsonObject.getInt(COMMAND)){
                         case JsonSSI.C:
-                            webSocket.send(JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context)).toString());
+                            JSONObject sensorTypeList = JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context));
+                            mServerWebSocket.send(sensorTypeList.toString());
                             return true;
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                             int streamServerPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
-
                             Log.i(TAG, "sensorConfigJson:" + sensorConfigJson.toString());
                             startStreaming(sensorConfigJson, streamServerPort);
                             return true;

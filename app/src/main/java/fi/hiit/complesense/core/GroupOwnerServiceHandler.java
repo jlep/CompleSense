@@ -71,8 +71,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             if(msg.what == JSON_RESPONSE_BYTES){
                 try{
                     JSONObject jsonObject = (JSONObject)msg.obj;
-                    String webSocketStr = jsonObject.getString(JsonSSI.WEB_SOCKET);
-                    WebSocket webSocket = peerList.get(webSocketStr).getWebSocket();
+                    WebSocket webSocket = (WebSocket)jsonObject.get(JsonSSI.WEB_SOCKET);
 
                     switch(jsonObject.getInt(COMMAND))
                     {
@@ -89,7 +88,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             return true;
 
                         case JsonSSI.NEW_STREAM_SERVER:
-                            sendStartStreamClientReq(socketChannel, sysConfig.reqSensors(), jsonObject.getInt(JsonSSI.STREAM_PORT));
+                            sendStartStreamClientReq(webSocket, sysConfig.reqSensors(), jsonObject.getInt(JsonSSI.STREAM_PORT));
                             return true;
 
                         case JsonSSI.NEW_STREAM_CONNECTION:
@@ -97,8 +96,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             return true;
 
                         case JsonSSI.N:
-                            handleSensorTypesReply(jsonObject, socketChannel);
-                            startStreamingServer(socketChannel);
+                            handleSensorTypesReply(jsonObject, webSocket);
+                            startStreamingServer(webSocket);
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
@@ -115,43 +114,44 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreamingServer(SocketChannel socketChannel) throws IOException {
-        if(workerThreads.get(AsyncStreamServer.TAG)==null)
-        {
-            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel);
-            workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
-            asyncStreamServer.start();
-
-        }else{
-            Log.i(TAG, "Streaming server is already running");
-            AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);
-            streamServer.notifyServerRunning(getHandler(), socketChannel);
-        }
-
-    }
-
-    private void handleSensorTypesReply(JSONObject jsonObject, SocketChannel socketChannel) throws JSONException
+    private void handleSensorTypesReply(JSONObject jsonObject, WebSocket webSocket) throws JSONException
     {
         JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
         if(jsonArray!=null)
         {
-            updateStatusTxt("Receives sensor list from " + socketChannel.socket() +
+            updateStatusTxt("Receives sensor list from " + webSocket.toString() +
                     ": " + jsonArray);
             ArrayList<Integer> sensorList = new ArrayList<Integer>();
             for(int i=0;i<jsonArray.length();i++)
             {
                 sensorList.add(jsonArray.getInt(i));
             }
-            String key = socketChannel.socket().getRemoteSocketAddress().toString();
-            availableSensors.put(key, sensorList);
+            availableSensors.put(webSocket.toString(), sensorList);
 
             //sensorUtil.initSensorValues(jsonArray, socketChannel.socket().toString());
         }
     }
 
-    private void sendStartStreamClientReq(SocketChannel socketChannel, List<SystemConfig.SensorConfig> requiredSensors, int recvPort) throws JSONException
+    private void startStreamingServer(WebSocket webSocket) throws IOException {
+        Log.i(TAG, "startStreamingServer()");
+        /*
+        if(workerThreads.get(AsyncStreamServer.TAG)==null){
+            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel);
+            workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
+            asyncStreamServer.start();
+        }else{
+            Log.i(TAG, "Streaming server is already running");
+            AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);
+            streamServer.notifyServerRunning(getHandler(), socketChannel);
+        }
+        */
+    }
+
+
+
+    private void sendStartStreamClientReq(WebSocket webSocket, List<SystemConfig.SensorConfig> requiredSensors, int recvPort) throws JSONException
     {
-        String key = socketChannel.socket().getRemoteSocketAddress().toString();
+        String key = webSocket.toString();
         Set<Integer> sensorSet = new HashSet<Integer>(availableSensors.get(key));
         if(sensorSet==null)
         {
@@ -163,14 +163,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         for(SystemConfig.SensorConfig sc: requiredSensors)
             availableSensorTypes.add(sc.getType());
 
-        if(sensorSet.containsAll(availableSensorTypes))
-        {
+        if(sensorSet.containsAll(availableSensorTypes)){
             JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(new JSONArray(requiredSensors),
                     peerList.get(key).getDelay(), recvPort);
-            absAsyncIO.send(socketChannel, jsonStartStream.toString().getBytes());
-        }
-        else
-        {
+            webSocket.send(jsonStartStream.toString().getBytes());
+        }else{
             Log.e(TAG, "Client does not have all the required sensors");
         }
 

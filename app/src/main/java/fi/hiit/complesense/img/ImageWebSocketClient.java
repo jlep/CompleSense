@@ -42,7 +42,7 @@ public class ImageWebSocketClient implements
     public ImageWebSocketClient(File imgFile, SocketAddress serverSocketAddr, ServiceHandler serviceHandler)
     {
         this.imgFile = imgFile;
-        uri = URI.create(Constants.PROTOCOL + ":/" + serverSocketAddr.toString()+"/send_img");
+        uri = URI.create(Constants.WEB_PROTOCOL + ":/" + serverSocketAddr.toString()+"/send_img");
         this.serviceHandler = serviceHandler;
     }
 
@@ -50,7 +50,7 @@ public class ImageWebSocketClient implements
     {
         Log.i(TAG, "connect(" + uri.toString() +" with id: " + Thread.currentThread().getId()+ ")");
         serviceHandler.updateStatusTxt("connect("+ uri.toString() +")");
-        AsyncHttpClient.getDefaultInstance().websocket(uri.toString(), Constants.PROTOCOL, this);
+        AsyncHttpClient.getDefaultInstance().websocket(uri.toString(), Constants.WEB_PROTOCOL, this);
     }
 
     public static ImageWebSocketClient getInstance(File imgFile,

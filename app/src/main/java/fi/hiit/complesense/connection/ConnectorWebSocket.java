@@ -21,17 +21,20 @@ import fi.hiit.complesense.core.ServiceHandler;
 public class ConnectorWebSocket extends AbsSystemThread
 {
     public static final String TAG = ConnectorWebSocket.class.getSimpleName();
-    private URI uri = null;
+    private final URI uri;
     private WebSocket mWebSocket = null;
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
 
-    public ConnectorWebSocket(ServiceHandler serviceHandler) {
+    public ConnectorWebSocket(final ServiceHandler serviceHandler) {
         super(TAG, serviceHandler);
+        uri = URI.create(Constants.WEB_PROTOCOL +":/"+ remoteSocketAddr.toString()+"/send_rec");
+
         mStringCallback = new WebSocket.StringCallback(){
             @Override
             public void onStringAvailable(String s) {
                 Log.i(TAG, "recv String: " + s);
+                serviceHandler.send2Handler(s);
             }
         };
         mDataCallback = new DataCallback() {
@@ -67,7 +70,9 @@ public class ConnectorWebSocket extends AbsSystemThread
         });
     }
 
-
+    public WebSocket getWebSocket() {
+        return mWebSocket;
+    }
 
 
     @Override

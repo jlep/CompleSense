@@ -269,8 +269,7 @@ public class ClientOwnerService extends AbstractGroupService
                     mWifiConnManager.clearServiceAdvertisement();
 
                     //serviceHandler = new ClientManager(mMessenger, context, false);
-                    serviceHandler = new ClientServiceHandler(mMessenger,
-                            "ClientServiceHandler", context, p2pInfo.groupOwnerAddress, 0);
+                    serviceHandler = new ClientServiceHandler(mMessenger, context, p2pInfo.groupOwnerAddress, 0);
 
                     Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
                     serviceHandler.start();

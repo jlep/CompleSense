@@ -217,7 +217,7 @@ public class TestingService extends AbstractGroupService
                 int delay = (int)(1000 * Math.random());
 
                 ClientServiceHandler client = new ClientServiceHandler(mMessenger,
-                        "_Client_Handler", getApplicationContext(), localHost, delay);
+                        getApplicationContext(), localHost, delay);
                 clientsList.add(client);
             }
 

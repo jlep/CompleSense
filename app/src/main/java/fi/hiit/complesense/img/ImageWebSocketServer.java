@@ -78,7 +78,7 @@ public class ImageWebSocketServer extends AbstractSystemThread
         this.localUdpRunnable = localUdpRunnable;
         server = new AsyncHttpServer();
         server.setErrorCallback(this);
-        server.websocket("/send_img", Constants.PROTOCOL,this);
+        server.websocket("/send_img", Constants.WEB_PROTOCOL,this);
         this.index = index;
 
         recvDir = new File(Constants.ROOT_DIR, "recv_pic");
