@@ -4,8 +4,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.WebSocket;
@@ -22,7 +21,9 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
@@ -36,50 +37,69 @@ import fi.hiit.complesense.json.JsonSSI;
 public class AcceptorWebSocket extends AbsSystemThread
     implements CompletedCallback, AsyncHttpServer.WebSocketRequestCallback
 {
-    public static final String TAG = "AcceptorWebSocket";
+    public static final String TAG = AcceptorWebSocket.class.getSimpleName();
     private AsyncHttpServer httpServer;
-    private List<WebSocket> _sockets = new ArrayList<WebSocket>();
+    private Map<String, WebSocket> _sockets = new HashMap<String, WebSocket>();
 
     public AcceptorWebSocket(ServiceHandler serviceHandler)
     {
         super(TAG, serviceHandler);
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(this);
-        httpServer.websocket("/send_rec", Constants.WEB_PROTOCOL, this);
+        httpServer.websocket("/test",Constants.WEB_PROTOCOL, this);
     }
 
     @Override
     public void run()
     {
-        super.run();
+        String txt = "Start AcceptorWebSocket at thread id: " + Thread.currentThread().getId();
+        Log.e(TAG, txt);
+        serviceHandler.updateStatusTxt(txt);
+
+        //com.koushikdutta.async.AsyncServer asyncServer =
+        //        new com.koushikdutta.async.AsyncServer(TAG + ": " + Long.toString(Thread.currentThread().getId() ));
+        //connect();
+        httpServer.listen(Constants.SERVER_PORT);
     }
 
     @Override
     public void stopThread()
     {
-
+        if(httpServer!=null)
+            httpServer.stop();
     }
 
     @Override
     public void onCompleted(Exception e) {
-        Log.e(TAG, e.toString() );
+        Log.e(TAG, "AcceptorWebSocket setup fails: " + e.toString());
+        stopThread();
     }
 
     @Override
     public void onConnected(final WebSocket webSocket, RequestHeaders requestHeaders)
     {
-        _sockets.add(webSocket);
-        Log.i(TAG, "New connection url: " + requestHeaders.getUri());
+        String txt = "onConnected(): New connection url: " + requestHeaders.getUri();
+        Log.i(TAG, txt);
+        serviceHandler.updateStatusTxt(txt);
+
+        _sockets.put(webSocket.toString(), webSocket);
         try {
             notifyServiceHandlerNewConnection(webSocket);
         } catch (JSONException e) {
         }
 
-
         webSocket.setStringCallback(new WebSocket.StringCallback() {
             @Override
             public void onStringAvailable(String s) {
-                Log.i(TAG, "recv String: " + s);
+                //Log.i(TAG, "recv String: " + s);
+                JSONObject jsonObject = null;
+                try {
+                    jsonObject = new JSONObject(s);
+                    jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
+                    serviceHandler.send2Handler(jsonObject.toString());
+                } catch (JSONException e) {
+                    Log.e(TAG, e.toString());
+                }
             }
         });
 
@@ -96,8 +116,16 @@ public class AcceptorWebSocket extends AbsSystemThread
                 }
                 */
                 ByteBuffer[] data = byteBufferList.getAllArray();
-                for(ByteBuffer bb : data)
-                    Log.i(TAG, "recv " + bb.array().length + " bytes");
+                Log.i(TAG, "num of ByteBuffers: " + data.length);
+                for(ByteBuffer bb : data){
+                    short isJsonData = bb.getShort();
+
+                    if(isJsonData==1){
+                        byte[] jsonBytes = new byte[bb.remaining()];
+                        bb.get(jsonBytes);
+                        Log.i(TAG, new String(jsonBytes));
+                    }
+                }
                 byteBufferList.recycle();
             }
         });
@@ -118,6 +146,7 @@ public class AcceptorWebSocket extends AbsSystemThread
         webSocket.setPongCallback(new WebSocket.PongCallback() {
             @Override
             public void onPongReceived(String s) {
+                Log.i(TAG, "onPongReceived(): " + s);
                 try {
                     JSONObject jsonObject = new JSONObject(s);
                     int rounds = jsonObject.getInt(JsonSSI.ROUNDS);
@@ -135,13 +164,31 @@ public class AcceptorWebSocket extends AbsSystemThread
                 }
             }
         });
+
+        webSocket.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception e) {
+                Log.e(TAG,e.toString());
+                if(webSocket!=null)
+                    webSocket.close();
+            }
+        });
+        webSocket.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception e) {
+                Log.e(TAG,e.toString());
+                if(webSocket!=null)
+                    webSocket.close();
+            }
+        });
     }
 
     private void notifyServiceHandlerNewConnection(WebSocket webSocket) throws JSONException {
         JSONObject jsonAccept = new JSONObject();
         jsonAccept.put(JsonSSI.COMMAND, JsonSSI.NEW_CONNECTION);
-        jsonAccept.put(JsonSSI.WEB_SOCKET, webSocket);
+        jsonAccept.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
         jsonAccept.put(JsonSSI.DESC, "New Connection");
+        Log.i(TAG, "jsonAccept: " + jsonAccept.toString());
         serviceHandler.send2Handler(jsonAccept.toString());
     }
 
@@ -156,14 +203,13 @@ public class AcceptorWebSocket extends AbsSystemThread
         long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
         //String remoteSocketAddr = socketChannel.socket().getRemoteSocketAddress().toString();
         try {
-            JSONObject jsonLast = JsonSSI.makeLastRttReceived(webSocket);
-            Handler handler = serviceHandler.getHandler();
-            Message msg = Message.obtain(handler);
-            msg.what = ServiceHandler.JSON_RESPONSE_BYTES;
-            msg.obj =  jsonLast;
-
+            serviceHandler.send2Handler(JsonSSI.makeLastRttReceived(webSocket).toString());
         } catch (JSONException e) {
         }
-        Log.i(TAG,"RTT between "+ webSocket.toString() +" : " + rttMeasurement+ " ms");
+        Log.i(TAG, "RTT between " + webSocket.toString() + " : " + rttMeasurement + " ms");
+    }
+
+    public WebSocket getSocket(String key){
+        return _sockets.get(key);
     }
 }

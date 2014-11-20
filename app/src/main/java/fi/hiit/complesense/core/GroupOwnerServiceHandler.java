@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AsyncStreamServer;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
@@ -39,7 +40,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
     private int clientCounter = 0;
 
-    private final String cloudSocketAddrStr = "http://" + Constants.URL +
+    private final String cloudSocketAddrStr = "http://" + Constants.URL_CLOUD +
             ":" + Constants.CLOUD_SERVER_PORT + "/";
     private Map<String, ArrayList<Integer>> availableSensors = new HashMap<String, ArrayList<Integer>>();
 
@@ -57,38 +58,38 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             }
             updateStatusTxt("Required sensors: " + reqSensorTypes.toString());
         }
-
 //        timer = new Timer();
         //LocalRecThread localRecThread = new LocalRecThread(this);
         //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
-
     }
 
     @Override
     public boolean handleMessage(Message msg)
     {
-        if(!super.handleMessage(msg)){
-            if(msg.what == JSON_RESPONSE_BYTES){
-                try{
-                    JSONObject jsonObject = (JSONObject)msg.obj;
-                    WebSocket webSocket = (WebSocket)jsonObject.get(JsonSSI.WEB_SOCKET);
+        if(super.handleMessage(msg)){
+            try{
+                JSONObject jsonObject = (JSONObject)msg.obj;
+                Log.i(TAG, "jsonObject: " + jsonObject.toString());
+                String webSocketKey = jsonObject.getString(JsonSSI.WEB_SOCKET_KEY);
+                WebSocket webSocket = ((AcceptorWebSocket)workerThreads.get(AcceptorWebSocket.TAG)).getSocket(webSocketKey);
 
+                if(webSocket!=null)
+                {
                     switch(jsonObject.getInt(COMMAND))
                     {
                         case JsonSSI.RTT_LAST:
                             ++clientCounter;
-                            if(webSocket!=null)
-                                webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
+                            webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
                             return true;
                         case JsonSSI.NEW_CONNECTION:
                             addNewConnection(webSocket);
                             JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
                                     Constants.RTT_ROUNDS);
-                            webSocket.send(jsonRtt.toString());
+                            webSocket.ping(jsonRtt.toString());
                             return true;
 
                         case JsonSSI.NEW_STREAM_SERVER:
-                            sendStartStreamClientReq(webSocket, sysConfig.reqSensors(), jsonObject.getInt(JsonSSI.STREAM_PORT));
+                            sendStartStreamClientReq(webSocket, sysConfig.reqSensors() );
                             return true;
 
                         case JsonSSI.NEW_STREAM_CONNECTION:
@@ -103,14 +104,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             Log.i(TAG, "Unknown command...");
                             break;
                     }
-                } catch (JSONException e) {
-                    Log.i(TAG, e.toString());
-                }catch (IOException e) {
-                    Log.i(TAG, e.toString());
                 }
+            } catch (JSONException e) {
+                Log.i(TAG, e.toString());
+            }catch (IOException e) {
+                Log.i(TAG, e.toString());
             }
         }
-
         return false;
     }
 
@@ -134,27 +134,24 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
     private void startStreamingServer(WebSocket webSocket) throws IOException {
         Log.i(TAG, "startStreamingServer()");
-        /*
-        if(workerThreads.get(AsyncStreamServer.TAG)==null){
-            AsyncStreamServer asyncStreamServer = new AsyncStreamServer(this, socketChannel);
-            workerThreads.put(AsyncStreamServer.TAG, asyncStreamServer);
-            asyncStreamServer.start();
-        }else{
-            Log.i(TAG, "Streaming server is already running");
-            AsyncStreamServer streamServer = (AsyncStreamServer)workerThreads.get(AsyncStreamServer.TAG);
-            streamServer.notifyServerRunning(getHandler(), socketChannel);
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_SERVER);
+            jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
+            jsonObject.put(JsonSSI.DESC, "New Stream Server running at thread: "+ Thread.currentThread().getId());
+            send2Handler(jsonObject.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-        */
     }
 
 
 
-    private void sendStartStreamClientReq(WebSocket webSocket, List<SystemConfig.SensorConfig> requiredSensors, int recvPort) throws JSONException
+    private void sendStartStreamClientReq(WebSocket webSocket, List<SystemConfig.SensorConfig> requiredSensors) throws JSONException
     {
         String key = webSocket.toString();
         Set<Integer> sensorSet = new HashSet<Integer>(availableSensors.get(key));
-        if(sensorSet==null)
-        {
+        if(sensorSet==null){
             Log.e(TAG, "no such client: " + key);
             return;
         }
@@ -165,10 +162,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
         if(sensorSet.containsAll(availableSensorTypes)){
             JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(new JSONArray(requiredSensors),
-                    peerList.get(key).getDelay(), recvPort);
-            webSocket.send(jsonStartStream.toString().getBytes());
+                    peerList.get(key).getDelay() );
+            webSocket.send(jsonStartStream.toString());
         }else{
-            Log.e(TAG, "Client does not have all the required sensors");
+            sensorSet.removeAll(availableSensorTypes);
+            Log.e(TAG, "Client does not have such sensors: " + sensorSet.toString());
         }
 
     }

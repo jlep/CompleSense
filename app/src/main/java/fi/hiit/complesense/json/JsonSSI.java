@@ -34,6 +34,7 @@ public class JsonSSI
     public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
     public static final short RTT_LAST = 0x10; // rtt query
     public static final short NEW_STREAM_SERVER = 0x11;
+    public static final short RTT_QUERY = 0x20; // rtt query
 
     public static final String COMMAND = "command";
     public static final String DESC = "description";
@@ -49,7 +50,8 @@ public class JsonSSI
     public static final String SENSOR_TYPE = "sensor_type";
     public static final String SENSOR_VALUES = "sensor_values";
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
-    public static final String WEB_SOCKET = "web_socket";
+    public static final String WEB_SOCKET_KEY = "web_socket_key";
+    public static final String IS_STRING_DATA = "is_string_data";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -81,13 +83,12 @@ public class JsonSSI
         return query;
     }
 
-    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff, int port) throws JSONException
+    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff) throws JSONException
     {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(COMMAND, R);
         jsonObject.put(SENSOR_TYPES, sensorTypes);
         jsonObject.put(TIME_DIFF, timeDiff);
-        jsonObject.put(STREAM_PORT, port);
         jsonObject.put(DESC, "Start Streaming Request");
         return jsonObject;
     }
@@ -96,7 +97,7 @@ public class JsonSSI
         JSONObject jsonObject = new JSONObject();
 
         jsonObject.put(COMMAND, RTT_LAST);
-        jsonObject.put(WEB_SOCKET, webSocket.toString());
+        jsonObject.put(WEB_SOCKET_KEY, webSocket.toString());
         jsonObject.put(DESC, "Last RTT pong message has been received");
         return jsonObject;
     }

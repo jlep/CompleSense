@@ -46,7 +46,7 @@ public class RelayThread extends AbstractSystemThread
     private WebSocket cloudWebSocket = null;
 
     private static final String PROTOCOL = "ws";
-    private URI uri = URI.create(PROTOCOL +":/"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
+    private URI uri = URI.create(PROTOCOL +":/"+ Constants.URL_CLOUD+":"+Constants.CLOUD_SERVER_PORT+"/");
     private File tmpFilePath;
     private OutputStream outStream = null;
     private boolean firstPacket = true;

@@ -4,10 +4,13 @@ import android.util.Log;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URI;
 
 import fi.hiit.complesense.Constants;
@@ -26,14 +29,18 @@ public class ConnectorWebSocket extends AbsSystemThread
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
 
-    public ConnectorWebSocket(final ServiceHandler serviceHandler) {
+    public ConnectorWebSocket(final ServiceHandler serviceHandler, InetAddress ownerInetAddr) {
         super(TAG, serviceHandler);
-        uri = URI.create(Constants.WEB_PROTOCOL +":/"+ remoteSocketAddr.toString()+"/send_rec");
+        //InetSocketAddress socketAddress = new InetSocketAddress(ownerAddr, Constants.SERVER_PORT);
+        //Log.i(TAG, "socketAddress: " + socketAddress.toString());
+        //Log.i(TAG, "getHostAddress: " + ownerInetAddr.getHostAddress());
+        //Log.i(TAG, "SERVER_PORT: " + Constants.SERVER_PORT);
+        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+Constants.SERVER_PORT + "/test");
 
         mStringCallback = new WebSocket.StringCallback(){
             @Override
             public void onStringAvailable(String s) {
-                Log.i(TAG, "recv String: " + s);
+                //Log.i(TAG, "recv String: " + s);
                 serviceHandler.send2Handler(s);
             }
         };
@@ -66,6 +73,24 @@ public class ConnectorWebSocket extends AbsSystemThread
                 mWebSocket = webSocket;
                 mWebSocket.setStringCallback(mStringCallback);
                 mWebSocket.setDataCallback(mDataCallback);
+                /*
+                mWebSocket.setClosedCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception e) {
+                        Log.e(TAG,e.toString());
+                        if(mWebSocket!=null)
+                            mWebSocket.close();
+                    }
+                });
+                */
+                mWebSocket.setEndCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception e) {
+                        Log.e(TAG,e.toString());
+                        if(mWebSocket!=null)
+                            mWebSocket.close();
+                    }
+                });
             }
         });
     }
@@ -80,7 +105,8 @@ public class ConnectorWebSocket extends AbsSystemThread
         String txt = "Stopping ConnectorWebSocket at thread id: " + Thread.currentThread().getId();
         Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
-        mWebSocket.close();
+        if(mWebSocket!=null)
+            mWebSocket.close();
     }
 
 }

@@ -23,6 +23,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -47,7 +48,7 @@ public class ServiceHandler extends HandlerThread
 
 
     public ServiceHandler(Messenger serviceMessenger, String name,
-                          Context context, boolean isGroupOwner, InetAddress ownerAddr,
+                          Context context, boolean isGroupOwner, InetAddress ownerInetAddr,
                           long delay)
     {
         super(name);
@@ -59,16 +60,16 @@ public class ServiceHandler extends HandlerThread
         this.isGroupOwner = isGroupOwner;
 
         this.delay = delay;
-        init(ownerAddr);
+        init(ownerInetAddr);
     }
 
-    protected void init(InetAddress ownerAddr)
+    protected void init(InetAddress ownerInetAddr)
     {
         if(isGroupOwner){
             AcceptorWebSocket acceptor = new AcceptorWebSocket(this);
             workerThreads.put(AcceptorWebSocket.TAG, acceptor);
         }else{
-            ConnectorWebSocket connector = new ConnectorWebSocket(this);
+            ConnectorWebSocket connector = new ConnectorWebSocket(this, ownerInetAddr);
             workerThreads.put(ConnectorWebSocket.TAG, connector);
         }
     }
@@ -85,11 +86,8 @@ public class ServiceHandler extends HandlerThread
     public boolean handleMessage(Message msg)
     {
         if(msg.what == JSON_RESPONSE_BYTES)
-        {
-            JSONObject jsonObject = (JSONObject)msg.obj;
-            Log.v(TAG, "Receive: " + jsonObject.toString());
-        }
-        return true;
+            return true;
+        return false;
     }
 
     public Map<String, AliveConnection> getPeerList()
@@ -167,14 +165,14 @@ public class ServiceHandler extends HandlerThread
         peerList.remove(socketAddrStr);
     }
 
-    public void send2Handler(String data)
-    {
+    public void send2Handler(String data){
+        //Log.i(TAG, "send2Handler()" + data);
         try{
             JSONObject jsonObject = new JSONObject(data);
-            Message msg = Message.obtain(handler, ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            Message msg = Message.obtain(handler, JSON_RESPONSE_BYTES, jsonObject);
             msg.sendToTarget();
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString());
         }
     }
 

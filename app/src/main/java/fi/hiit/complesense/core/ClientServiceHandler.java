@@ -53,7 +53,7 @@ public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
     private final InetAddress ownerAddr;
-    private final WebSocket mServerWebSocket;
+    private WebSocket mServerWebSocket;
     private int serverWebSocketPort;
     private LocationManager locationManager = null;
     private LocationListener mLocationDataListener = null;
@@ -66,40 +66,39 @@ public class ClientServiceHandler extends ServiceHandler
     {
         super(serviceMessenger, TAG, context, false, ownerAddr, delay);
         this.ownerAddr = ownerAddr;
-        this.mServerWebSocket = ((ConnectorWebSocket)workerThreads.get(ConnectorWebSocket.TAG)).getWebSocket();
     }
 
     @Override
     public boolean handleMessage(Message msg)
     {
-        if(!super.handleMessage(msg))
+        if(super.handleMessage(msg))
         {
-            if(msg.what == JSON_RESPONSE_BYTES)
+            try
             {
-                try{
-                    JSONObject jsonObject = (JSONObject)msg.obj;
-                    //WebSocket webSocket = (WebSocket)jsonObject.get(JsonSSI.WEB_SOCKET);
-
+                JSONObject jsonObject = (JSONObject)msg.obj;
+                mServerWebSocket = ((ConnectorWebSocket)workerThreads.get(ConnectorWebSocket.TAG)).getWebSocket();
+                if(mServerWebSocket!=null)
+                {
                     switch(jsonObject.getInt(COMMAND)){
                         case JsonSSI.C:
                             JSONObject sensorTypeList = JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context));
+                            Log.i(TAG, "sensorTypeList: " + sensorTypeList.toString());
                             mServerWebSocket.send(sensorTypeList.toString());
                             return true;
                         case JsonSSI.R:
-                            JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            int streamServerPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                             Log.i(TAG, "sensorConfigJson:" + sensorConfigJson.toString());
-                            startStreaming(sensorConfigJson, streamServerPort);
+                            startStreaming(sensorConfigJson, mServerWebSocket);
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
                             break;
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    Log.i(TAG, e.toString());
                 }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                Log.i(TAG, e.toString());
             }
         }
 
@@ -107,24 +106,18 @@ public class ClientServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreaming(JSONArray sensorConfigJson, int port) throws IOException, JSONException
+    private void startStreaming(JSONArray sensorConfigJson, WebSocket webSocket) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
-        /*
-        int startSignal = 1;
-        CountDownLatch latch = new CountDownLatch(startSignal);
-        AsyncStreamClient asyncStreamClient = new AsyncStreamClient(this, ownerAddr, port, latch);
-        workerThreads.put(AsyncStreamClient.TAG, asyncStreamClient);
-        asyncStreamClient.start();
 
         Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
         updateStatusTxt("Required sensors: "+ requiredSensors.toString());
 
         if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            AudioStreamClient audioStreamClient = new AudioStreamClient(
+            /*AudioStreamClient audioStreamClient = new AudioStreamClient(
                     this, asyncStreamClient, latch);
             workerThreads.put(AudioStreamClient.TAG,audioStreamClient);
-            audioStreamClient.start();
+            audioStreamClient.start();*/
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA))
@@ -132,20 +125,20 @@ public class ClientServiceHandler extends ServiceHandler
 
         }
 
-        if(requiredSensors.remove(SensorUtil.SENSOR_GPS))
-        {
+        if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
+            /*
             locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
             mLocationDataListener = new LocationDataListener(this, context, asyncStreamClient);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
+            */
         }
 
         if(requiredSensors.size()>0){
             SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                    this, context, requiredSensors, asyncStreamClient, latch);
+                    this, context, requiredSensors, webSocket);
             workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
             sensorDataCollectionThread.start();
         }
-        */
     }
 
     public void sendImg2Server(File imgFile)

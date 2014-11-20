@@ -32,7 +32,7 @@ public class CloudSocketHandler extends AbstractSystemThread
     public void run()
     {
         Socket socket = new Socket();
-        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL,
+        final InetSocketAddress cloudSocketAddr = new InetSocketAddress(Constants.URL_CLOUD,
                 Constants.CLOUD_SERVER_PORT);
         try
         {

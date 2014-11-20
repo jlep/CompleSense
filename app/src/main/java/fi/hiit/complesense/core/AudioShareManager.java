@@ -322,7 +322,7 @@ public class AudioShareManager
             this.senderSocketAddr = senderSocketAddr;
             this.parentThread = parentThread;
             recvSocket = new DatagramSocket();
-            cloudSocket = new Socket(Constants.URL, Constants.CLOUD_SERVER_PORT);
+            cloudSocket = new Socket(Constants.URL_CLOUD, Constants.CLOUD_SERVER_PORT);
             outputStream = new BufferedOutputStream(cloudSocket.getOutputStream());
 
         }
@@ -453,7 +453,7 @@ public class AudioShareManager
             URL url = null;
             try
             {
-                url = new URL("http://"+ Constants.URL +":"
+                url = new URL("http://"+ Constants.URL_CLOUD +":"
                         +Constants.CLOUD_SERVER_PORT + "/");
                 httpURLConnection = (HttpURLConnection) url.openConnection();
                 httpURLConnection.setRequestMethod("POST");
@@ -547,7 +547,7 @@ public class AudioShareManager
         private long recStartTime;
 
         private static final String PROTOCOL = "ws";
-        private URI uri = URI.create(PROTOCOL +"://"+ Constants.URL+":"+Constants.CLOUD_SERVER_PORT+"/");
+        private URI uri = URI.create(PROTOCOL +"://"+ Constants.URL_CLOUD+":"+Constants.CLOUD_SERVER_PORT+"/");
         private WebSocket mWebSocket = null;
 
         public WebSocketConnection(ServiceHandler serviceHandler,
