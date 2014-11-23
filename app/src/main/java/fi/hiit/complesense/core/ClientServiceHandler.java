@@ -126,11 +126,9 @@ public class ClientServiceHandler extends ServiceHandler
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
-            /*
             locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-            mLocationDataListener = new LocationDataListener(this, context, asyncStreamClient);
+            mLocationDataListener = new LocationDataListener(this, webSocket);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
-            */
         }
 
         if(requiredSensors.size()>0){
@@ -147,5 +145,12 @@ public class ClientServiceHandler extends ServiceHandler
         SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), serverWebSocketPort);
         ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
         socketClient.connect();
+    }
+
+    @Override
+    public void stopServiceHandler() {
+        if(mLocationDataListener!=null)
+            locationManager.removeUpdates(mLocationDataListener);
+        super.stopServiceHandler();
     }
 }

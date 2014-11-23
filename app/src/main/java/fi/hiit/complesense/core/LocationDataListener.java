@@ -7,15 +7,15 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AsyncStreamClient;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -28,38 +28,17 @@ public class LocationDataListener implements LocationListener
     public static final int LATITUDE = 0;
     public static final int LONGITUDE = 1;
 
-    private final AsyncStreamClient asyncStreamClient;
+    private final WebSocket mWebSocket;
     private JSONObject jsonGeoCoords = new JSONObject();
 
-    private final LocationManager locationManager;
     //private final AsyncStreamClient asyncStreamClient;
-    private LocationListener mLocationListener = null;
-    private ByteBuffer buffer;
-    private short isJSON = 1;
+    private final short isStringData = 1;
 
-    public LocationDataListener(ServiceHandler serviceHandler, Context context,
-                                AsyncStreamClient asyncStreamClient) throws JSONException
+    public LocationDataListener(ServiceHandler serviceHandler, WebSocket webSocket) throws JSONException
     {
-        locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-        this.asyncStreamClient = asyncStreamClient;
-        initBuffer();
+        this.mWebSocket = webSocket;
     }
 
-    private void initBuffer() throws JSONException
-    {
-        jsonGeoCoords.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
-        jsonGeoCoords.put(JsonSSI.SENSOR_TYPE, SensorUtil.SENSOR_GPS);
-        JSONArray jsonArray = new JSONArray();
-        double placeholder = Double.toString(Double.MIN_VALUE).length()>Double.toString(Double.MAX_VALUE).length()?Double.MIN_VALUE:Double.MAX_VALUE;
-        jsonArray.put(placeholder);
-        jsonArray.put(placeholder);
-        jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
-
-        int length = Constants.BYTES_INT + Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length;
-        Log.i(TAG, "length:" + length);
-        buffer = ByteBuffer.allocate(length);
-        buffer.clear();
-    }
 
 
     @Override
@@ -74,15 +53,12 @@ public class LocationDataListener implements LocationListener
             jsonArray.put(LONGITUDE, location.getLongitude());
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
 
-            buffer.clear();
-
-            int payloadSize = Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length;
-            buffer.putInt(payloadSize);
-            buffer.putShort(isJSON);
-            Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
+            ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
+            buffer.putShort(isStringData);
             buffer.put(jsonGeoCoords.toString().getBytes());
+            Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
+            mWebSocket.send(buffer.array());
 
-            asyncStreamClient.send(buffer.array());
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }

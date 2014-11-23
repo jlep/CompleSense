@@ -125,6 +125,11 @@ public class AcceptorWebSocket extends AbsSystemThread
                         bb.get(jsonBytes);
                         Log.i(TAG, new String(jsonBytes));
                     }
+                    if(isJsonData==0){
+                        //byte[] jsonBytes = new byte[bb.remaining()];
+                        //bb.get(jsonBytes);
+                        Log.i(TAG, "receive " + bb.remaining() +" bytes");
+                    }
                 }
                 byteBufferList.recycle();
             }
