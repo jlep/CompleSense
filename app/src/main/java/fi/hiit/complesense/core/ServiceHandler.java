@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.WebSocket;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -65,13 +66,19 @@ public class ServiceHandler extends HandlerThread
 
     protected void init(InetAddress ownerInetAddr)
     {
-        if(isGroupOwner){
-            AcceptorWebSocket acceptor = new AcceptorWebSocket(this);
-            workerThreads.put(AcceptorWebSocket.TAG, acceptor);
-        }else{
-            ConnectorWebSocket connector = new ConnectorWebSocket(this, ownerInetAddr);
-            workerThreads.put(ConnectorWebSocket.TAG, connector);
+        try
+        {
+            if(isGroupOwner){
+                AcceptorWebSocket acceptor = new AcceptorWebSocket(this);
+                workerThreads.put(AcceptorWebSocket.TAG, acceptor);
+            }else{
+                ConnectorWebSocket connector = new ConnectorWebSocket(this, ownerInetAddr);
+                workerThreads.put(ConnectorWebSocket.TAG, connector);
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Web connection creation failed: " + e.toString());
         }
+
     }
 
     @Override

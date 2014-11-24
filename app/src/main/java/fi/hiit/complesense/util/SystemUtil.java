@@ -2,8 +2,6 @@ package fi.hiit.complesense.util;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -11,11 +9,9 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.JsonReader;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -27,7 +23,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -87,7 +82,7 @@ public class SystemUtil {
         for(NetworkInfo ni:networkInfos){
             if(ni !=null){
                 if(ni.isConnectedOrConnecting()){
-                    Log.i(TAG, ni.getTypeName());
+                    //Log.i(TAG, ni.getTypeName());
                     availableConns.add(ni.getType());
                 }
             }

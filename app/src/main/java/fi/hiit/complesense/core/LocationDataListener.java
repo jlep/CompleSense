@@ -1,9 +1,7 @@
 package fi.hiit.complesense.core;
 
-import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -24,7 +22,7 @@ import fi.hiit.complesense.util.SensorUtil;
  */
 public class LocationDataListener implements LocationListener
 {
-    public static final String TAG = LocationDataCollectionThread.class.getSimpleName();
+    public static final String TAG = LocationDataListener.class.getSimpleName();
     public static final int LATITUDE = 0;
     public static final int LONGITUDE = 1;
 
@@ -56,7 +54,7 @@ public class LocationDataListener implements LocationListener
             ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
             buffer.putShort(isStringData);
             buffer.put(jsonGeoCoords.toString().getBytes());
-            Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
+            //Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
             mWebSocket.send(buffer.array());
 
         } catch (JSONException e) {

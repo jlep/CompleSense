@@ -54,8 +54,8 @@ public class ConnectorWebSocket extends AbsSystemThread
 
     @Override
     public void run() {
-        String txt = "ConnectorWebSocket running at thread id: " + Thread.currentThread().getId();
-        Log.i(TAG, txt);
+        String txt = "Starts ConnectorWebSocket at thread id: " + Thread.currentThread().getId();
+        Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
 
         AsyncHttpClient.getDefaultInstance().websocket(uri.toString(), Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback(){

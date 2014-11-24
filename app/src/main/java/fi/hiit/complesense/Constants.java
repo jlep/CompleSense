@@ -12,7 +12,7 @@ import fi.hiit.complesense.core.SystemMessage;
  */
 public class Constants
 {
-    public static final int NUM_CLIENTS = 1;
+    public static final int NUM_CLIENTS = 2;
 
     public static final int BYTES_INT = (int)(Integer.SIZE / 8);
     public static final int BYTES_SHORT = (int)(Short.SIZE / 8);
@@ -82,11 +82,10 @@ public class Constants
 
     public static final int RTT_ROUNDS = 5;
     public static final int SAMPLE_RATE = 8000;
-    public static final int SAMPLE_INTERVAL = 10; // milliseconds
+    public static final int SAMPLE_INTERVAL = 20; // milliseconds
     public static final int SAMPLE_SIZE = 2; // bytes per sample
     public static final short BIT_SAMPLE = 16; // 16 bits per sample
     public static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 2;
-    public static final int BUF_SIZE_MSG = 2048;
     public static final short NUM_CHANNELS = 1;
 
     public static final int LOCAL_WEBSOCKET_PORT = 12000;

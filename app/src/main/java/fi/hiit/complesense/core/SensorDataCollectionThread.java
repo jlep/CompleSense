@@ -17,16 +17,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AsyncStreamClient;
 import fi.hiit.complesense.json.JsonSSI;
-import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 29.10.2014.
@@ -61,10 +56,12 @@ public class SensorDataCollectionThread extends AbsSystemThread
     @Override
     public void run()
     {
+        Log.i(TAG, " starts running at thread: " + Thread.currentThread().getId());
+        serviceHandler.workerThreads.put(SensorDataCollectionThread.TAG, this);
         final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         localDir.mkdirs();
         final File localFile = new File(localDir, mWebSocket.toString()+".txt");
-        Log.i(TAG, " starts running at thread: " + Thread.currentThread().getId());
+
 
         mListener = new SensorEventListener()
         {
@@ -76,10 +73,10 @@ public class SensorDataCollectionThread extends AbsSystemThread
             {
                 try
                 {
-                    fw = new FileWriter(localFile);
+                    fw = new FileWriter(localFile, true);
 
                     //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-                    jsonSensorData.put(JsonSSI.IS_STRING_DATA, isStringData);
+                    //jsonSensorData.put(JsonSSI.IS_STRING_DATA, isStringData);
                     jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
                     jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
                     JSONArray jsonArray = new JSONArray();

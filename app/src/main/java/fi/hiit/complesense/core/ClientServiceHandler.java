@@ -1,15 +1,10 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
-import android.content.Intent;
-import android.hardware.Sensor;
-import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -22,27 +17,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 
-import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
-import fi.hiit.complesense.audio.SendAudioThread;
-import fi.hiit.complesense.connection.AsyncStreamClient;
-import fi.hiit.complesense.connection.ConnectorUDP;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
-import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
-import fi.hiit.complesense.util.SystemUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 
@@ -54,7 +36,6 @@ public class ClientServiceHandler extends ServiceHandler
     private static final String TAG = "ClientServiceHandler";
     private final InetAddress ownerAddr;
     private WebSocket mServerWebSocket;
-    private int serverWebSocketPort;
     private LocationManager locationManager = null;
     private LocationListener mLocationDataListener = null;
 
@@ -111,17 +92,16 @@ public class ClientServiceHandler extends ServiceHandler
         updateStatusTxt("Start Streaming client");
 
         Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
-        updateStatusTxt("Required sensors: "+ requiredSensors.toString());
+        String txt = "Required sensors: "+ requiredSensors.toString();
+        Log.i(TAG, txt);
+        updateStatusTxt(txt);
 
         if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            /*AudioStreamClient audioStreamClient = new AudioStreamClient(
-                    this, asyncStreamClient, latch);
-            workerThreads.put(AudioStreamClient.TAG,audioStreamClient);
-            audioStreamClient.start();*/
+            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket);
+            audioStreamClient.start();
         }
 
-        if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA))
-        {
+        if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
 
         }
 
@@ -134,11 +114,11 @@ public class ClientServiceHandler extends ServiceHandler
         if(requiredSensors.size()>0){
             SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
                     this, context, requiredSensors, webSocket);
-            workerThreads.put(SensorDataCollectionThread.TAG,sensorDataCollectionThread);
             sensorDataCollectionThread.start();
         }
     }
 
+    /*
     public void sendImg2Server(File imgFile)
     {
         Log.i(TAG, "sendImg2Server(imgFile: " + imgFile + ") @ thread id: " + Thread.currentThread().getId());
@@ -146,6 +126,7 @@ public class ClientServiceHandler extends ServiceHandler
         ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
         socketClient.connect();
     }
+    */
 
     @Override
     public void stopServiceHandler() {

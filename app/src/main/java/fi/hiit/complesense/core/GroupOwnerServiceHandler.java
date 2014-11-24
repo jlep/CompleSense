@@ -12,8 +12,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +21,6 @@ import java.util.Set;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
-import fi.hiit.complesense.connection.AsyncStreamServer;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
 

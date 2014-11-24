@@ -28,6 +28,7 @@ import java.util.Map;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
 
@@ -40,13 +41,15 @@ public class AcceptorWebSocket extends AbsSystemThread
     public static final String TAG = AcceptorWebSocket.class.getSimpleName();
     private AsyncHttpServer httpServer;
     private Map<String, WebSocket> _sockets = new HashMap<String, WebSocket>();
+    private final DataProcessingThread mDataProcessingThread;
 
-    public AcceptorWebSocket(ServiceHandler serviceHandler)
-    {
+    public AcceptorWebSocket(ServiceHandler serviceHandler) throws IOException {
         super(TAG, serviceHandler);
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(this);
         httpServer.websocket("/test",Constants.WEB_PROTOCOL, this);
+        mDataProcessingThread = new DataProcessingThread(serviceHandler);
+
     }
 
     @Override
@@ -55,11 +58,11 @@ public class AcceptorWebSocket extends AbsSystemThread
         String txt = "Start AcceptorWebSocket at thread id: " + Thread.currentThread().getId();
         Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
-
         //com.koushikdutta.async.AsyncServer asyncServer =
         //        new com.koushikdutta.async.AsyncServer(TAG + ": " + Long.toString(Thread.currentThread().getId() ));
         //connect();
         httpServer.listen(Constants.SERVER_PORT);
+        mDataProcessingThread.start();
     }
 
     @Override
@@ -116,8 +119,13 @@ public class AcceptorWebSocket extends AbsSystemThread
                 }
                 */
                 ByteBuffer[] data = byteBufferList.getAllArray();
-                Log.i(TAG, "num of ByteBuffers: " + data.length);
+                //Log.i(TAG, "num of ByteBuffers: " + data.length);
                 for(ByteBuffer bb : data){
+                    int payloadSize = bb.remaining();
+                    //Log.i(TAG, "recv " + payloadSize + " bytes");
+
+                    mDataProcessingThread.addDataToThreadBuffer(webSocket.toString(), bb.array(), payloadSize);
+                    /*
                     short isJsonData = bb.getShort();
 
                     if(isJsonData==1){
@@ -130,6 +138,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                         //bb.get(jsonBytes);
                         Log.i(TAG, "receive " + bb.remaining() +" bytes");
                     }
+                    */
                 }
                 byteBufferList.recycle();
             }

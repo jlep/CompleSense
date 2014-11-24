@@ -7,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,8 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AsyncStreamServer;
 import fi.hiit.complesense.util.MIME_FileWriter;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 30.10.2014.
@@ -25,38 +24,35 @@ import fi.hiit.complesense.util.MIME_FileWriter;
 public class DataProcessingThread extends AbsSystemThread {
 
     public static final String TAG = DataProcessingThread.class.getSimpleName();
-    private final AsyncStreamServer asyncStreamServer;
     private final File recvDir;
-    private ConcurrentMap<SocketChannel, List<ByteBuffer>> pendingData = new ConcurrentHashMap<SocketChannel, List<ByteBuffer>>();
-    private ConcurrentMap<SocketChannel, FileWriter> fileWriters = new ConcurrentHashMap<SocketChannel, FileWriter>();
-    private ConcurrentMap<SocketChannel, MIME_FileWriter> wavWriters = new ConcurrentHashMap<SocketChannel, MIME_FileWriter>();
+    private ConcurrentMap<String, List<ByteBuffer>> pendingData = new ConcurrentHashMap<String, List<ByteBuffer>>();
+    private ConcurrentMap<String, FileWriter> fileWriters = new ConcurrentHashMap<String, FileWriter>();
+    private ConcurrentMap<String, MIME_FileWriter> wavWriters = new ConcurrentHashMap<String, MIME_FileWriter>();
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
 
-    public DataProcessingThread(AsyncStreamServer asyncStreamServer,
-                                ServiceHandler serviceHandler) throws IOException
+    public DataProcessingThread(ServiceHandler serviceHandler) throws IOException
     {
         super(TAG, serviceHandler);
-        this.asyncStreamServer = asyncStreamServer;
         this.recvDir = new File(Constants.ROOT_DIR, "recv");
         recvDir.mkdirs();
 
     }
 
-    public void addDataToThreadBuffer(SocketChannel socketChannel, byte[] data, int count)
+    public void addDataToThreadBuffer(String webSocketStr, byte[] data, int count)
     {
         byte[] dataCopy = new byte[count];
         System.arraycopy(data, 0, dataCopy, 0, count);
 
-        List queue = pendingData.get(socketChannel);
+        List queue = pendingData.get(webSocketStr);
         if(queue==null)
         {
             queue = new LinkedList();
             queue.add(ByteBuffer.wrap(dataCopy));
-            pendingData.put(socketChannel, queue);
-            Log.i(TAG, "New Streaming client: " + socketChannel.socket().getRemoteSocketAddress());
-            executorService.execute(new CreateNewFileRunnable(socketChannel));
+            pendingData.put(webSocketStr, queue);
+            Log.i(TAG, "New Streaming client: " + webSocketStr);
+            executorService.execute(new CreateNewFileRunnable(webSocketStr));
         }
         queue.add(ByteBuffer.wrap(dataCopy));
     }
@@ -65,47 +61,52 @@ public class DataProcessingThread extends AbsSystemThread {
     public void run()
     {
         Log.i(TAG, "Start DataProcessingThread at thread: " + Thread.currentThread().getId());
+        serviceHandler.workerThreads.put(DataProcessingThread.TAG +"-"+Long.toString(Thread.currentThread().getId()), this);
 
         FileOutputStream fos = null;
         ByteBuffer data;
         byte[] wavBuf = new byte[Constants.BUF_SIZE];
+        byte[] strBuf = new byte[Constants.BUF_SIZE];
         int mediaDataType, payloadSize;
         try
         {
             while(keepRunning)
             {
-                for(SocketChannel key : pendingData.keySet())
+                for(String key : pendingData.keySet())
                 {
                     if(!pendingData.get(key).isEmpty())
                     {
                         data = pendingData.get(key).remove(0);
-                        if(data.hasRemaining()){
+                        if(data !=null && data.hasRemaining()){
+                            //Log.i(TAG, "data.remaining(): " + data.remaining());
                             //Log.i(TAG, "remaining(): " + data.remaining());
-                            int sz = data.getInt();
-                            short isJson = data.getShort();
+                            short isStringData = data.getShort();
+                            //Log.i(TAG, "isStringData: " + isStringData);
 
-                            if(isJson == 0){ // Binary data
+                            if(isStringData == 0){ // Binary data
                                 mediaDataType = data.getInt();
-                                Log.i(TAG, "sz: " + sz + ", isJson: " + isJson + " remaining(): " + data.remaining() + " sent: " + (sz-Constants.BYTES_SHORT-Constants.BYTES_INT));
-
                                 payloadSize = data.remaining();
                                 data.get(wavBuf, 0, payloadSize);
 
-                                if(wavWriters.get(key)!=null){
-                                    wavWriters.get(key).write(wavBuf, 0, payloadSize);
-                                }else{
-                                    Log.w(TAG, "wav file is null");
+                                if(mediaDataType== SensorUtil.SENSOR_MIC){
+                                    //Log.i(TAG, "recv mic data: " + payloadSize);
+                                    if(wavWriters.get(key)!=null){
+                                        wavWriters.get(key).write(wavBuf, 0, payloadSize);
+                                    }else{
+                                        Log.w(TAG, "wav file is null");
+                                    }
                                 }
                                 continue;
                             }
-                            if(isJson == 1){ // Data encapsulated in JSON
-                                Log.i(TAG, "sz: " + sz + ", isJson: " + isJson + " remaining(): " + data.remaining() + " sent: " + (sz-Constants.BYTES_SHORT));
+                            if(isStringData == 1){ // Data encapsulated in JSON
                                 //JSONObject jsonObject = new JSONObject(new String(data.slice().array()));
-                                byte[] strBuf = new byte[sz-Constants.BYTES_SHORT];
-                                data.get(strBuf);
+                                int byteCount = data.remaining();
+                                data.get(strBuf,0,byteCount);
 
                                 if(fileWriters.get(key)!=null){
-                                    fileWriters.get(key).write(new String(strBuf));
+                                    String sensorData =new String(strBuf, 0, byteCount);
+                                    //Log.i(TAG, sensorData);
+                                    fileWriters.get(key).write(sensorData);
                                     fileWriters.get(key).write('\n');
                                 }else{
                                     Log.w(TAG, "data file is null");
@@ -113,7 +114,6 @@ public class DataProcessingThread extends AbsSystemThread {
                                 //Log.i(TAG, "sensor data: " + new String(buf));
                                 continue;
                             }
-                            //Log.i(TAG, "SocketChannel: "+ key.socket().getRemoteSocketAddress() +" len: " + data.length);
                         }
                     }
                 }
@@ -128,12 +128,12 @@ public class DataProcessingThread extends AbsSystemThread {
             try {
                 if(fos!=null)
                     fos.close();
-                for(SocketChannel sc :fileWriters.keySet()){
-                    FileWriter fw = fileWriters.remove(sc);
+                for(String key :fileWriters.keySet()){
+                    FileWriter fw = fileWriters.remove(key);
                     fw.close();
                 }
-                for(SocketChannel sc :wavWriters.keySet()){
-                    MIME_FileWriter mfw = wavWriters.remove(sc);
+                for(String key :wavWriters.keySet()){
+                    MIME_FileWriter mfw = wavWriters.remove(key);
                     mfw.close();
                 }
             } catch (IOException e) {
@@ -150,24 +150,24 @@ public class DataProcessingThread extends AbsSystemThread {
      */
     private class CreateNewFileRunnable implements Runnable{
 
-        private final SocketChannel socketChannel;
+        private final String mWebSocketStr;
 
-        CreateNewFileRunnable(SocketChannel socketChannel){
-            this.socketChannel = socketChannel;
+        CreateNewFileRunnable(String webSocketStr){
+            this.mWebSocketStr = webSocketStr;
         }
 
         @Override
         public void run() {
             try {
-                String fileName = socketChannel.socket().getRemoteSocketAddress().toString();
+                String fileName = mWebSocketStr;
                 File txtFile = new File(recvDir, fileName+".txt");
                 File mediaFile = new File(recvDir, fileName);
 
 
                 FileWriter fw = new FileWriter(txtFile);
                 MIME_FileWriter mfw = new MIME_FileWriter(mediaFile, MIME_FileWriter.Format.wav);
-                fileWriters.put(socketChannel, fw);
-                wavWriters.put(socketChannel, mfw);
+                fileWriters.put(mWebSocketStr, fw);
+                wavWriters.put(mWebSocketStr, mfw);
                 serviceHandler.updateStatusTxt("Create data file: " + txtFile.toString()+ " Create wav file: " + mediaFile.toString());
                 //Log.i(TAG, "Create data file: " + f.toString());
             } catch (IOException e) {

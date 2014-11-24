@@ -5,13 +5,14 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.AsyncStreamClient;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.util.SensorUtil;
@@ -23,19 +24,15 @@ public class AudioStreamClient extends AbsSystemThread
 {
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
-    private final AsyncStreamClient streamClient;
-    private final CountDownLatch startSignal;
-
+    private final WebSocket mWebSocket;
     private WavFileWriter wavFileWriter;
     private long threadID;
-    private final short isJSON = 0;
+    private final short isStringData = 0;
 
-    public AudioStreamClient(ServiceHandler serviceHandler,
-                             AsyncStreamClient streamClient, CountDownLatch latch)
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket)
     {
         super(TAG, serviceHandler);
-        this.streamClient = streamClient;
-        this.startSignal = latch;
+        this.mWebSocket = webSocket;
     }
 
     @Override
@@ -43,12 +40,14 @@ public class AudioStreamClient extends AbsSystemThread
     {
         threadID = Thread.currentThread().getId();
         Log.i(TAG, "AudioStreamClient running at thread: " + threadID);
+        serviceHandler.workerThreads.put(AudioStreamClient.TAG, this);
+
         FileChannel fileChannel = null;
         AudioRecord audio_recorder = null;
+        File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         try
         {
-            startSignal.await();
-            wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + threadID + ".wav");
+            wavFileWriter= WavFileWriter.getInstance( localDir.toString() + threadID + ".wav");
             if(wavFileWriter==null)
                 throw new IOException("wavFileWrite is null");
 
@@ -65,25 +64,22 @@ public class AudioStreamClient extends AbsSystemThread
             int bytes_read = 0, payloadSize = 0, bytes_count = 0;
 
             byte[] buf = new byte[Constants.BUF_SIZE];
-            ByteBuffer bb = ByteBuffer.allocate(Constants.BYTES_SHORT + 2*Constants.BYTES_INT +  Constants.BUF_SIZE);
+            ByteBuffer bb = ByteBuffer.allocate(Constants.BYTES_SHORT + Constants.BYTES_INT +  Constants.BUF_SIZE);
 
             keepRunning = true;
             audio_recorder.startRecording();
             while(keepRunning)
             {
+                bb.clear();
                 bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
-                //buffer = ByteBuffer.wrap(buf);
                 wavFileWriter.write(buf);
                 //fileChannel.write(buffer);
-                bb.clear();
-
-                payloadSize = Constants.BYTES_SHORT + Constants.BYTES_INT + bytes_read;
-                bb.putInt(payloadSize);
-                bb.putShort(isJSON);
+                bb.putShort(isStringData);
                 bb.putInt(SensorUtil.SENSOR_MIC);
                 bb.put(buf);
                 bytes_count += bytes_read;
-                streamClient.send(bb.array());
+
+                mWebSocket.send(bb.array());
                 Thread.sleep(Constants.SAMPLE_INTERVAL);
             }
 
