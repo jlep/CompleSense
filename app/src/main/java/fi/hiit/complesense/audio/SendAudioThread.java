@@ -11,6 +11,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
@@ -122,9 +123,10 @@ public class SendAudioThread extends AbstractSystemThread
         int bytes_count = 0;
         byte[] buf = new byte[Constants.BUF_SIZE];
         //byte[] buf = new byte[Constants.NUM_CHANNELS * Constants.SAMPLE_SIZE * Constants.FRAME_SIZE * Constants.SAMPLE_RATE / 1000 ];
+        File localFile = new File(Constants.ROOT_DIR, ownerThreadId + ".wav");
         try
         {
-            wavFileWriter= WavFileWriter.getInstance(Constants.ROOT_DIR + ownerThreadId + ".wav");
+            wavFileWriter= WavFileWriter.getInstance(localFile);
             if(wavFileWriter==null)
                 throw new IOException("wavFileWrite is null");
 

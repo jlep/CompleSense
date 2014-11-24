@@ -21,12 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.RspHandler;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
-import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 

@@ -19,22 +19,22 @@ import fi.hiit.complesense.core.ServiceHandler;
 public class WavFileWriter
 {
     private static final String TAG = "WavFileWriter";
-    private final String filePath;
+    private final File file;
     private final RandomAccessFile randomAccessWriter;
     public static WavFileWriter instance;
     private int payLoadSize = 0;
 
-    private WavFileWriter(String filePath) throws FileNotFoundException
+    private WavFileWriter(File file) throws FileNotFoundException
     {
-        this.filePath = filePath;
-        this.randomAccessWriter = new RandomAccessFile(filePath, "rw");
+        this.file = file;
+        this.randomAccessWriter = new RandomAccessFile(file, "rw");
     }
 
-    public static WavFileWriter getInstance(String filePath)
+    public static WavFileWriter getInstance(File file)
     {
         instance = null;
         try {
-            instance = new WavFileWriter(filePath);
+            instance = new WavFileWriter(file);
             instance.prepare();
         } catch (FileNotFoundException e) {
             Log.i(TAG, e.toString());
@@ -98,7 +98,7 @@ public class WavFileWriter
             randomAccessWriter.seek(40); // Write size to Subchunk2Size field
             randomAccessWriter.writeInt(Integer.reverseBytes(payLoadSize));
             randomAccessWriter.close();
-            Log.i(TAG,"close(" + filePath + " size: " + payLoadSize +")");
+            Log.i(TAG,"close(" + file.toString() + " size: " + payLoadSize +")");
         } catch (IOException e) {
             e.printStackTrace();
         }

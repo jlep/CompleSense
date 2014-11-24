@@ -25,8 +25,6 @@ public class AudioStreamClient extends AbsSystemThread
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
     private final WebSocket mWebSocket;
-    private WavFileWriter wavFileWriter;
-    private long threadID;
     private final short isStringData = 0;
 
     public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket)
@@ -38,16 +36,20 @@ public class AudioStreamClient extends AbsSystemThread
     @Override
     public void run()
     {
-        threadID = Thread.currentThread().getId();
+        long threadID = Thread.currentThread().getId();
         Log.i(TAG, "AudioStreamClient running at thread: " + threadID);
         serviceHandler.workerThreads.put(AudioStreamClient.TAG, this);
 
         FileChannel fileChannel = null;
         AudioRecord audio_recorder = null;
+        WavFileWriter wavFileWriter = null;
+
         File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+        localDir.mkdirs();
+        File localFile = new File(localDir, threadID + ".wav");
         try
         {
-            wavFileWriter= WavFileWriter.getInstance( localDir.toString() + threadID + ".wav");
+            wavFileWriter= WavFileWriter.getInstance( localFile);
             if(wavFileWriter==null)
                 throw new IOException("wavFileWrite is null");
 
