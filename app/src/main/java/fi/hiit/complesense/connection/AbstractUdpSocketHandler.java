@@ -4,14 +4,14 @@ import android.util.Log;
 
 import java.net.SocketAddress;
 
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 9/22/14.
  */
-public class AbstractUdpSocketHandler extends AbstractSystemThread
+public class AbstractUdpSocketHandler extends AbsSystemThread
 {
 
     private static final String TAG = "AbstractUdpSocketHandler";
@@ -19,7 +19,7 @@ public class AbstractUdpSocketHandler extends AbstractSystemThread
 
     protected AbstractUdpSocketHandler(ServiceHandler serviceHandler)
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
         udpConnRunnable = null;
     }
 
@@ -29,11 +29,6 @@ public class AbstractUdpSocketHandler extends AbstractSystemThread
         Log.i(TAG, "stopThread()");
         if(udpConnRunnable != null)
             udpConnRunnable.stopRunnable();
-    }
-
-    @Override
-    public void pauseThread() {
-
     }
 
     public void write(SystemMessage systemMessage, SocketAddress remoteSocketAddr)

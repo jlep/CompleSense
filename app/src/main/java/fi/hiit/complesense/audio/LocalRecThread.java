@@ -5,28 +5,24 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-import com.koushikdutta.async.http.WebSocket;
-
 import java.io.File;
 import java.io.IOException;
-import java.net.SocketAddress;
-import java.net.URI;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.util.MIME_FileWriter;
 
 /**
  * Created by hxguo on 10.10.2014.
  */
-public class LocalRecThread extends AbstractSystemThread
+public class LocalRecThread extends AbsSystemThread
 {
     public static final String TAG = "LocalRecThread";
     private volatile boolean recording;
 
     public LocalRecThread(ServiceHandler serviceHandler) {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
     }
 
     @Override
@@ -106,10 +102,5 @@ public class LocalRecThread extends AbstractSystemThread
         Log.e(TAG, str);
         serviceHandler.updateStatusTxt(str);
         recording = false;
-    }
-
-    @Override
-    public void pauseThread() {
-
     }
 }

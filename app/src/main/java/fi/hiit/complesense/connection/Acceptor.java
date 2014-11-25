@@ -13,14 +13,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 7/14/14.
  */
-public class Acceptor extends AbstractSystemThread
+public class Acceptor extends AbsSystemThread
 {
     public static final String TAG = "Acceptor";
 
@@ -60,7 +60,7 @@ public class Acceptor extends AbstractSystemThread
     public Acceptor(Messenger remoteMessenger,
                     ServiceHandler serviceHandler) throws IOException
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
 
         socket = new ServerSocket();
         socket.setReuseAddress(true);
@@ -196,8 +196,4 @@ public class Acceptor extends AbstractSystemThread
         }
     }
 
-    @Override
-    public void pauseThread() {
-
-    }
 }

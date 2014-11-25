@@ -24,7 +24,6 @@ import fi.hiit.complesense.util.SensorUtil;
 public class DataProcessingThread extends AbsSystemThread {
 
     public static final String TAG = DataProcessingThread.class.getSimpleName();
-    private final File recvDir;
     private ConcurrentMap<String, List<ByteBuffer>> pendingData = new ConcurrentHashMap<String, List<ByteBuffer>>();
     private ConcurrentMap<String, FileWriter> fileWriters = new ConcurrentHashMap<String, FileWriter>();
     private ConcurrentMap<String, MIME_FileWriter> wavWriters = new ConcurrentHashMap<String, MIME_FileWriter>();
@@ -35,9 +34,6 @@ public class DataProcessingThread extends AbsSystemThread {
     public DataProcessingThread(ServiceHandler serviceHandler) throws IOException
     {
         super(TAG, serviceHandler);
-        this.recvDir = new File(Constants.ROOT_DIR, "recv");
-        recvDir.mkdirs();
-
     }
 
     public void addDataToThreadBuffer(String webSocketStr, byte[] data, int count)
@@ -160,6 +156,8 @@ public class DataProcessingThread extends AbsSystemThread {
         public void run() {
             try {
                 String fileName = mWebSocketStr;
+                File recvDir = new File(Constants.ROOT_DIR, mWebSocketStr);
+                recvDir.mkdirs();
                 File txtFile = new File(recvDir, fileName+".txt");
                 File mediaFile = new File(recvDir, fileName);
 

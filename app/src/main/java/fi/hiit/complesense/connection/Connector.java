@@ -8,13 +8,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by hxguo on 20.8.2014.
  */
-public class Connector extends AbstractSystemThread
+public class Connector extends AbsSystemThread
 {
     public static final String TAG = "Connector";
 
@@ -27,7 +27,7 @@ public class Connector extends AbstractSystemThread
                      ServiceHandler serviceHandler,
                      InetAddress ownerAddr, int delay) throws IOException
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
         this.ownerAddr = ownerAddr;
 
         //this.ownerAddr = ownerAddr;
@@ -71,8 +71,4 @@ public class Connector extends AbstractSystemThread
         clientConnectionRunnable.stopRunnable();
     }
 
-    @Override
-    public void pauseThread() {
-
-    }
 }

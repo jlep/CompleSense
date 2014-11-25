@@ -21,14 +21,14 @@ import java.net.SocketAddress;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.UdpConnectionRunnable;
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 23.10.2014.
  */
-public class ImageWebSocketServer extends AbstractSystemThread
+public class ImageWebSocketServer extends AbsSystemThread
         implements AsyncHttpServer.WebSocketRequestCallback, CompletedCallback
 {
     public static final String TAG = ImageWebSocketServer.class.getSimpleName();
@@ -66,15 +66,10 @@ public class ImageWebSocketServer extends AbstractSystemThread
             server.stop();
     }
 
-    @Override
-    public void pauseThread() {
-
-    }
-
     public ImageWebSocketServer(ServiceHandler serviceHandler,
                                  UdpConnectionRunnable localUdpRunnable, SocketAddress clientSocketAddr, int index)
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
         this.localUdpRunnable = localUdpRunnable;
         server = new AsyncHttpServer();
         server.setErrorCallback(this);

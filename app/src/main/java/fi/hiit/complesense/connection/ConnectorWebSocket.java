@@ -10,12 +10,10 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.URI;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
-import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**

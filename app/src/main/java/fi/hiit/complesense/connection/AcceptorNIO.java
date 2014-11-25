@@ -1,6 +1,5 @@
 package fi.hiit.complesense.connection;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
@@ -14,17 +13,19 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.core.AbstractSystemThread;
+import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 
 /**
  * Created by hxguo on 21.8.2014.
  */
-public class AcceptorNIO extends AbstractSystemThread
+public class AcceptorNIO extends AbsSystemThread
 {
+    private static final String TAG = AcceptorNIO.class.getSimpleName();
+
     protected AcceptorNIO(ServiceHandler serviceHandler) throws Exception
     {
-        super(serviceHandler);
+        super(TAG, serviceHandler);
         ServerSocketChannel server = ServerSocketChannel.open();
         server.socket().setReuseAddress(true);
         server.socket().bind(new InetSocketAddress(Constants.SERVER_PORT));
@@ -48,11 +49,6 @@ public class AcceptorNIO extends AbstractSystemThread
 
     @Override
     public void stopThread() {
-
-    }
-
-    @Override
-    public void pauseThread() {
 
     }
 

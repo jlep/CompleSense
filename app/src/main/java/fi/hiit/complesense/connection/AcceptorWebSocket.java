@@ -1,10 +1,9 @@
 package fi.hiit.complesense.connection;
 
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
-import com.koushikdutta.async.*;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.WebSocket;
@@ -14,20 +13,13 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
-import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
@@ -81,7 +73,7 @@ public class AcceptorWebSocket extends AbsSystemThread
     @Override
     public void onConnected(final WebSocket webSocket, RequestHeaders requestHeaders)
     {
-        String txt = "onConnected(): New connection url: " + requestHeaders.getUri();
+        String txt = "onConnected():";
         Log.i(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
 
@@ -122,23 +114,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                 //Log.i(TAG, "num of ByteBuffers: " + data.length);
                 for(ByteBuffer bb : data){
                     int payloadSize = bb.remaining();
-                    //Log.i(TAG, "recv " + payloadSize + " bytes");
-
                     mDataProcessingThread.addDataToThreadBuffer(webSocket.toString(), bb.array(), payloadSize);
-                    /*
-                    short isJsonData = bb.getShort();
-
-                    if(isJsonData==1){
-                        byte[] jsonBytes = new byte[bb.remaining()];
-                        bb.get(jsonBytes);
-                        Log.i(TAG, new String(jsonBytes));
-                    }
-                    if(isJsonData==0){
-                        //byte[] jsonBytes = new byte[bb.remaining()];
-                        //bb.get(jsonBytes);
-                        Log.i(TAG, "receive " + bb.remaining() +" bytes");
-                    }
-                    */
                 }
                 byteBufferList.recycle();
             }

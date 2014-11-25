@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.WebSocket;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -168,6 +169,15 @@ public class ServiceHandler extends HandlerThread
         updateStatusTxt(str);
         AliveConnection aliveConnection = new AliveConnection(webSocket, this);
         peerList.put(webSocket.toString(), aliveConnection);
+
+        // Create a new folder for new Connection
+        createNewConnDir(webSocket);
+
+    }
+
+    private void createNewConnDir(WebSocket webSocket) {
+        File dir = new File(Constants.ROOT_DIR, webSocket.toString());
+        dir.mkdirs();
 
     }
 
