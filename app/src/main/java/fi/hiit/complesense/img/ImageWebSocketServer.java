@@ -20,10 +20,8 @@ import java.io.OutputStream;
 import java.net.SocketAddress;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.UdpConnectionRunnable;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.core.SystemMessage;
 
 /**
  * Created by hxguo on 23.10.2014.
@@ -37,7 +35,6 @@ public class ImageWebSocketServer extends AbsSystemThread
     public static final String IMG_FILE_SIZE = "img_file_size";
 
     private final AsyncHttpServer server;
-    private final UdpConnectionRunnable localUdpRunnable;
     private final int index;
     private WebSocket clientWebSocket;
     private OutputStream outStream;
@@ -66,11 +63,9 @@ public class ImageWebSocketServer extends AbsSystemThread
             server.stop();
     }
 
-    public ImageWebSocketServer(ServiceHandler serviceHandler,
-                                 UdpConnectionRunnable localUdpRunnable, SocketAddress clientSocketAddr, int index)
+    public ImageWebSocketServer(ServiceHandler serviceHandler, SocketAddress clientSocketAddr, int index)
     {
         super(TAG, serviceHandler);
-        this.localUdpRunnable = localUdpRunnable;
         server = new AsyncHttpServer();
         server.setErrorCallback(this);
         server.websocket("/send_img", Constants.WEB_PROTOCOL,this);
@@ -93,7 +88,7 @@ public class ImageWebSocketServer extends AbsSystemThread
                 Constants.LOCAL_WEBSOCKET_PORT + index);
 
         Log.i(TAG, "Send image capture request to client: " + clientSocketAddr);
-        localUdpRunnable.write(SystemMessage.makeStereoImageReq(asyncServerSocket.getLocalPort() ), clientSocketAddr);
+        //localUdpRunnable.write(SystemMessage.makeStereoImageReq(asyncServerSocket.getLocalPort() ), clientSocketAddr);
     }
 
     @Override

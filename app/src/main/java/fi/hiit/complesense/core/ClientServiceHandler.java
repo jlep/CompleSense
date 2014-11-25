@@ -108,7 +108,7 @@ public class ClientServiceHandler extends ServiceHandler
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-
+            
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){

@@ -18,14 +18,11 @@ import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.List;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.core.SystemMessage;
-import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -167,23 +164,6 @@ public class TestingService extends AbstractGroupService
         return Service.START_NOT_STICKY;
     }
 
-
-    public void testSensorListParsing()
-    {
-        Log.i(TAG,"testSensorListParsing()");
-
-        List<Integer> sList= SensorUtil.getLocalSensorTypeList(getApplicationContext());
-        Log.i(TAG,sList.toString());
-
-        SystemMessage sm = SystemMessage.makeSensorsListReplyMessage(sList);
-
-        SystemMessage.parseSensorTypeList(sm);
-
-        int a = 13;
-        byte[] bArray = SystemMessage.int2Bytes(a);
-        Log.i(TAG, Integer.toString(SystemMessage.byteArray2Int(bArray)) );
-
-    }
 
     public void startTesting(Messenger uiMessenger, int numClients)
     {

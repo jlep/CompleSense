@@ -62,7 +62,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     @Override
     public void run()
     {
-        Log.i(TAG, " starts SensorDataCollectionThread @thread: " + Thread.currentThread().getId());
+        Log.i(TAG, " Starts SensorDataCollectionThread @thread: " + Thread.currentThread().getId());
         serviceHandler.workerThreads.put(SensorDataCollectionThread.TAG, this);
 
         mListener = new SensorEventListener()

@@ -111,18 +111,6 @@ public class ServiceHandler extends HandlerThread
         return peerList;
     }
 
-    protected void reply(Messenger messenger)
-    {
-        Message msg = new Message();
-        msg.obj = SystemMessage.makeRelayListenerReply();
-        try {
-            messenger.send(msg);
-        } catch (RemoteException e) {
-            Log.i(TAG,e.toString());
-        }
-    }
-
-
     public Handler getHandler(){
         if(handler==null)
             Log.i(TAG,"handler is null");

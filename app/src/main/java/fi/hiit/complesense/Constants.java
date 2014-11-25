@@ -2,11 +2,6 @@ package fi.hiit.complesense;
 
 import android.os.Environment;
 
-import java.io.File;
-import java.net.URL;
-
-import fi.hiit.complesense.core.SystemMessage;
-
 /**
  * Created by hxguo on 7/11/14.
  */

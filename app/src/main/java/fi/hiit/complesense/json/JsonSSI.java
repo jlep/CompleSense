@@ -1,7 +1,5 @@
 package fi.hiit.complesense.json;
 
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -10,16 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.channels.SocketChannel;
 import java.util.List;
-import java.util.Set;
-
-import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.core.SystemMessage;
-import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 24.10.2014.
