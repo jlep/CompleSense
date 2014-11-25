@@ -8,9 +8,12 @@ import android.util.Log;
 import com.koushikdutta.async.http.WebSocket;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
@@ -26,87 +29,131 @@ public class AudioStreamClient extends AbsSystemThread
 
     private final WebSocket mWebSocket;
     private final short isStringData = 0;
+    private final boolean readLocal;
+    private final PipedOutputStream mPipedOut;
+    private final PipedInputStream mPipedIn;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket)
-    {
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, boolean readLocal) throws IOException {
         super(TAG, serviceHandler);
         this.mWebSocket = webSocket;
+        this.readLocal = readLocal;
+        this.mPipedOut = new PipedOutputStream();
+        mPipedIn = new PipedInputStream(mPipedOut);
+    }
+
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket) throws IOException {
+        super(TAG, serviceHandler);
+        this.mWebSocket = webSocket;
+        this.readLocal = false;
+        this.mPipedOut = new PipedOutputStream();
+        this.mPipedIn = new PipedInputStream(mPipedOut);
     }
 
     @Override
     public void run()
     {
-        long threadID = Thread.currentThread().getId();
-        Log.i(TAG, "AudioStreamClient running at thread: " + threadID);
+        long threadId = Thread.currentThread().getId();
+        Log.i(TAG, "Starts AudioStreamClient @thread id: " + threadId);
         serviceHandler.workerThreads.put(AudioStreamClient.TAG, this);
 
-        FileChannel fileChannel = null;
-        AudioRecord audio_recorder = null;
-        WavFileWriter wavFileWriter = null;
+        int bytes_read = 0, payloadSize = 0, bytes_count = 0;
+        byte[] buf = new byte[Constants.BUF_SIZE];
+        ByteBuffer bb = ByteBuffer.allocate(Constants.BYTES_SHORT + Constants.BYTES_INT +  Constants.BUF_SIZE);
 
-        File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+        final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         localDir.mkdirs();
-        File localFile = new File(localDir, threadID + ".wav");
-        try
+        final File localFile = new File(localDir, Long.toString(threadId)+".wav");
+        AudioFileWritingThread audioFileWriter = new AudioFileWritingThread(serviceHandler, mPipedIn, localFile);
+        audioFileWriter.start();
+
+        keepRunning = true;
+        if(!readLocal)
         {
-            wavFileWriter= WavFileWriter.getInstance( localFile);
-            if(wavFileWriter==null)
-                throw new IOException("wavFileWrite is null");
-
-            fileChannel = wavFileWriter.getFileChannel();
-            audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
-                    Constants.SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    AudioRecord.getMinBufferSize(
-                            Constants.SAMPLE_RATE,
-                            AudioFormat.CHANNEL_IN_MONO,
-                            AudioFormat.ENCODING_PCM_16BIT) * 10);
-
-            int bytes_read = 0, payloadSize = 0, bytes_count = 0;
-
-            byte[] buf = new byte[Constants.BUF_SIZE];
-            ByteBuffer bb = ByteBuffer.allocate(Constants.BYTES_SHORT + Constants.BYTES_INT +  Constants.BUF_SIZE);
-
-            keepRunning = true;
-            audio_recorder.startRecording();
-            while(keepRunning)
+            AudioRecord audio_recorder = null;
+            try
             {
-                bb.clear();
-                bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
-                wavFileWriter.write(buf);
-                //fileChannel.write(buffer);
-                bb.putShort(isStringData);
-                bb.putInt(SensorUtil.SENSOR_MIC);
-                bb.put(buf);
-                bytes_count += bytes_read;
+                audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
+                        Constants.SAMPLE_RATE,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        AudioRecord.getMinBufferSize(
+                                Constants.SAMPLE_RATE,
+                                AudioFormat.CHANNEL_IN_MONO,
+                                AudioFormat.ENCODING_PCM_16BIT) * 10);
 
-                mWebSocket.send(bb.array());
-                Thread.sleep(Constants.SAMPLE_INTERVAL);
+                audio_recorder.startRecording();
+                while(keepRunning){
+                    bb.clear();
+                    bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
+                    mPipedOut.write(buf, 0, bytes_read);
+
+                    bb.putShort(isStringData);
+                    bb.putInt(SensorUtil.SENSOR_MIC);
+                    bb.put(buf);
+                    bytes_count += bytes_read;
+
+                    mWebSocket.send(bb.array());
+                    Thread.sleep(Constants.SAMPLE_INTERVAL);
+                }
+
+            } catch (InterruptedException e) {
+                Log.i(TAG, e.toString());
+            } catch (IOException e) {
+                Log.i(TAG, e.toString());
+            } finally{
+                Log.i(TAG, "Recording thread stops");
+                if(audio_recorder!=null)
+                    audio_recorder.stop();
+                if(audioFileWriter!=null)
+                    audioFileWriter.stopThread();
+
             }
-
-        } catch (IOException e) {
-            Log.i(TAG, e.toString());
-        } catch (InterruptedException e) {
-            Log.i(TAG, e.toString());
-
         }
-        finally
+        else
         {
-            Log.i(TAG, "Recording thread stops");
-            if(audio_recorder!=null)
-                audio_recorder.stop();
-            if(wavFileWriter!=null)
-                wavFileWriter.close();
-            if(fileChannel!=null)
-            {
-                try {
-                    fileChannel.close();
-                } catch (IOException e) {
-                    Log.i(TAG, e.toString());
+            File testDir = new File(Constants.ROOT_DIR, "test_rec");
+            File[] files= testDir.listFiles();
+            FileInputStream fis = null;
+            try {
+                for(File f : files){
+                    fis = new FileInputStream(f);
+                    Log.i(TAG, "Reading file: " + f.toString());
+                    while(keepRunning){
+                        bb.clear();
+                        if(fis.available()>0){
+                            bytes_read = fis.read(buf);
+                            mPipedOut.write(buf);
+                            bytes_count += bytes_read;
+
+                            bb.putShort(isStringData);
+                            bb.putInt(SensorUtil.SENSOR_MIC);
+                            bb.put(buf);
+
+                            mWebSocket.send(bb.array());
+                        }else{
+                            fis.close();
+                            break;
+                        }
+                        Thread.sleep(Constants.SAMPLE_INTERVAL);
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, e.toString());
+            } catch (IOException e) {
+                Log.e(TAG, e.toString());
+            } catch (InterruptedException e) {
+                Log.i(TAG, e.toString());
+            }finally{
+                Log.i(TAG, "Recording thread stops");
+                if(fis!=null){
+                    try {
+                        fis.close();
+                    } catch (IOException e) { }
                 }
             }
         }
+
+
     }
 
     @Override

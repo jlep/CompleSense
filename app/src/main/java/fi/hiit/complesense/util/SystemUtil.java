@@ -286,7 +286,7 @@ public class SystemUtil {
         File rootFolder = new File(Constants.ROOT_DIR);
         if(rootFolder.exists())
             SystemUtil.deleteRecursive(rootFolder);
-        rootFolder.mkdir();
+        rootFolder.mkdirs();
     }
 
     /** Create a file Uri for saving an image or video */

@@ -15,11 +15,17 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.Pipe;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Set;
 
+import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.img.ImageWebSocketClient;
@@ -97,7 +103,7 @@ public class ClientServiceHandler extends ServiceHandler
         updateStatusTxt(txt);
 
         if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket);
+            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, false);
             audioStreamClient.start();
         }
 
@@ -112,8 +118,15 @@ public class ClientServiceHandler extends ServiceHandler
         }
 
         if(requiredSensors.size()>0){
+            final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+            localDir.mkdirs();
+            final File localFile = new File(localDir, webSocket.toString()+".txt");
+
+            TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, localFile);
+            fileWritingThread.start();
+
             SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                    this, context, requiredSensors, webSocket);
+                    this, context, requiredSensors, webSocket, fileWritingThread);
             sensorDataCollectionThread.start();
         }
     }

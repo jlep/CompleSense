@@ -16,7 +16,11 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -35,6 +39,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     private final HashMap<Integer, Integer> sampleCounters;
     private final WebSocket mWebSocket;
     private final short isStringData = 1;
+    private final TextFileWritingThread mFileWritingThread;
 
     private SensorEventListener mListener;
     private JSONObject jsonSensorData = new JSONObject();
@@ -43,40 +48,31 @@ public class SensorDataCollectionThread extends AbsSystemThread
     public SensorDataCollectionThread(ServiceHandler serviceHandler,
                                       Context context,
                                       Set<Integer> requiredSensors,
-                                      WebSocket webSocket) throws JSONException {
+                                      WebSocket webSocket,
+                                      TextFileWritingThread out) throws JSONException, IOException {
         super(TAG, serviceHandler);
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         this.sampleCounters = new HashMap<Integer, Integer>(requiredSensors.size());
         this.mWebSocket = webSocket;
         for(int i:requiredSensors)
             sampleCounters.put(i, 0);
-
+        this.mFileWritingThread = out;
     }
 
     @Override
     public void run()
     {
-        Log.i(TAG, " starts running at thread: " + Thread.currentThread().getId());
+        Log.i(TAG, " starts SensorDataCollectionThread @thread: " + Thread.currentThread().getId());
         serviceHandler.workerThreads.put(SensorDataCollectionThread.TAG, this);
-        final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-        localDir.mkdirs();
-        final File localFile = new File(localDir, mWebSocket.toString()+".txt");
-
 
         mListener = new SensorEventListener()
         {
-            FileWriter fw = null;
-
-
             @Override
             public void onSensorChanged(SensorEvent sensorEvent)
             {
                 try
                 {
-                    fw = new FileWriter(localFile, true);
-
                     //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-                    //jsonSensorData.put(JsonSSI.IS_STRING_DATA, isStringData);
                     jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
                     jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
                     JSONArray jsonArray = new JSONArray();
@@ -84,7 +80,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
                         jsonArray.put(value);
                     jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
 
-                    fw.write(jsonSensorData.toString() );
+                    mFileWritingThread.write(jsonSensorData.toString() );
 
                     int count = sampleCounters.get(sensorEvent.sensor.getType());
                     count++;
@@ -97,14 +93,6 @@ public class SensorDataCollectionThread extends AbsSystemThread
                     mWebSocket.send(buffer.array());
                 } catch (JSONException e) {
                     Log.i(TAG, e.toString());
-                }catch (IOException e) {
-                    Log.i(TAG, e.toString());
-                }finally {
-                    if(fw!=null){
-                        try {
-                            fw.close();
-                        } catch (IOException e) {}
-                    }
                 }
             }
             @Override
@@ -139,8 +127,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     }
 
     @Override
-    public void stopThread()
-    {
+    public void stopThread(){
         keepRunning = false;
         unRegisterSensors();
     }

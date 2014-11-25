@@ -68,6 +68,7 @@ public class ServiceHandler extends HandlerThread
     {
         try
         {
+
             if(isGroupOwner){
                 AcceptorWebSocket acceptor = new AcceptorWebSocket(this);
                 workerThreads.put(AcceptorWebSocket.TAG, acceptor);

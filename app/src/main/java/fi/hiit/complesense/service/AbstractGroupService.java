@@ -21,12 +21,12 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.core.CompleSenseDevice;
+import fi.hiit.complesense.core.GroupBroadcastReceiver;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.ui.DemoActivity;

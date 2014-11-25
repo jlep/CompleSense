@@ -15,6 +15,7 @@ import java.net.URI;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbstractSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.util.MIME_FileWriter;
 
 /**
  * Created by hxguo on 10.10.2014.
@@ -41,7 +42,7 @@ public class LocalRecThread extends AbstractSystemThread
     private void startRecording()
     {
         Log.e(TAG, "start LocalRecThread thread, thread id: " + Thread.currentThread().getId());
-        WavFileWriter wavFileWriter = null;
+        MIME_FileWriter wavFileWriter = null;
 
         AudioRecord audio_recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, Constants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -56,7 +57,7 @@ public class LocalRecThread extends AbstractSystemThread
         File localFile = new File(Constants.ROOT_DIR, Thread.currentThread().getId() + "-"+ System.currentTimeMillis() +".wav");
         try
         {
-            wavFileWriter= WavFileWriter.getInstance(localFile);
+            wavFileWriter= new MIME_FileWriter(localFile,MIME_FileWriter.Format.wav);
             if(wavFileWriter==null)
                 throw new IOException("wavFileWrite is null");
 

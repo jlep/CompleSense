@@ -148,6 +148,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     {
         String key = webSocket.toString();
         Set<Integer> sensorSet = new HashSet<Integer>(availableSensors.get(key));
+
         if(sensorSet==null){
             Log.e(TAG, "no such client: " + key);
             return;
@@ -158,8 +159,12 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             availableSensorTypes.add(sc.getType());
 
         if(sensorSet.containsAll(availableSensorTypes)){
-            JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(new JSONArray(requiredSensors),
+            JSONArray jsonArray = new JSONArray(requiredSensors.toString());
+            Log.i(TAG, "sendStartStreamClientReq()-requiredSensors: " + jsonArray.toString());
+            JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(jsonArray,
                     peerList.get(key).getDelay() );
+
+
             webSocket.send(jsonStartStream.toString());
         }else{
             sensorSet.removeAll(availableSensorTypes);

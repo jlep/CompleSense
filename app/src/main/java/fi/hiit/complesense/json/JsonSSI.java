@@ -2,6 +2,7 @@ package fi.hiit.complesense.json;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
 
@@ -52,6 +53,7 @@ public class JsonSSI
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
     public static final String WEB_SOCKET_KEY = "web_socket_key";
     public static final String IS_STRING_DATA = "is_string_data";
+    private static final String TAG = JsonSSI.class.getSimpleName();
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -85,6 +87,7 @@ public class JsonSSI
 
     public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff) throws JSONException
     {
+        Log.i(TAG, "makeStartStreamReq(): " + sensorTypes.toString());
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(COMMAND, R);
         jsonObject.put(SENSOR_TYPES, sensorTypes);

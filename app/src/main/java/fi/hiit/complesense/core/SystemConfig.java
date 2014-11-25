@@ -258,6 +258,9 @@ public class SystemConfig
 
     public static class SensorConfig
     {
+        public enum SamplingRate{SLOW, NORMAL, FAST, UNKNOWN};
+
+
         public static final String TAG = "Sensor";
         private static final String TYPE = "SensorType";
         private static final String SAMPLE_RATE = "SamplingRate";
@@ -271,13 +274,13 @@ public class SystemConfig
 
 
         private final int type;
-        private final int sampleRate;
+        private final SamplingRate sampleRate;
 
         public int getType() {
             return type;
         }
 
-        public int getSampleRate() {
+        public SamplingRate getSampleRate() {
             return sampleRate;
         }
 
@@ -287,15 +290,21 @@ public class SystemConfig
 
         private final SensorSelection sensorSelection;
 
-        public SensorConfig(String type, int sampleRate, SensorSelection sensorSelection) {
-            this.type = getTypeInt(type);
-            this.sampleRate = sampleRate;
-            this.sensorSelection = sensorSelection;
-        }
-
         public SensorConfig(JSONObject sensor) throws JSONException {
             this.type = getTypeInt(sensor.getString(TYPE) );
-            this.sampleRate = sensor.getInt(SAMPLE_RATE);
+            String sr = sensor.getString(SAMPLE_RATE);
+
+            if(sr.equals("SLOW")){
+                sampleRate = SamplingRate.SLOW;
+            }else{
+                if(sr.equals("NORMAL")){
+                    sampleRate = SamplingRate.NORMAL;
+                }else if(sr.equals("FAST")){
+                    sampleRate = SamplingRate.FAST;
+                }else{
+                    sampleRate = SamplingRate.UNKNOWN;
+                }
+            }
             JSONObject jsonObject = (JSONObject) sensor.get(SENSOR_SELECTION);
             this.sensorSelection = new SensorSelection(jsonObject);
         }

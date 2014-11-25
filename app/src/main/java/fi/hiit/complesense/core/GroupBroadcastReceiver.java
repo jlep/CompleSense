@@ -1,4 +1,4 @@
-package fi.hiit.complesense.service;
+package fi.hiit.complesense.core;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,6 +7,8 @@ import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
+
+import fi.hiit.complesense.service.AbstractGroupService;
 
 /**
  * Created by hxguo on 7/17/14.

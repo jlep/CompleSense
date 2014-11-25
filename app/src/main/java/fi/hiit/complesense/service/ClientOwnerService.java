@@ -18,8 +18,8 @@ import java.util.Map;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
+import fi.hiit.complesense.core.GroupBroadcastReceiver;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
-import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.util.SystemUtil;
 

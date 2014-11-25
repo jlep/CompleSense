@@ -58,6 +58,8 @@
                     android:host="@string/host" />
             </intent-filter>
         </activity>
+
+
     </application>
 
 </manifest>

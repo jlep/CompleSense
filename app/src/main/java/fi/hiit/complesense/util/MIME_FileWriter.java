@@ -79,8 +79,8 @@ public class MIME_FileWriter
     public void write(byte[] data, int offset, int byteCount)
     {
         try {
-            randomAccessWriter.write(data,offset, byteCount);
-            payloadSize += data.length;
+            randomAccessWriter.write(data, offset, byteCount);
+            payloadSize += byteCount;
         } catch (IOException e) {
             Log.i(TAG,e.toString());
         }
