@@ -14,6 +14,8 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -362,5 +364,10 @@ public class SystemUtil {
         }
 
         return null;
+    }
+
+    public static String formatWebSocketString(WebSocket webSocket){
+        String str = webSocket.toString();
+        return str.substring(str.lastIndexOf("@")+1);
     }
 }

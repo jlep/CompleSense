@@ -62,7 +62,7 @@ public class AudioStreamClient extends AbsSystemThread
 
         final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         localDir.mkdirs();
-        final File localFile = new File(localDir, Long.toString(threadId)+".wav");
+        final File localFile = new File(localDir, Long.toString(threadId));
         AudioFileWritingThread audioFileWriter = new AudioFileWritingThread(serviceHandler, mPipedIn, localFile);
         audioFileWriter.start();
 
