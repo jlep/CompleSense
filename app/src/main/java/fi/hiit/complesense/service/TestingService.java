@@ -199,8 +199,7 @@ public class TestingService extends AbstractGroupService
             //serverManager = new GroupOwnerManager(mMessenger,
             //        getApplication(), false);
             try {
-                ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger,
-                        "GroupOwner Handler", getApplicationContext());
+                ownerServiceHanlder = new GroupOwnerServiceHandler(mMessenger, getApplicationContext());
                 Log.i(TAG, "Starting GroupOwner from thread: " + Thread.currentThread().getId());
                 ownerServiceHanlder.start();
             } catch (IOException e) {

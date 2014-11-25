@@ -42,9 +42,8 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private Map<String, ArrayList<Integer>> availableSensors = new HashMap<String, ArrayList<Integer>>();
 
 
-    public GroupOwnerServiceHandler(Messenger serviceMessenger, String name,
-                                    Context context) throws IOException, JSONException {
-        super(serviceMessenger, name,context, true, null, 0);
+    public GroupOwnerServiceHandler(Messenger serviceMessenger, Context context) throws IOException, JSONException {
+        super(serviceMessenger, TAG, context, true, null, 0);
         sysConfig = SystemUtil.loadConfigFile();
         if(sysConfig!=null)
         {

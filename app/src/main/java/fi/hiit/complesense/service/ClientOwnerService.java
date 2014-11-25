@@ -13,9 +13,17 @@ import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupBroadcastReceiver;
@@ -31,6 +39,7 @@ public class ClientOwnerService extends AbstractGroupService
     private static final String TAG = "ClientOwnerService";
 
     private boolean retryChannel = false;
+    private ClientServiceHandler localClientServiceHandler = null;
 
     WifiP2pManager.DnsSdTxtRecordListener txtListener =
             new WifiP2pManager.DnsSdTxtRecordListener()
@@ -94,6 +103,7 @@ public class ClientOwnerService extends AbstractGroupService
             }
         }
     };
+
 
     /**
      * Handler of incoming messages from clients.
@@ -208,6 +218,9 @@ public class ClientOwnerService extends AbstractGroupService
         if(serviceHandler!=null)
             serviceHandler.stopServiceHandler();
 
+        if(localClientServiceHandler !=null)
+            localClientServiceHandler.stopServiceHandler();
+
         if (manager != null && channel != null)
         {
             mWifiConnManager.stopGroupOwner();
@@ -239,16 +252,35 @@ public class ClientOwnerService extends AbstractGroupService
                             "Device connected as Group Owner " + mDevice.isGroupOwner());
                     if(serviceHandler == null)
                     {
-                        //serviceHandler = new GroupOwnerManager(mMessenger, context, true);
                         try {
-                            serviceHandler = new GroupOwnerServiceHandler(mMessenger,
-                                    "GroupOwnerServiceHandler", context);
+                            serviceHandler = new GroupOwnerServiceHandler(mMessenger, context);
+                            serviceHandler.start();
+
+                            Callable<InetAddress> callable = new Callable<InetAddress>() {
+                                @Override
+                                public InetAddress call() throws Exception {
+                                    return InetAddress.getLocalHost();
+                                }
+                            };
+                            ExecutorService executor = Executors.newFixedThreadPool(1);
+                            Future<InetAddress> future = executor.submit(callable);
+                            InetAddress localHost = future.get();
+
+                            if(localHost!=null){
+                                Log.i(TAG, "localhost: " + localHost.toString());
+                                localClientServiceHandler = new ClientServiceHandler(mMessenger, context, localHost, 0);
+                                localClientServiceHandler.start();
+                            }
+
                         } catch (IOException e) {
                             e.printStackTrace();
                         } catch (JSONException e) {
                             e.printStackTrace();
+                        } catch (InterruptedException e) {
+                            Log.i(TAG, e.toString());
+                        } catch (ExecutionException e) {
+                            e.printStackTrace();
                         }
-                        serviceHandler.start();
                     }
                 }
                 else
