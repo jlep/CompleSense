@@ -101,7 +101,13 @@ public class MIME_FileWriter
                     randomAccessWriter.writeInt(Integer.reverseBytes(payloadSize));
                     randomAccessWriter.close();
 
-                    String newFilename = file.toString().substring(file.toString().lastIndexOf('/')+1)+".wav";
+                    String newFilename;
+                    if(file.toString().endsWith(".wav")){
+                        newFilename = file.toString().substring(file.toString().lastIndexOf('/')+1, file.toString().lastIndexOf(".wav"));
+                    }else{
+                        newFilename = file.toString().substring(file.toString().lastIndexOf('/')+1)+".wav";
+                    }
+
 
                     //Log.i(TAG,"stop(oldFile.length(): " +oldFile.length() +")");
                     File newFile = new File(file.getParent(), newFilename);
