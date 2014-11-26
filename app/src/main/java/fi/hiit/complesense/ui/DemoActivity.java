@@ -16,8 +16,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import java.io.File;
 import java.io.Serializable;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
@@ -75,13 +77,18 @@ public class DemoActivity extends AbstractGroupActivity
                             TestingService.START_TESTING);
                     msg.replyTo = uiMessenger;
                     serviceMessenger.send(msg);
-                    if(hasImage)
-                    {
-                        msg = Message.obtain(null, Constants.SERVICE_MSG_SEND_IMG);
-                        msg.replyTo = uiMessenger;
-                        msg.obj = imageUri;
-                        serviceMessenger.send(msg);
+
+                    if(imageNames!=null && imageNames.size()>0){
+                        msg = Message.obtain(null,
+                                Constants.SERVICE_MSG_TAKEN_IMG);
+                        msg.obj = imageNames;
+                        try {
+                            serviceMessenger.send(msg);
+                        } catch (RemoteException e) {
+                        }
                     }
+
+
                 }
                 catch (RemoteException e)
                 {
@@ -162,23 +169,15 @@ public class DemoActivity extends AbstractGroupActivity
                     appendStatus((String)msg.obj);
                     break;
                 case Constants.MSG_TAKE_IMAGE:
-                    SocketAddress socketAddress = (SocketAddress)msg.obj;
-                    appendStatus("Receive image taking request from " + socketAddress.toString() );
-                    imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
-                    Log.i(TAG, "imageUri: " + imageUri.toString() );
-                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri); // set the image file name
+                    String webSocketStr = (String) msg.obj;
+                    appendStatus("Receive image taking request from " + webSocketStr);
 
-                    Message msg2Service = Message.obtain(null, Constants.SERVICE_MSG_SEND_IMG);
-                    msg2Service.replyTo = uiMessenger;
-                    msg2Service.obj = null;
-                    try {
-                        serviceMessenger.send(msg2Service);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
+                    Intent intent = new Intent(getApplicationContext(), TakePhotoActivity.class);
+                    File imgDir = new File(Constants.ROOT_DIR, webSocketStr);
+                    imgDir.mkdirs();
 
-                    //startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+                    intent.putExtra(Constants.KEY_STORAGE_DIR, imgDir.toString()); // set the image file name
+                    startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
                 default:
                     super.handleMessage(msg);
@@ -187,16 +186,21 @@ public class DemoActivity extends AbstractGroupActivity
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent)
     {
         Log.i(TAG, "onActivityResult(requestCode: "+ requestCode + ")");
         if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE)
         {
             if (resultCode == RESULT_OK) {
-                // Image captured and saved to fileUri specified in the Intent
-                //Toast.makeText(this, "Image saved to: " + data.getData().toString(), Toast.LENGTH_SHORT).show();
-                appendStatus("Image saved to: " + imageUri.toString() );
-                hasImage = true;
+                // Image captured and saved to imageUri specified in the Intent
+                ArrayList<String> imageNames = intent.getStringArrayListExtra(TakePhotoActivity.IMAGE_NAMES);
+                if(imageNames != null){
+                    String txt = String.format("%d images saved to %s",imageNames.size(),
+                            Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
+                    this.imageNames = imageNames;
+
+                    appendStatus(txt);
+                }
 
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture
@@ -210,7 +214,7 @@ public class DemoActivity extends AbstractGroupActivity
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
                 // Video captured and saved to fileUri specified in the Intent
-                appendStatus("Video saved to: " + data.getData().toString());
+                appendStatus("Video saved to: " + intent.getData().toString());
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the video capture
             } else {

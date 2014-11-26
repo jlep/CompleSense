@@ -1,10 +1,12 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.content.Intent;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Message;
 import android.os.Messenger;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -73,10 +75,14 @@ public class ClientServiceHandler extends ServiceHandler
                             mServerWebSocket.send(sensorTypeList.toString());
                             return true;
                         case JsonSSI.R:
-                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
+                            JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                             Log.i(TAG, "sensorConfigJson:" + sensorConfigJson.toString());
                             startStreaming(sensorConfigJson, mServerWebSocket);
                             return true;
+                        case JsonSSI.SEND_DATA:
+                            JSONArray imagesNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
+                            Log.i(TAG, "imageNames: " + imagesNames);
+                            break;
                         default:
                             Log.i(TAG, "Unknown command...");
                             break;
@@ -103,12 +109,12 @@ public class ClientServiceHandler extends ServiceHandler
         updateStatusTxt(txt);
 
         if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, false);
+            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, true);
             audioStreamClient.start();
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-            
+            startImageCapture(webSocket);
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){

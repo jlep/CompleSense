@@ -9,7 +9,9 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +30,9 @@ import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupBroadcastReceiver;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
+import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -153,10 +157,11 @@ public class ClientOwnerService extends AbstractGroupService
                     break;
                 case Constants.SERVICE_MSG_STEREO_IMG_REQ:
                     SystemUtil.sendTakeImageReq(uiMessenger,
-                            (SocketAddress) msg.obj);
+                            (String) msg.obj);
                     break;
-                case Constants.SERVICE_MSG_SEND_IMG:
-                    sendImg2ServerCommand((Uri)msg.obj);
+                case Constants.SERVICE_MSG_TAKEN_IMG:
+                    String[] imageNames = (String[])msg.obj;
+                    send2Handler(imageNames);
                     break;
 
                 default:
@@ -165,16 +170,22 @@ public class ClientOwnerService extends AbstractGroupService
         }
     }
 
-    private void sendImg2ServerCommand(Uri imgUri)
-    {
-        if(imgUri!=null)
-        {
-            Log.i(TAG, "sendImg2ServerCommand(" + imgUri.getPath() +
-                    ") @ thread id: " + Thread.currentThread().getId() );
-            File imgFile = new File(imgUri.getPath());
+    public void send2Handler(String[] data){
+        //Log.i(TAG, "send2Handler()" + data);
+        try{
+            JSONArray jsonArray = new JSONArray();
+            for(String s: data)
+                jsonArray.put(s);
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(JsonSSI.COMMAND, JsonSSI.SEND_DATA);
+            jsonObject.put(JsonSSI.DATA_TO_SEND, jsonArray);
+
             Message msg = Message.obtain(serviceHandler.getHandler(),
-                    Constants.THREAD_MSG_SEND_IMG, imgFile);
+                    ServiceHandler.JSON_RESPONSE_BYTES, jsonArray);
             msg.sendToTarget();
+        } catch (JSONException e) {
+            Log.e(TAG, e.toString());
         }
     }
 

@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.io.File;
 import java.io.Serializable;
 import java.net.SocketAddress;
 import java.util.List;
@@ -88,14 +89,6 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                             Constants.SERVICE_MSG_INIT_SERVICE);
                     msg.replyTo = uiMessenger;
                     serviceMessenger.send(msg);
-
-                    if(hasImage)
-                    {
-                        msg = Message.obtain(null, Constants.SERVICE_MSG_SEND_IMG);
-                        msg.replyTo = uiMessenger;
-                        msg.obj = imageUri;
-                        serviceMessenger.send(msg);
-                    }
                 }
                 catch (RemoteException e)
                 {
@@ -181,13 +174,15 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     break;
 
                 case Constants.MSG_TAKE_IMAGE:
-                    SocketAddress socketAddress = (SocketAddress)msg.obj;
-                    appendStatus("Receive image taking request from " + socketAddress.toString() );
-                    imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
-                    Log.i(TAG, "imageUri: " + imageUri.toString() );
-                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri); // set the image file name
+                    String webSocketStr = (String)msg.obj;
+                    appendStatus("Receive image taking request from " + webSocketStr );
+                    //imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
+                    //Log.i(TAG, "imageUri: " + imageUri.toString() );
+                    Intent intent = new Intent(getApplicationContext(), TakePhotoActivity.class);
+                    File imgDir = new File(Constants.ROOT_DIR, webSocketStr);
+                    imgDir.mkdirs();
 
+                    intent.putExtra(Constants.KEY_STORAGE_DIR, imgDir.toString()); // set the image file name
                     startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
 
@@ -198,16 +193,27 @@ public class ClientOwnerActivity extends AbstractGroupActivity
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent)
     {
         Log.i(TAG, "onActivityResult(requestCode: "+ requestCode + ")");
         if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE)
         {
             if (resultCode == RESULT_OK) {
                 // Image captured and saved to imageUri specified in the Intent
-                //Toast.makeText(this, "Image saved to: " + data.getData().toString(), Toast.LENGTH_SHORT).show();
-                appendStatus("Image saved to: " + imageUri.toString() );
-                hasImage = true;
+                String[] imageNames = intent.getStringArrayExtra(TakePhotoActivity.IMAGE_NAMES);
+                String txt = String.format("%d images saved to %s",imageNames.length,
+                        Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
+                if(serviceMessenger != null){
+                    Message msg = Message.obtain(null,
+                            Constants.SERVICE_MSG_TAKEN_IMG);
+                    msg.obj = imageNames;
+                    try {
+                        serviceMessenger.send(msg);
+                    } catch (RemoteException e) {
+                    }
+                }
+
+                appendStatus(txt);
 
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture
@@ -221,7 +227,7 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
                 // Video captured and saved to imageUri specified in the Intent
-                appendStatus("Video saved to: " + data.getData().toString());
+                appendStatus("Video saved to: " + intent.getData().toString());
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the video capture
             } else {

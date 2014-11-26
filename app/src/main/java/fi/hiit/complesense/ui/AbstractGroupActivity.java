@@ -23,6 +23,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
@@ -50,8 +51,7 @@ public abstract class AbstractGroupActivity extends Activity
 
     protected ServiceConnection mConnection = null;
     protected Button stopButton;
-    protected boolean hasImage;
-    protected Uri imageUri;
+    protected ArrayList<String> imageNames;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,7 +63,6 @@ public abstract class AbstractGroupActivity extends Activity
                 (ScrollView) findViewById(R.id.scroll_text));
 
         stopButton = (Button)findViewById(R.id.stop_app);
-        hasImage = false;
     }
 
     @Override

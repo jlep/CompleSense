@@ -7,17 +7,20 @@ import android.os.Environment;
  */
 public class Constants
 {
-    public static final int NUM_CLIENTS = 4;
+    public static final int NUM_CLIENTS = 1;
 
     public static final int BYTES_INT = (int)(Integer.SIZE / 8);
     public static final int BYTES_SHORT = (int)(Short.SIZE / 8);
     public static final String ROOT_DIR = Environment.getExternalStorageDirectory() + "/CompleSense/";
     public static final String LOCAL_SENSOR_DATA_DIR = "local";
+    public static final String KEY_STORAGE_DIR = "key_storage_dir";
 
     public static final int MEDIA_TYPE_IMAGE = 100;
     public static final int MEDIA_TYPE_VIDEO = 101;
 
-    // TXT RECORD properties
+    /**
+     * TXT RECORD properties
+      */
     public static final String TXTRECORD_PROP_VISIBILITY = "vb";
     public static final String TXTRECORD_SENSOR_TYPE_LIST = "tp";
     public static final String TXTRECORD_NETWORK_INFO = "cn";
@@ -70,11 +73,12 @@ public class Constants
     public static final int SERVICE_MSG_STOP_CLIENT_SERVICE = 40;
 
     public static final int SERVICE_MSG_STEREO_IMG_REQ = 50;
-    public static final int SERVICE_MSG_SEND_IMG = 51;
+    public static final int SERVICE_MSG_TAKEN_IMG = 52;
 
 
-    public static final int THREAD_MSG_SEND_IMG = 151;
-
+    /**
+     * Audio setup
+     */
     public static final int RTT_ROUNDS = 5;
     public static final int SAMPLE_RATE = 8000;
     public static final int SAMPLE_INTERVAL = 20; // milliseconds
@@ -86,6 +90,11 @@ public class Constants
     public static final int LOCAL_WEBSOCKET_PORT = 12000;
     public static final int FRAME_SIZE = 1000; // milliseconds
     public static final String WEB_PROTOCOL = "ws";
+
+    /**
+     * burst mode camera setup
+     */
+    public static final int NUM_IMG_TAKE = 10;
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};

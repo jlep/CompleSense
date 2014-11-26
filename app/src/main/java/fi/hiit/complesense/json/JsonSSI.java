@@ -25,6 +25,7 @@ public class JsonSSI
     public static final short RTT_LAST = 0x10; // rtt query
     public static final short NEW_STREAM_SERVER = 0x11;
     public static final short RTT_QUERY = 0x20; // rtt query
+    public static final short SEND_DATA = 0x30; //Send data
 
     public static final String COMMAND = "command";
     public static final String DESC = "description";
@@ -43,6 +44,7 @@ public class JsonSSI
     public static final String WEB_SOCKET_KEY = "web_socket_key";
     public static final String IS_STRING_DATA = "is_string_data";
     private static final String TAG = JsonSSI.class.getSimpleName();
+    public static final String DATA_TO_SEND = "data_to_send";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException

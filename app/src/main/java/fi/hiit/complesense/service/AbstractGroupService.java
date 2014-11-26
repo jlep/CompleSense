@@ -21,6 +21,10 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Map;
 import java.util.TreeMap;
 import fi.hiit.complesense.Constants;
@@ -29,6 +33,7 @@ import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupBroadcastReceiver;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.ui.DemoActivity;
 import fi.hiit.complesense.util.SystemUtil;
 

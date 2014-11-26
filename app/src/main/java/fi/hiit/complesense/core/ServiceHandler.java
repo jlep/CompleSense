@@ -211,12 +211,12 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    protected void startImageCapture(SocketAddress remoteSocketAddr)
+    protected void startImageCapture(WebSocket webSocket)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
         msg.what = Constants.SERVICE_MSG_STEREO_IMG_REQ;
-        msg.obj = remoteSocketAddr;
+        msg.obj = webSocket.toString();
         try {
             serviceMessenger.send(msg);
         } catch (RemoteException e) {

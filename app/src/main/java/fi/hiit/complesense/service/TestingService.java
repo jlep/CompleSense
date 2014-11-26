@@ -10,7 +10,11 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import com.koushikdutta.async.http.WebSocket;
+
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +27,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -71,13 +76,13 @@ public class TestingService extends AbstractGroupService
                     break;
                 case Constants.SERVICE_MSG_STEREO_IMG_REQ:
                     SystemUtil.sendTakeImageReq(uiMessenger,
-                            (SocketAddress) msg.obj);
+                            (String) msg.obj);
                     break;
-                case Constants.SERVICE_MSG_SEND_IMG:
+                case Constants.SERVICE_MSG_TAKEN_IMG:
                     if(msg.obj==null)
                         testSendImg2Server(null);
                     else
-                        testSendImg2Server((Uri) msg.obj);
+                        testSendImg2Server((ArrayList<String>) msg.obj);
                     hasSent = true;
                     break;
                default:
@@ -85,14 +90,14 @@ public class TestingService extends AbstractGroupService
             }
         }
 
-        private void testSendImg2Server(Uri imgUri)
+        private void testSendImg2Server(ArrayList<String> imageNames)
         {
             if(hasSent)
                 return;
         /*
         * Send testing files
          */
-            if(imgUri==null)
+            if(imageNames==null)
             {
                 File testDir = new File(Constants.ROOT_DIR, "test_pic");
                 if(testDir.exists())
@@ -103,10 +108,8 @@ public class TestingService extends AbstractGroupService
                         if(f.getName().endsWith(".jpg"))
                         {
                             Log.i(TAG, "sendImg2Server(null" + ") @ thread id: " + Thread.currentThread().getId() );
-                            for(ServiceHandler s : clientsList)
+                            for(ServiceHandler serviceHandler : clientsList)
                             {
-                                Message msg = Message.obtain(s.getHandler(), Constants.THREAD_MSG_SEND_IMG, f);
-                                msg.sendToTarget();
                             }
 
                             return;
@@ -120,11 +123,24 @@ public class TestingService extends AbstractGroupService
              */
             else
             {
-                Log.i(TAG, "sendImg2Server(" + imgUri.getPath() + ") @ thread id: " + Thread.currentThread().getId() );
-                for(ServiceHandler s : clientsList)
+                //Log.i(TAG, "imageNames: " + imageNames);
+                for(ServiceHandler serviceHandler : clientsList)
                 {
-                    Message msg = Message.obtain(s.getHandler(), Constants.THREAD_MSG_SEND_IMG, new File(imgUri.getPath()));
-                    msg.sendToTarget();
+                    try{
+                        JSONArray jsonArray = new JSONArray();
+                        for(String s: imageNames)
+                            jsonArray.put(s);
+
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put(JsonSSI.COMMAND, JsonSSI.SEND_DATA);
+                        jsonObject.put(JsonSSI.DATA_TO_SEND, jsonArray);
+
+                        Message msg = Message.obtain(serviceHandler.getHandler(),
+                                ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+                        msg.sendToTarget();
+                    } catch (JSONException e) {
+                        Log.e(TAG, e.toString());
+                    }
                 }
 
             }

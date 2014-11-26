@@ -269,9 +269,10 @@ public class SystemConfig
         private static final String SENSOR_TYPE_ACCELEROMETER = "ACCELEROMETER";
         private static final String SENSOR_TYPE_GYROSCOPE = "GYROSCOPE";
         private static final String SENSOR_TYPE_MAGNETOMETER = "MAGNETOMETER";
+        private static final String SENSOR_TYPE_BAROMETER = "BAROMETER";
         private static final String SENSOR_TYPE_GPS = "GPS";
         private static final String SENSOR_TYPE_MICROPHONE = "MICROPHONE";
-
+        private static final String SENSOR_TYPE_CAMERA = "CAMERA";
 
         private final int type;
         private final SamplingRate sampleRate;
@@ -320,10 +321,14 @@ public class SystemConfig
                 return Sensor.TYPE_GYROSCOPE;
             if(typeStr.equals(SENSOR_TYPE_MAGNETOMETER))
                 return Sensor.TYPE_MAGNETIC_FIELD;
+            if(typeStr.equals(SENSOR_TYPE_BAROMETER))
+                return Sensor.TYPE_PRESSURE;
             if(typeStr.equals(SENSOR_TYPE_GPS))
                 return SensorUtil.SENSOR_GPS;
             if(typeStr.equals(SENSOR_TYPE_MICROPHONE))
                 return SensorUtil.SENSOR_MIC;
+            if(typeStr.equals(SENSOR_TYPE_CAMERA))
+                return SensorUtil.SENSOR_CAMERA;
 
             return -1;
         }

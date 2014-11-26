@@ -167,7 +167,22 @@ public class SystemUtil {
 
     }
 
-    public static void sendTakeImageReq(Messenger uiMessenger, SocketAddress socketAddress)
+    public static void sendTakeImageReq(Messenger uiMessenger, String webSocketStr)
+    {
+        if(uiMessenger!=null)
+        {
+            Message msg = Message.obtain();
+            msg.obj = webSocketStr;
+            msg.what = Constants.MSG_TAKE_IMAGE;
+            try {
+                uiMessenger.send(msg);
+            } catch (RemoteException e) {
+                Log.i(TAG,e.toString());
+            }
+        }
+    }
+
+    public static void sendImageTakenRep(Messenger uiMessenger, SocketAddress socketAddress)
     {
         if(uiMessenger!=null)
         {

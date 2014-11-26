@@ -37,8 +37,6 @@ public class SensorUtil implements SensorEventListener
     // server too
     protected Map<String, SensorValues> sensorValues; //Map<socketAddress:sensor_type, []>
 
-
-
     public SensorUtil(Context context)
     {
         mSensorManager = (SensorManager)
