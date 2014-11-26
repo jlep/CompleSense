@@ -25,8 +25,14 @@ public class LocationDataListener implements LocationListener
     public static final String TAG = LocationDataListener.class.getSimpleName();
     public static final int LATITUDE = 0;
     public static final int LONGITUDE = 1;
+    public static final int ACCURACY = 2;
+    public static final int SPEED = 3;
+    public static final int PROVIDER = 4;
+    private static final int DISTANCE = 5;
+
 
     private final WebSocket mWebSocket;
+    private Location prevLocation;
     private JSONObject jsonGeoCoords = new JSONObject();
 
     //private final AsyncStreamClient asyncStreamClient;
@@ -35,6 +41,7 @@ public class LocationDataListener implements LocationListener
     public LocationDataListener(ServiceHandler serviceHandler, WebSocket webSocket) throws JSONException
     {
         this.mWebSocket = webSocket;
+        this.prevLocation = null;
     }
 
 
@@ -44,11 +51,24 @@ public class LocationDataListener implements LocationListener
     {
         try
         {
+            float distance;
             jsonGeoCoords.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
             jsonGeoCoords.put(JsonSSI.SENSOR_TYPE, SensorUtil.SENSOR_GPS);
             JSONArray jsonArray = new JSONArray();
             jsonArray.put(LATITUDE, location.getLatitude());
             jsonArray.put(LONGITUDE, location.getLongitude());
+            jsonArray.put(ACCURACY, location.getAccuracy());
+            jsonArray.put(SPEED, location.getSpeed());
+            jsonArray.put(PROVIDER, location.getProvider());
+
+            if(prevLocation!=null){
+                distance = location.distanceTo(prevLocation);
+            }else{
+                distance = -1;
+                prevLocation = location;
+            }
+            jsonArray.put(DISTANCE, distance);
+
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
 
             ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
