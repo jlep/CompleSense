@@ -126,8 +126,11 @@ public class AcceptorWebSocket extends AbsSystemThread
             public void onCompleted(Exception ex) {
                 try {
                     if (ex != null)
-                        Log.e("WebSocket", "Error");
+                        Log.e(TAG, ex.toString());
                 } finally {
+                    if(webSocket!=null)
+                        webSocket.close();
+                    serviceHandler.removeFromPeerList(webSocket.toString());
                     _sockets.remove(webSocket);
                 }
             }
@@ -155,14 +158,6 @@ public class AcceptorWebSocket extends AbsSystemThread
             }
         });
 
-        webSocket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception e) {
-                Log.e(TAG,e.toString());
-                if(webSocket!=null)
-                    webSocket.close();
-            }
-        });
         webSocket.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception e) {
@@ -193,6 +188,7 @@ public class AcceptorWebSocket extends AbsSystemThread
         long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
         //String remoteSocketAddr = socketChannel.socket().getRemoteSocketAddress().toString();
         try {
+            serviceHandler.getPeerList().get(webSocket.toString()).setRtt(rttMeasurement);
             serviceHandler.send2Handler(JsonSSI.makeLastRttReceived(webSocket).toString());
         } catch (JSONException e) {
         }

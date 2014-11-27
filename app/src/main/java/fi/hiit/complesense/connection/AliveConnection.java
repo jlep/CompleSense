@@ -16,65 +16,37 @@ public class AliveConnection
     private static final String TAG = "AliveConnection";
     public final WebSocket webSocket;
     public final long startTime;
-    private CountDownTimer countDownTimer;
-    private final AliveConnectionListener mListener;
 
     public static final long VALID_TIME = 1000000, COUNT_DOWN_INTERVAL = 1000;
     private long nextCheckTime;
     private long delay = 0;
+    private long rtt = 0;
 
-    public interface AliveConnectionListener
-    {
-        public void onConnectionTimeout(WebSocket webSocket);
+    public void setRtt(long rtt) {
+        this.rtt = rtt;
     }
 
-    public AliveConnection(final WebSocket webSocket, AliveConnectionListener listener)
+    public long getRtt() {
+        return rtt;
+    }
+
+    public AliveConnection(final WebSocket webSocket)
     {
 
         this.webSocket = webSocket;
         startTime = System.currentTimeMillis();
-        mListener = listener;
         nextCheckTime = VALID_TIME;
-
-        initCountDownTimer();
     }
 
-    public void setDelay(long timeDiff)
+    public void setDelay(long delay)
     {
-        this.delay = timeDiff;
+        this.delay = delay;
     }
 
     public long getDelay()
     {
         return this.delay;
     }
-
-    private void initCountDownTimer()
-    {
-        countDownTimer = new CountDownTimer(VALID_TIME, COUNT_DOWN_INTERVAL) {
-            @Override
-            public void onTick(long l) {
-                //Log.i(TAG, "time until next check " + l);
-            }
-
-            @Override
-            public void onFinish() {
-                mListener.onConnectionTimeout(webSocket);
-            }
-        };
-        countDownTimer.start();
-    }
-
-    public void resetCheckTime()
-    {
-        if(countDownTimer != null)
-        {
-            countDownTimer.cancel();
-            countDownTimer = null;
-        }
-        initCountDownTimer();
-    }
-
 
     public WebSocket getWebSocket() {
         return webSocket;

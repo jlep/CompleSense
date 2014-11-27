@@ -3,9 +3,12 @@ package fi.hiit.complesense.audio;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
+
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,6 +21,7 @@ import java.nio.ByteBuffer;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
 /**
@@ -32,21 +36,15 @@ public class AudioStreamClient extends AbsSystemThread
     private final boolean readLocal;
     private final PipedOutputStream mPipedOut;
     private final PipedInputStream mPipedIn;
+    private final long delay;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, boolean readLocal) throws IOException {
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, long delay, boolean readFromLocal) throws IOException {
         super(TAG, serviceHandler);
         this.mWebSocket = webSocket;
-        this.readLocal = readLocal;
-        this.mPipedOut = new PipedOutputStream();
-        mPipedIn = new PipedInputStream(mPipedOut);
-    }
-
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket) throws IOException {
-        super(TAG, serviceHandler);
-        this.mWebSocket = webSocket;
-        this.readLocal = false;
+        this.readLocal = readFromLocal;
         this.mPipedOut = new PipedOutputStream();
         this.mPipedIn = new PipedInputStream(mPipedOut);
+        this.delay = delay;
     }
 
     @Override
@@ -62,7 +60,10 @@ public class AudioStreamClient extends AbsSystemThread
 
         final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         localDir.mkdirs();
-        final File localFile = new File(localDir, Long.toString(threadId));
+        String fileName = String.format("%d-%d", (System.currentTimeMillis() + delay), threadId);
+        final File localFile = new File(localDir, fileName);
+        sendFileName2Master(fileName);
+
         AudioFileWritingThread audioFileWriter = new AudioFileWritingThread(serviceHandler, mPipedIn, localFile);
         audioFileWriter.start();
 
@@ -83,10 +84,10 @@ public class AudioStreamClient extends AbsSystemThread
 
                 audio_recorder.startRecording();
                 while(keepRunning){
-                    bb.clear();
                     bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
                     mPipedOut.write(buf, 0, bytes_read);
 
+                    bb.clear();
                     bb.putShort(isStringData);
                     bb.putInt(SensorUtil.SENSOR_MIC);
                     bb.put(buf);
@@ -154,6 +155,11 @@ public class AudioStreamClient extends AbsSystemThread
         }
 
 
+    }
+
+    private void sendFileName2Master(String fileName)
+    {
+        JSONObject jsonObject = new JSONObject();
     }
 
     @Override

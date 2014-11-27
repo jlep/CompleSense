@@ -41,7 +41,7 @@ import fi.hiit.complesense.json.JsonSSI;
  * Created by hxguo on 20.8.2014.
  */
 public class ServiceHandler extends HandlerThread
-        implements Handler.Callback,AliveConnection.AliveConnectionListener
+        implements Handler.Callback
 {
     private static final String TAG = "ServiceHandler";
     public static final int JSON_RESPONSE_BYTES = 2697337;
@@ -155,7 +155,7 @@ public class ServiceHandler extends HandlerThread
         String str = "addNewConnection("+ webSocket.toString() +")";
         Log.i(TAG,str);
         updateStatusTxt(str);
-        AliveConnection aliveConnection = new AliveConnection(webSocket, this);
+        AliveConnection aliveConnection = new AliveConnection(webSocket);
         peerList.put(webSocket.toString(), aliveConnection);
 
         // Create a new folder for new Connection
@@ -169,13 +169,12 @@ public class ServiceHandler extends HandlerThread
 
     }
 
-
-    protected void removeFromPeerList(String socketAddrStr)
+    public void removeFromPeerList(String webSocketStr)
     {
-        String str = "removeFromPeerList("+ socketAddrStr +")";
+        String str = "removeFromPeerList("+ webSocketStr +")";
         Log.i(TAG,str);
         updateStatusTxt(str);
-        peerList.remove(socketAddrStr);
+        peerList.remove(webSocketStr);
     }
 
     public void send2Handler(String data){
@@ -190,14 +189,6 @@ public class ServiceHandler extends HandlerThread
     }
 
 
-    protected void renewPeerList(String socketAddrStr)
-    {
-        String str = "renewPeerList("+ socketAddrStr +")";
-        Log.d(TAG,str);
-        //updateStatusTxt(str);
-        ((AliveConnection)(peerList.get(socketAddrStr)) ).resetCheckTime();
-    }
-
     public void updateStatusTxt(String str)
     {
         //Log.i(TAG,"updateStatusTxt()");
@@ -211,7 +202,7 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    protected void startImageCapture(WebSocket webSocket)
+    protected void startImageCapture(WebSocket webSocket, long delay)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
@@ -222,27 +213,6 @@ public class ServiceHandler extends HandlerThread
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void onConnectionTimeout(WebSocket webSocket)
-    {
-        Log.i(TAG, "onConnectionTimeout(" + webSocket.toString() + ")");
-        removeFromPeerList(webSocket.toString());
-    }
-
-    /**
-     * Event is fired when the RTT query sender receives enough RTT reply from a peer
-     * @param startTimeMillis: requester local time, when RTT query was sent
-     * @param socketChannel: peer's socketChannel
-     */
-    public void onReceiveLastRttReply(long startTimeMillis, SocketChannel socketChannel)
-    {
-        //Log.i(TAG, "startTimeMillis: " + startTimeMillis + "currentTime: " + System.currentTimeMillis());
-        long rttMeasurement = (System.currentTimeMillis() - startTimeMillis) / Constants.RTT_ROUNDS;
-        String remoteSocketAddr = socketChannel.socket().getRemoteSocketAddress().toString();
-        peerList.get(remoteSocketAddr).setDelay(rttMeasurement / 2);
-        Log.i(TAG,"RTT between "+ remoteSocketAddr +" : " + rttMeasurement+ " ms");
     }
 
     /*

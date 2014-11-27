@@ -112,6 +112,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
     private void handleSensorTypesReply(JSONObject jsonObject, WebSocket webSocket) throws JSONException
     {
+        long clientLocalTime = jsonObject.getLong(JsonSSI.LOCAL_TIME);
+        long rtt = peerList.get(webSocket.toString()).getRtt();
+        long delay = System.currentTimeMillis() - (long)(rtt/2) - clientLocalTime;
+        peerList.get(webSocket.toString()).setDelay(delay);
+
         JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
         if(jsonArray!=null)
         {
@@ -162,7 +167,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             Log.i(TAG, "sendStartStreamClientReq()-requiredSensors: " + jsonArray.toString());
             JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(jsonArray,
                     peerList.get(key).getDelay() );
-
 
             webSocket.send(jsonStartStream.toString());
         }else{

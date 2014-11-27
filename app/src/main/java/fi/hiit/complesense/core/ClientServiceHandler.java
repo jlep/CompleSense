@@ -76,8 +76,10 @@ public class ClientServiceHandler extends ServiceHandler
                             return true;
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            Log.i(TAG, "sensorConfigJson:" + sensorConfigJson.toString());
-                            startStreaming(sensorConfigJson, mServerWebSocket);
+                            long delay = jsonObject.getLong(JsonSSI.TIME_DIFF);
+                            Log.i(TAG, "delay: " + delay +" ms, sensorConfigJson:" + sensorConfigJson.toString());
+                            updateStatusTxt("delay between master is " + delay + " ms");
+                            startStreaming(sensorConfigJson, delay, mServerWebSocket);
                             return true;
                         case JsonSSI.SEND_DATA:
                             JSONArray imagesNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
@@ -99,7 +101,7 @@ public class ClientServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreaming(JSONArray sensorConfigJson, WebSocket webSocket) throws IOException, JSONException
+    private void startStreaming(JSONArray sensorConfigJson, long delay, WebSocket webSocket) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
 
@@ -109,17 +111,17 @@ public class ClientServiceHandler extends ServiceHandler
         updateStatusTxt(txt);
 
         if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, true);
+            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, delay, false);
             audioStreamClient.start();
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-            startImageCapture(webSocket);
+            startImageCapture(webSocket,delay);
         }
 
         if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
             locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-            mLocationDataListener = new LocationDataListener(this, webSocket);
+            mLocationDataListener = new LocationDataListener(this, webSocket, delay);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
         }
 
@@ -132,7 +134,7 @@ public class ClientServiceHandler extends ServiceHandler
             fileWritingThread.start();
 
             SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                    this, context, requiredSensors, webSocket, fileWritingThread);
+                    this, context, requiredSensors, delay, webSocket, fileWritingThread);
             sensorDataCollectionThread.start();
         }
     }

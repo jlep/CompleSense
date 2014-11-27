@@ -35,7 +35,7 @@ public class JsonSSI
     public static final String ROUNDS = "rrt_rounds";
     public static final String ORIGIN_HOST = "origin_host";
     public static final String ORIGIN_PORT = "origin_port";
-    private static final String TIME_DIFF = "time_diff";
+    public static final String TIME_DIFF = "time_diff";
     public static final String SAMPLES_PER_SECOND = "samples_per_second";
     public static final String STREAM_PORT = "stream_port";
     public static final String SENSOR_TYPE = "sensor_type";
@@ -45,6 +45,7 @@ public class JsonSSI
     public static final String IS_STRING_DATA = "is_string_data";
     private static final String TAG = JsonSSI.class.getSimpleName();
     public static final String DATA_TO_SEND = "data_to_send";
+    public static final String LOCAL_TIME = "local_time";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -61,6 +62,7 @@ public class JsonSSI
         rep.put(COMMAND, N);
         JSONArray jsonArray = new JSONArray(sensorTypes);
         rep.put(SENSOR_TYPES, jsonArray);
+        rep.put(LOCAL_TIME, System.currentTimeMillis());
         rep.put(DESC, "Discover sensors reply");
         return rep;
     }

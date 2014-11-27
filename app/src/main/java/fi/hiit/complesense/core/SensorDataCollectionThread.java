@@ -40,6 +40,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     private final WebSocket mWebSocket;
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWritingThread;
+    private final long delay;
 
     private SensorEventListener mListener;
     private JSONObject jsonSensorData = new JSONObject();
@@ -48,12 +49,14 @@ public class SensorDataCollectionThread extends AbsSystemThread
     public SensorDataCollectionThread(ServiceHandler serviceHandler,
                                       Context context,
                                       Set<Integer> requiredSensors,
+                                      long delay,
                                       WebSocket webSocket,
                                       TextFileWritingThread out) throws JSONException, IOException {
         super(TAG, serviceHandler);
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         this.sampleCounters = new HashMap<Integer, Integer>(requiredSensors.size());
         this.mWebSocket = webSocket;
+        this.delay = delay;
         for(int i:requiredSensors)
             sampleCounters.put(i, 0);
         this.mFileWritingThread = out;
@@ -73,7 +76,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
                 try
                 {
                     //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-                    jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
+                    jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + delay);
                     jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
                     JSONArray jsonArray = new JSONArray();
                     for(float value:sensorEvent.values)

@@ -32,16 +32,18 @@ public class LocationDataListener implements LocationListener
 
 
     private final WebSocket mWebSocket;
+    private final long delay;
     private Location prevLocation;
     private JSONObject jsonGeoCoords = new JSONObject();
 
     //private final AsyncStreamClient asyncStreamClient;
     private final short isStringData = 1;
 
-    public LocationDataListener(ServiceHandler serviceHandler, WebSocket webSocket) throws JSONException
+    public LocationDataListener(ServiceHandler serviceHandler, WebSocket webSocket, long delay) throws JSONException
     {
         this.mWebSocket = webSocket;
         this.prevLocation = null;
+        this.delay = delay;
     }
 
 
@@ -52,7 +54,7 @@ public class LocationDataListener implements LocationListener
         try
         {
             float distance;
-            jsonGeoCoords.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
+            jsonGeoCoords.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + delay);
             jsonGeoCoords.put(JsonSSI.SENSOR_TYPE, SensorUtil.SENSOR_GPS);
             JSONArray jsonArray = new JSONArray();
             jsonArray.put(LATITUDE, location.getLatitude());
@@ -71,10 +73,11 @@ public class LocationDataListener implements LocationListener
 
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
 
+
             ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
             buffer.putShort(isStringData);
             buffer.put(jsonGeoCoords.toString().getBytes());
-            //Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
+            Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
             mWebSocket.send(buffer.array());
 
         } catch (JSONException e) {
