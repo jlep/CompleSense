@@ -7,7 +7,7 @@ import android.os.Environment;
  */
 public class Constants
 {
-    public static final int NUM_CLIENTS = 5;
+    public static final int NUM_CLIENTS = 2;
 
     public static final int BYTES_INT = (int)(Integer.SIZE / 8);
     public static final int BYTES_SHORT = (int)(Short.SIZE / 8);

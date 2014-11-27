@@ -20,7 +20,6 @@ import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
-import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
 
@@ -31,17 +30,14 @@ public class AcceptorWebSocket extends AbsSystemThread
     implements CompletedCallback, AsyncHttpServer.WebSocketRequestCallback
 {
     public static final String TAG = AcceptorWebSocket.class.getSimpleName();
-    private AsyncHttpServer httpServer;
+    private AsyncHttpServer httpServer = new AsyncHttpServer();
     private Map<String, WebSocket> _sockets = new HashMap<String, WebSocket>();
-    private final DataProcessingThread mDataProcessingThread;
 
     public AcceptorWebSocket(ServiceHandler serviceHandler) throws IOException {
         super(TAG, serviceHandler);
-        httpServer = new AsyncHttpServer();
-        httpServer.setErrorCallback(this);
-        httpServer.websocket("/test",Constants.WEB_PROTOCOL, this);
-        mDataProcessingThread = new DataProcessingThread(serviceHandler);
 
+        httpServer.setErrorCallback(this);
+        httpServer.websocket("/command",Constants.WEB_PROTOCOL, this);
     }
 
     @Override
@@ -54,7 +50,6 @@ public class AcceptorWebSocket extends AbsSystemThread
         //        new com.koushikdutta.async.AsyncServer(TAG + ": " + Long.toString(Thread.currentThread().getId() ));
         //connect();
         httpServer.listen(Constants.SERVER_PORT);
-        mDataProcessingThread.start();
     }
 
     @Override
@@ -87,9 +82,8 @@ public class AcceptorWebSocket extends AbsSystemThread
             @Override
             public void onStringAvailable(String s) {
                 //Log.i(TAG, "recv String: " + s);
-                JSONObject jsonObject = null;
                 try {
-                    jsonObject = new JSONObject(s);
+                    JSONObject jsonObject = new JSONObject(s);
                     jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
                     serviceHandler.send2Handler(jsonObject.toString());
                 } catch (JSONException e) {
@@ -103,36 +97,14 @@ public class AcceptorWebSocket extends AbsSystemThread
             public void onDataAvailable(DataEmitter dataEmitter,
                                         ByteBufferList byteBufferList)
             {
-                /*
-                try {
-                    ByteBufferList.writeOutputStream(outputStream, byteBufferList.getAll());
-                } catch (IOException e) {
-                    Log.i(TAG, e.toString());
-                }
-                */
                 ByteBuffer[] data = byteBufferList.getAllArray();
-                //Log.i(TAG, "num of ByteBuffers: " + data.length);
-                for(ByteBuffer bb : data){
-                    int payloadSize = bb.remaining();
-                    mDataProcessingThread.addDataToThreadBuffer(webSocket.toString(), bb.array(), payloadSize);
-                }
-                byteBufferList.recycle();
-            }
-        });
+                int payloadSize = 0;
 
-        //Use this to clean up any references to your websocket
-        webSocket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                try {
-                    if (ex != null)
-                        Log.e(TAG, ex.toString());
-                } finally {
-                    if(webSocket!=null)
-                        webSocket.close();
-                    serviceHandler.removeFromPeerList(webSocket.toString());
-                    _sockets.remove(webSocket);
+                for(ByteBuffer bb : data){
+                    payloadSize += bb.remaining();
                 }
+                Log.e(TAG, "Command server should not recv binary data: " + payloadSize + " bytes");
+                byteBufferList.recycle();
             }
         });
 
@@ -154,6 +126,22 @@ public class AcceptorWebSocket extends AbsSystemThread
 
                 } catch (JSONException e) {
                     Log.i(TAG, e.toString());
+                }
+            }
+        });
+
+        //Use this to clean up any references to your websocket
+        webSocket.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                try {
+                    if (ex != null)
+                        Log.e(TAG, ex.toString());
+                } finally {
+                    if(webSocket!=null)
+                        webSocket.close();
+                    serviceHandler.removeFromPeerList(webSocket.toString());
+                    _sockets.remove(webSocket);
                 }
             }
         });

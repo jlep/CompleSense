@@ -23,7 +23,6 @@ public class JsonSSI
     public static final short NEW_STREAM_CONNECTION = 0x08;
     public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
     public static final short RTT_LAST = 0x10; // rtt query
-    public static final short NEW_STREAM_SERVER = 0x11;
     public static final short RTT_QUERY = 0x20; // rtt query
     public static final short SEND_DATA = 0x30; //Send data
 
@@ -46,6 +45,7 @@ public class JsonSSI
     private static final String TAG = JsonSSI.class.getSimpleName();
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
+
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -78,13 +78,14 @@ public class JsonSSI
         return query;
     }
 
-    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff) throws JSONException
+    public static JSONObject makeStartStreamReq(JSONArray sensorTypes, long timeDiff, int streamPort) throws JSONException
     {
-        Log.i(TAG, "makeStartStreamReq(): " + sensorTypes.toString());
+        //Log.i(TAG, "makeStartStreamReq(): " + sensorTypes.toString());
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(COMMAND, R);
         jsonObject.put(SENSOR_TYPES, sensorTypes);
         jsonObject.put(TIME_DIFF, timeDiff);
+        jsonObject.put(STREAM_PORT, streamPort);
         jsonObject.put(DESC, "Start Streaming Request");
         return jsonObject;
     }

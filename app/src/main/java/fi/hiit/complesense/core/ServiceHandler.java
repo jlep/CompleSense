@@ -157,16 +157,6 @@ public class ServiceHandler extends HandlerThread
         updateStatusTxt(str);
         AliveConnection aliveConnection = new AliveConnection(webSocket);
         peerList.put(webSocket.toString(), aliveConnection);
-
-        // Create a new folder for new Connection
-        createNewConnDir(webSocket);
-
-    }
-
-    private void createNewConnDir(WebSocket webSocket) {
-        File dir = new File(Constants.ROOT_DIR, webSocket.toString());
-        dir.mkdirs();
-
     }
 
     public void removeFromPeerList(String webSocketStr)

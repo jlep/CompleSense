@@ -33,7 +33,7 @@ public class ConnectorWebSocket extends AbsSystemThread
         //Log.i(TAG, "socketAddress: " + socketAddress.toString());
         //Log.i(TAG, "getHostAddress: " + ownerInetAddr.getHostAddress());
         //Log.i(TAG, "SERVER_PORT: " + Constants.SERVER_PORT);
-        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+Constants.SERVER_PORT + "/test");
+        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+Constants.SERVER_PORT + "/command");
 
         mStringCallback = new WebSocket.StringCallback(){
             @Override

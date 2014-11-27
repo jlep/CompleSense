@@ -26,9 +26,11 @@ import java.nio.channels.Pipe;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
+import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.json.JsonSSI;
@@ -77,9 +79,12 @@ public class ClientServiceHandler extends ServiceHandler
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                             long delay = jsonObject.getLong(JsonSSI.TIME_DIFF);
-                            Log.i(TAG, "delay: " + delay +" ms, sensorConfigJson:" + sensorConfigJson.toString());
-                            updateStatusTxt("delay between master is " + delay + " ms");
-                            startStreaming(sensorConfigJson, delay, mServerWebSocket);
+                            int streamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+                            String txt = "Streaming port: "+ streamPort + ", delay: " + delay +" ms, sensorConfigJson:" + sensorConfigJson.toString();
+                            Log.i(TAG, txt);
+                            updateStatusTxt(txt);
+
+                            startStreamingConnector(sensorConfigJson, streamPort);
                             return true;
                         case JsonSSI.SEND_DATA:
                             JSONArray imagesNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
@@ -101,42 +106,58 @@ public class ClientServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreaming(JSONArray sensorConfigJson, long delay, WebSocket webSocket) throws IOException, JSONException
+    private void startStreamingConnector(JSONArray sensorConfigJson, int streamPort) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
-
         Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
         String txt = "Required sensors: "+ requiredSensors.toString();
         Log.i(TAG, txt);
         updateStatusTxt(txt);
 
-        if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-            AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, delay, false);
-            audioStreamClient.start();
+        CountDownLatch latch = new CountDownLatch(1);
+
+        ConnectorStreaming connectorStreaming = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
+        connectorStreaming.start();
+
+        try
+        {
+            latch.await();
+
+            WebSocket webSocket = connectorStreaming.getWebSocket();
+            if(webSocket!=null){
+                if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
+                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, delay, true);
+                    audioStreamClient.start();
+                }
+
+                if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
+                    startImageCapture(webSocket,delay);
+                }
+
+                if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
+                    locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                    mLocationDataListener = new LocationDataListener(this, webSocket, delay);
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
+                }
+
+                if(requiredSensors.size()>0){
+                    final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+                    localDir.mkdirs();
+                    final File localFile = new File(localDir, webSocket.toString()+".txt");
+
+                    TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, localFile);
+                    fileWritingThread.start();
+
+                    SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
+                            this, context, requiredSensors, delay, webSocket, fileWritingThread);
+                    sensorDataCollectionThread.start();
+                }
+            }
+
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.toString());
         }
 
-        if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-            startImageCapture(webSocket,delay);
-        }
-
-        if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
-            locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-            mLocationDataListener = new LocationDataListener(this, webSocket, delay);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
-        }
-
-        if(requiredSensors.size()>0){
-            final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-            localDir.mkdirs();
-            final File localFile = new File(localDir, webSocket.toString()+".txt");
-
-            TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, localFile);
-            fileWritingThread.start();
-
-            SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                    this, context, requiredSensors, delay, webSocket, fileWritingThread);
-            sensorDataCollectionThread.start();
-        }
     }
 
     /*

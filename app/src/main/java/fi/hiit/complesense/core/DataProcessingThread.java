@@ -157,7 +157,9 @@ public class DataProcessingThread extends AbsSystemThread {
             try {
                 String fileName = mWebSocketStr;
                 File recvDir = new File(Constants.ROOT_DIR, mWebSocketStr);
-                recvDir.mkdirs();
+                if(recvDir.mkdirs())
+                    Log.i(TAG, "Create dir: " + recvDir.toString());
+
                 File txtFile = new File(recvDir, fileName+".txt");
                 File mediaFile = new File(recvDir, fileName);
 

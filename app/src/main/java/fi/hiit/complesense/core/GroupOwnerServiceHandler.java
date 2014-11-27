@@ -18,8 +18,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.AcceptorStreaming;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
@@ -34,8 +36,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private static final String TAG = GroupOwnerServiceHandler.class.getSimpleName();
     private SystemConfig sysConfig = null;
     //private Timer timer;
-
-    private int clientCounter = 0;
 
     private final String cloudSocketAddrStr = "http://" + Constants.URL_CLOUD +
             ":" + Constants.CLOUD_SERVER_PORT + "/";
@@ -74,7 +74,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                     switch(jsonObject.getInt(COMMAND))
                     {
                         case JsonSSI.RTT_LAST:
-                            ++clientCounter;
                             webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
                             return true;
                         case JsonSSI.NEW_CONNECTION:
@@ -84,17 +83,13 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             webSocket.ping(jsonRtt.toString());
                             return true;
 
-                        case JsonSSI.NEW_STREAM_SERVER:
-                            sendStartStreamClientReq(webSocket, sysConfig.reqSensors() );
-                            return true;
-
                         case JsonSSI.NEW_STREAM_CONNECTION:
 
                             return true;
 
                         case JsonSSI.N:
                             handleSensorTypesReply(jsonObject, webSocket);
-                            startStreamingServer(webSocket);
+                            startStreamingServer(webSocket, peerList.size());
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
@@ -133,22 +128,27 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }
     }
 
-    private void startStreamingServer(WebSocket webSocket) throws IOException {
+    private void startStreamingServer(WebSocket webSocket, int clientCounter) throws IOException {
         Log.i(TAG, "startStreamingServer()");
-        JSONObject jsonObject = new JSONObject();
+        CountDownLatch latch = new CountDownLatch(1);
+        AcceptorStreaming streamingServer = new AcceptorStreaming(this, clientCounter, latch);
+        streamingServer.start();
+
         try {
-            jsonObject.put(JsonSSI.COMMAND, JsonSSI.NEW_STREAM_SERVER);
-            jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-            jsonObject.put(JsonSSI.DESC, "New Stream Server running at thread: "+ Thread.currentThread().getId());
-            send2Handler(jsonObject.toString());
+            latch.await();
+            sendStartStreamClientReq(webSocket, sysConfig.reqSensors(), streamingServer.getmStreamPort() );
+
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.toString());
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString());
         }
     }
 
 
 
-    private void sendStartStreamClientReq(WebSocket webSocket, List<SystemConfig.SensorConfig> requiredSensors) throws JSONException
+    private void sendStartStreamClientReq(WebSocket webSocket,
+                                          List<SystemConfig.SensorConfig> requiredSensors, int streamPort) throws JSONException
     {
         String key = webSocket.toString();
         Set<Integer> sensorSet = new HashSet<Integer>(availableSensors.get(key));
@@ -166,7 +166,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             JSONArray jsonArray = new JSONArray(requiredSensors.toString());
             Log.i(TAG, "sendStartStreamClientReq()-requiredSensors: " + jsonArray.toString());
             JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(jsonArray,
-                    peerList.get(key).getDelay() );
+                    peerList.get(key).getDelay(), streamPort );
 
             webSocket.send(jsonStartStream.toString());
         }else{
