@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -31,7 +32,7 @@ public class LocationDataListener implements LocationListener
     private static final int DISTANCE = 5;
 
 
-    private final WebSocket mWebSocket;
+    private final SyncWebSocketWriter mWebSocket;
     private final long delay;
     private final TextFileWritingThread fileWritingThread;
     private Location prevLocation;
@@ -41,7 +42,7 @@ public class LocationDataListener implements LocationListener
     private final short isStringData = 1;
 
     public LocationDataListener(ServiceHandler serviceHandler,
-                                WebSocket webSocket, long delay, TextFileWritingThread fileWritingThread) throws JSONException
+                                SyncWebSocketWriter webSocket, long delay, TextFileWritingThread fileWritingThread) throws JSONException
     {
         this.mWebSocket = webSocket;
         this.prevLocation = null;

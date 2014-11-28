@@ -19,6 +19,7 @@ import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
@@ -31,16 +32,16 @@ public class AudioStreamClient extends AbsSystemThread
 {
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
-    private final WebSocket mWebSocket;
+    private final SyncWebSocketWriter mSyncWebSocket;
     private final short isStringData = 0;
     private final boolean readLocal;
     private final PipedOutputStream mPipedOut;
     private final PipedInputStream mPipedIn;
     private final long delay;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, long delay, boolean readFromLocal) throws IOException {
+    public AudioStreamClient(ServiceHandler serviceHandler, SyncWebSocketWriter syncWS, long delay, boolean readFromLocal) throws IOException {
         super(TAG, serviceHandler);
-        this.mWebSocket = webSocket;
+        this.mSyncWebSocket = syncWS;
         this.readLocal = readFromLocal;
         this.mPipedOut = new PipedOutputStream();
         this.mPipedIn = new PipedInputStream(mPipedOut);
@@ -93,7 +94,7 @@ public class AudioStreamClient extends AbsSystemThread
                     bb.put(buf);
                     bytes_count += bytes_read;
 
-                    mWebSocket.send(bb.array());
+                    mSyncWebSocket.send(bb.array());
                     Thread.sleep(Constants.SAMPLE_INTERVAL);
                 }
 
@@ -130,7 +131,7 @@ public class AudioStreamClient extends AbsSystemThread
                             bb.putInt(SensorUtil.SENSOR_MIC);
                             bb.put(buf);
 
-                            mWebSocket.send(bb.array());
+                            mSyncWebSocket.send(bb.array());
                         }else{
                             fis.close();
                             break;

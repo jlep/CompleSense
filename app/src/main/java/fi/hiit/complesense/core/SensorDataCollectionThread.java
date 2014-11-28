@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.json.JsonSSI;
 
 /**
@@ -38,7 +39,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
 
     private final SensorManager mSensorManager;
     private final HashMap<Integer, Integer> sampleCounters;
-    private final WebSocket mWebSocket;
+    private final SyncWebSocketWriter mWebSocket;
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWritingThread;
     private final long delay;
@@ -51,7 +52,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
         @Override
         public void onSensorChanged(SensorEvent sensorEvent)
         {
-            Log.i(TAG, "onSensorChanged() @thread: " + Thread.currentThread().getId());
+            //Log.i(TAG, "onSensorChanged() @thread: " + Thread.currentThread().getId());
             try
             {
                 //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
@@ -89,7 +90,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
                                       Context context,
                                       Set<Integer> requiredSensors,
                                       long delay,
-                                      WebSocket webSocket,
+                                      SyncWebSocketWriter webSocket,
                                       TextFileWritingThread out) throws JSONException, IOException {
         super(TAG, serviceHandler);
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
@@ -106,7 +107,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
     @Override
     protected void onLooperPrepared() {
         super.onLooperPrepared();
-        Log.i(TAG, "onLooperPrepared()");
+        //Log.i(TAG, "onLooperPrepared()");
         this.mHandler = new Handler(this.getLooper());
         registerSensors();
     }

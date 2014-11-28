@@ -32,6 +32,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
@@ -128,25 +129,26 @@ public class ClientServiceHandler extends ServiceHandler
             latch.await();
 
             WebSocket webSocket = connectorStreaming.getWebSocket();
+            SyncWebSocketWriter syncWS = new SyncWebSocketWriter(webSocket);
             if(webSocket!=null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, timeDiff, false);
+                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, syncWS, timeDiff, false);
                     audioStreamClient.start();
                 }
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-                    startImageCapture(webSocket,timeDiff);
+                    startImageCapture(syncWS,timeDiff);
                 }
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
                     locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, webSocket, timeDiff, fileWritingThread);
+                    mLocationDataListener = new LocationDataListener(this, syncWS, timeDiff, fileWritingThread);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
 
                 if(requiredSensors.size()>0){
                     SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                            this, context, requiredSensors, timeDiff, webSocket, fileWritingThread);
+                            this, context, requiredSensors, timeDiff, syncWS, fileWritingThread);
                     sensorDataCollectionThread.start();
                 }
             }

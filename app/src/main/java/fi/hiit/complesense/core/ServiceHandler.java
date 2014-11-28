@@ -35,6 +35,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.json.JsonSSI;
 
 /**
@@ -192,7 +193,7 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    protected void startImageCapture(WebSocket webSocket, long delay)
+    protected void startImageCapture(SyncWebSocketWriter webSocket, long delay)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();

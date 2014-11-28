@@ -391,7 +391,7 @@ public class SystemUtil {
         int type = jsonObject.getInt(JsonSSI.SENSOR_TYPE);
         long timeStamp = jsonObject.getLong(JsonSSI.TIMESTAMP);
         JSONArray vals = jsonObject.getJSONArray(JsonSSI.SENSOR_VALUES);
-        String str = String.format("%d,%d,%s\n", type, timeStamp, vals.toString());
+        String str = String.format("%d,%d,%s\n", type, timeStamp, vals.toString().substring(1, vals.toString().length()-1));
         return str;
     }
 }
