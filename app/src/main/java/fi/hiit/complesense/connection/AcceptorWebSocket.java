@@ -111,7 +111,7 @@ public class AcceptorWebSocket extends AbsSystemThread
         webSocket.setPongCallback(new WebSocket.PongCallback() {
             @Override
             public void onPongReceived(String s) {
-                Log.i(TAG, "onPongReceived(): " + s);
+                //Log.i(TAG, "onPongReceived(): " + s);
                 try {
                     JSONObject jsonObject = new JSONObject(s);
                     int rounds = jsonObject.getInt(JsonSSI.ROUNDS);
@@ -185,5 +185,9 @@ public class AcceptorWebSocket extends AbsSystemThread
 
     public WebSocket getSocket(String key){
         return _sockets.get(key);
+    }
+
+    public int getConnections(){
+        return _sockets.size();
     }
 }

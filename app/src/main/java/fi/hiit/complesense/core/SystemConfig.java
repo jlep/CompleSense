@@ -68,6 +68,15 @@ public class SystemConfig
         return reqSensors;
     }
 
+    public Set<Integer> reqSensorTypes() {
+        Set<Integer> types = new HashSet<Integer>();
+        for(Parameter param : paramters){
+            for(SensorConfig sc : param.sensors)
+                types.add(sc.getType());
+        }
+        return types;
+    }
+
 
     public static Set<Integer> getSensorTypesFromJson(JSONArray sensorConfigJson) throws JSONException {
         Set<Integer> reqSensorTypes = new HashSet<Integer>();

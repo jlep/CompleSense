@@ -2,7 +2,6 @@ package fi.hiit.complesense.connection;
 
 import android.util.Log;
 
-import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -11,20 +10,17 @@ import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.core.SystemConfig;
 
 /**
 
@@ -39,7 +35,8 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
     private WebSocket mClientSocket = null;
     private final DataProcessingThread mDataProcessingThread;
 
-    public AcceptorStreaming(ServiceHandler serviceHandler, int clientCounter, CountDownLatch latch) throws IOException
+    public AcceptorStreaming(ServiceHandler serviceHandler, int clientCounter,
+                             Set<Integer> types, CountDownLatch latch) throws IOException
     {
         super(TAG, serviceHandler);
 
@@ -47,7 +44,7 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
         mStreamPort = clientCounter + Constants.STREAM_SERVER_PORT;
         httpServer.setErrorCallback(this);
         httpServer.websocket("/streaming", Constants.WEB_PROTOCOL, this);
-        mDataProcessingThread = new DataProcessingThread(serviceHandler);
+        mDataProcessingThread = new DataProcessingThread(serviceHandler, types);
     }
 
     @Override
@@ -72,7 +69,7 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
 
     @Override
     public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
-        String txt = "onConnected():";
+        String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
         Log.i(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
         if(mClientSocket != null){
@@ -122,7 +119,7 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
 
                 for(ByteBuffer bb : data){
                     payloadSize += bb.remaining();
-                    mDataProcessingThread.addDataToThreadBuffer(mClientSocket.toString(), bb.array(), payloadSize);
+                    mDataProcessingThread.addDataToThreadBuffer(mClientSocket, bb.array(), payloadSize);
                 }
                 byteBufferList.recycle();
             }

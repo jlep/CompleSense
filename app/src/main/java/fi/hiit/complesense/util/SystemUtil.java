@@ -38,6 +38,7 @@ import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.SystemConfig;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.service.AbstractGroupService;
 
 /**
@@ -243,6 +244,11 @@ public class SystemUtil {
         return port;
     }
 
+    public static String formatWebSocketStr(WebSocket webSocket){
+        String str = webSocket.toString();
+        return str.substring(str.lastIndexOf(".")+1);
+    }
+
     public static void writeAlivenessFile(String startTime, String recvSocketAddr)
     {
 
@@ -381,8 +387,11 @@ public class SystemUtil {
         return null;
     }
 
-    public static String formatWebSocketString(WebSocket webSocket){
-        String str = webSocket.toString();
-        return str.substring(str.lastIndexOf("@")+1);
+    public static String parseJsonSensorData(JSONObject jsonObject) throws JSONException {
+        int type = jsonObject.getInt(JsonSSI.SENSOR_TYPE);
+        long timeStamp = jsonObject.getLong(JsonSSI.TIMESTAMP);
+        JSONArray vals = jsonObject.getJSONArray(JsonSSI.SENSOR_VALUES);
+        String str = String.format("%d,%d,%s\n", type, timeStamp, vals.toString());
+        return str;
     }
 }

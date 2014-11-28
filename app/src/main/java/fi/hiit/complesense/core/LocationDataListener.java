@@ -33,17 +33,20 @@ public class LocationDataListener implements LocationListener
 
     private final WebSocket mWebSocket;
     private final long delay;
+    private final TextFileWritingThread fileWritingThread;
     private Location prevLocation;
     private JSONObject jsonGeoCoords = new JSONObject();
 
     //private final AsyncStreamClient asyncStreamClient;
     private final short isStringData = 1;
 
-    public LocationDataListener(ServiceHandler serviceHandler, WebSocket webSocket, long delay) throws JSONException
+    public LocationDataListener(ServiceHandler serviceHandler,
+                                WebSocket webSocket, long delay, TextFileWritingThread fileWritingThread) throws JSONException
     {
         this.mWebSocket = webSocket;
         this.prevLocation = null;
         this.delay = delay;
+        this.fileWritingThread = fileWritingThread;
     }
 
 
@@ -72,7 +75,7 @@ public class LocationDataListener implements LocationListener
             jsonArray.put(DISTANCE, distance);
 
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
-
+            fileWritingThread.write(jsonGeoCoords.toString());
 
             ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
             buffer.putShort(isStringData);

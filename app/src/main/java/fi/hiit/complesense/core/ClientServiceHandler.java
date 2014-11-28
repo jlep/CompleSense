@@ -78,13 +78,13 @@ public class ClientServiceHandler extends ServiceHandler
                             return true;
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            long delay = jsonObject.getLong(JsonSSI.TIME_DIFF);
+                            long timeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
                             int streamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
-                            String txt = "Streaming port: "+ streamPort + ", delay: " + delay +" ms, sensorConfigJson:" + sensorConfigJson.toString();
+                            String txt = "Streaming port: "+ streamPort + ", timeDiff: " + timeDiff +" ms";
                             Log.i(TAG, txt);
                             updateStatusTxt(txt);
 
-                            startStreamingConnector(sensorConfigJson, streamPort);
+                            startStreamingConnector(sensorConfigJson, streamPort, timeDiff);
                             return true;
                         case JsonSSI.SEND_DATA:
                             JSONArray imagesNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
@@ -106,7 +106,7 @@ public class ClientServiceHandler extends ServiceHandler
         return false;
     }
 
-    private void startStreamingConnector(JSONArray sensorConfigJson, int streamPort) throws IOException, JSONException
+    private void startStreamingConnector(JSONArray sensorConfigJson, int streamPort, long timeDiff) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
         Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
@@ -114,10 +114,14 @@ public class ClientServiceHandler extends ServiceHandler
         Log.i(TAG, txt);
         updateStatusTxt(txt);
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(2);
 
         ConnectorStreaming connectorStreaming = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
         connectorStreaming.start();
+
+        TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, requiredSensors, latch);
+        fileWritingThread.start();
+
 
         try
         {
@@ -126,30 +130,23 @@ public class ClientServiceHandler extends ServiceHandler
             WebSocket webSocket = connectorStreaming.getWebSocket();
             if(webSocket!=null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, delay, true);
+                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, timeDiff, false);
                     audioStreamClient.start();
                 }
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-                    startImageCapture(webSocket,delay);
+                    startImageCapture(webSocket,timeDiff);
                 }
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
                     locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, webSocket, delay);
+                    mLocationDataListener = new LocationDataListener(this, webSocket, timeDiff, fileWritingThread);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
 
                 if(requiredSensors.size()>0){
-                    final File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-                    localDir.mkdirs();
-                    final File localFile = new File(localDir, webSocket.toString()+".txt");
-
-                    TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, localFile);
-                    fileWritingThread.start();
-
                     SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                            this, context, requiredSensors, delay, webSocket, fileWritingThread);
+                            this, context, requiredSensors, timeDiff, webSocket, fileWritingThread);
                     sensorDataCollectionThread.start();
                 }
             }

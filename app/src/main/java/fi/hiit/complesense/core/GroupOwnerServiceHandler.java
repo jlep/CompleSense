@@ -40,6 +40,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private final String cloudSocketAddrStr = "http://" + Constants.URL_CLOUD +
             ":" + Constants.CLOUD_SERVER_PORT + "/";
     private Map<String, ArrayList<Integer>> availableSensors = new HashMap<String, ArrayList<Integer>>();
+    private int indexStreamServer = 0;
 
 
     public GroupOwnerServiceHandler(Messenger serviceMessenger, Context context) throws IOException, JSONException {
@@ -54,6 +55,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             }
             updateStatusTxt("Required sensors: " + reqSensorTypes.toString());
         }
+
 //        timer = new Timer();
         //LocalRecThread localRecThread = new LocalRecThread(this);
         //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
@@ -89,7 +91,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
                         case JsonSSI.N:
                             handleSensorTypesReply(jsonObject, webSocket);
-                            startStreamingServer(webSocket, peerList.size());
+                            startStreamingServer(webSocket, indexStreamServer++);
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
@@ -115,7 +117,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
         if(jsonArray!=null)
         {
-            updateStatusTxt("Receives sensor list from " + webSocket.toString() +
+            updateStatusTxt("Receives sensor list from " + SystemUtil.formatWebSocketStr(webSocket) +
                     ": " + jsonArray);
             ArrayList<Integer> sensorList = new ArrayList<Integer>();
             for(int i=0;i<jsonArray.length();i++)
@@ -131,7 +133,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private void startStreamingServer(WebSocket webSocket, int clientCounter) throws IOException {
         Log.i(TAG, "startStreamingServer()");
         CountDownLatch latch = new CountDownLatch(1);
-        AcceptorStreaming streamingServer = new AcceptorStreaming(this, clientCounter, latch);
+        AcceptorStreaming streamingServer = new AcceptorStreaming(this, clientCounter, sysConfig.reqSensorTypes(), latch);
         streamingServer.start();
 
         try {

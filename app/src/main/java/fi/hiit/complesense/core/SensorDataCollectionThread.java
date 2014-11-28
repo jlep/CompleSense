@@ -5,6 +5,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -42,8 +43,46 @@ public class SensorDataCollectionThread extends AbsSystemThread
     private final TextFileWritingThread mFileWritingThread;
     private final long delay;
 
-    private SensorEventListener mListener;
     private JSONObject jsonSensorData = new JSONObject();
+    private Handler mHandler;
+
+    private SensorEventListener mListener = new SensorEventListener()
+    {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent)
+        {
+            Log.i(TAG, "onSensorChanged() @thread: " + Thread.currentThread().getId());
+            try
+            {
+                //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
+                jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + delay);
+                jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
+                JSONArray jsonArray = new JSONArray();
+                for(float value:sensorEvent.values)
+                    jsonArray.put(value);
+                jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
+
+                mFileWritingThread.write(jsonSensorData.toString() );
+
+                int count = sampleCounters.get(sensorEvent.sensor.getType());
+                count++;
+                sampleCounters.put(sensorEvent.sensor.getType(), count);
+                if(count%100==0)
+                    serviceHandler.updateStatusTxt(jsonSensorData.toString());
+
+                ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonSensorData.toString().getBytes().length);
+                buffer.putShort(isStringData);
+                buffer.put(jsonSensorData.toString().getBytes());
+                mWebSocket.send(buffer.array());
+            } catch (JSONException e) {
+                Log.i(TAG, e.toString());
+            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+
+        }
+    };
 
 
     public SensorDataCollectionThread(ServiceHandler serviceHandler,
@@ -60,51 +99,24 @@ public class SensorDataCollectionThread extends AbsSystemThread
         for(int i:requiredSensors)
             sampleCounters.put(i, 0);
         this.mFileWritingThread = out;
+
+
     }
 
     @Override
-    public void run()
-    {
-        Log.i(TAG, " Starts SensorDataCollectionThread @thread: " + Thread.currentThread().getId());
+    protected void onLooperPrepared() {
+        super.onLooperPrepared();
+        Log.i(TAG, "onLooperPrepared()");
+        this.mHandler = new Handler(this.getLooper());
+        registerSensors();
+    }
+
+    @Override
+    public synchronized void start() {
+        Log.i(TAG, " Starts SensorDataCollectionThread @thread id: " + Thread.currentThread().getId());
         serviceHandler.workerThreads.put(SensorDataCollectionThread.TAG, this);
 
-        mListener = new SensorEventListener()
-        {
-            @Override
-            public void onSensorChanged(SensorEvent sensorEvent)
-            {
-                try
-                {
-                    //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-                    jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + delay);
-                    jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
-                    JSONArray jsonArray = new JSONArray();
-                    for(float value:sensorEvent.values)
-                        jsonArray.put(value);
-                    jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
-
-                    mFileWritingThread.write(jsonSensorData.toString() );
-
-                    int count = sampleCounters.get(sensorEvent.sensor.getType());
-                    count++;
-                    sampleCounters.put(sensorEvent.sensor.getType(), count);
-                    //if(count%50==0)
-                    //    serviceHandler.updateStatusTxt(jsonSensorData.toString());
-                    ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonSensorData.toString().getBytes().length);
-                    buffer.putShort(isStringData);
-                    buffer.put(jsonSensorData.toString().getBytes());
-                    mWebSocket.send(buffer.array());
-                } catch (JSONException e) {
-                    Log.i(TAG, e.toString());
-                }
-            }
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int i) {
-
-            }
-        };
-
-        registerSensors();
+        super.start();
     }
 
     private String formatSensorValues(SensorEvent sensorEvent)
@@ -122,10 +134,11 @@ public class SensorDataCollectionThread extends AbsSystemThread
     private void registerSensors()
     {
         Log.i(TAG, "registerSensors():" + sampleCounters.keySet());
+
         for(int type : sampleCounters.keySet())
         {
             mSensorManager.registerListener(mListener,
-                    mSensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL);
+                    mSensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL, mHandler);
         }
     }
 
