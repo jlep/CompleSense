@@ -6,6 +6,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -27,7 +31,7 @@ import fi.hiit.complesense.R;
 /**
  * Created by hxguo on 24.11.2014.
  */
-public class TakePhotoActivity extends Activity
+public class TakePhotoActivity extends Activity implements SensorEventListener
 {
     private final static String TAG = TakePhotoActivity.class.getSimpleName();
     public static final String IMAGE_NAMES = "image_names";
@@ -38,6 +42,11 @@ public class TakePhotoActivity extends Activity
     private int imgCount;
     private File localDir;
     private ArrayList<String> imageNames = new ArrayList<String>();
+
+    private SensorManager mSensorManager;
+    private Sensor mRotation;
+    private float[] sensorVals = new float[3];
+    private File txtSensorValsFile;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -57,6 +66,10 @@ public class TakePhotoActivity extends Activity
         });
 
         localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+        txtSensorValsFile = new File(localDir, "orientations.txt");
+
+        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mRotation = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
     }
 
     /** Check if this device has a camera */
@@ -95,7 +108,14 @@ public class TakePhotoActivity extends Activity
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
     protected void onPause() {
+        mSensorManager.unregisterListener(this);
         if (mCamera != null) {
             mCamera.release();
             mCamera = null;
@@ -119,7 +139,7 @@ public class TakePhotoActivity extends Activity
     Camera.PictureCallback jpegCallback = new Camera.PictureCallback()
     {
         public void onPictureTaken(byte[] data, Camera camera) {
-            FileOutputStream outStream = null;
+            FileOutputStream imgOutStream = null, txtOutputStream = null;
             String fname = String.format("%d.jpg", System.currentTimeMillis());
             File imgFile = new File(localDir, fname);
 
@@ -127,9 +147,13 @@ public class TakePhotoActivity extends Activity
                 // write to local sandbox file system
                 imageNames.add(fname);
 
-                outStream = new FileOutputStream(imgFile);
-                outStream.write(data);
-                outStream.close();
+                txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
+                txtOutputStream.write(sensorVals.toString().getBytes());
+                txtOutputStream.close();
+
+                imgOutStream = new FileOutputStream(imgFile);
+                imgOutStream.write(data);
+                imgOutStream.close();
 
                 Log.i(TAG, "onPictureTaken - wrote bytes: " + data.length);
             } catch (FileNotFoundException e) {
@@ -160,4 +184,16 @@ public class TakePhotoActivity extends Activity
             }
         }
     };
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+        sensorVals[0] = sensorEvent.values[0];
+        sensorVals[1] = sensorEvent.values[1];
+        sensorVals[2] = sensorEvent.values[2];
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
 }
