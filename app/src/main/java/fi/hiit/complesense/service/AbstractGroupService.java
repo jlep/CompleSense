@@ -177,7 +177,7 @@ public abstract class AbstractGroupService extends Service
 
     public void updateSelfInfo(WifiP2pDevice device)
     {
-        Log.i(TAG,"updateSelfInfo(groupOwner: "+ device.isGroupOwner() +")");
+        Log.i(TAG,"updateSelfInfo(groupOwner: "+ device.toString() +")");
         mDevice = device;
         Map<String, String> txtRecord = SystemUtil.generateTxtRecord(this);
         discoveredDevices.put(mDevice.deviceAddress, new CompleSenseDevice(mDevice, txtRecord));

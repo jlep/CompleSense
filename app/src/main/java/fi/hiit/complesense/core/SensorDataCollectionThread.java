@@ -131,7 +131,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
         for(int type : sampleCounters.keySet())
         {
             mSensorManager.registerListener(mListener,
-                    mSensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL, mHandler);
+                    mSensorManager.getDefaultSensor(type), Constants.SAMPLE_NORMAL, mHandler);
         }
     }
 

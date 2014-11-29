@@ -38,13 +38,13 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
     private AsyncHttpServer httpServer = new AsyncHttpServer();
     private WebSocket mClientSocket = null;
 
-    public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, CountDownLatch latch) throws IOException
+    public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, int serverIndex, CountDownLatch latch) throws IOException
     {
         super(TAG, serviceHandler);
 
         Set<Integer> sensorTypes = new HashSet<Integer>(types);
         this.latch = latch;
-        mStreamPort = Constants.STREAM_SERVER_PORT;
+        mStreamPort = Constants.STREAM_SERVER_PORT + serverIndex;
         httpServer.setErrorCallback(this);
 
         if(sensorTypes.remove(SensorUtil.SENSOR_MIC)){
@@ -76,7 +76,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         String txt = "Start AcceptorStreaming at port "+ mStreamPort +" thread id: " + Thread.currentThread().getId();
         Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
-        serviceHandler.workerThreads.put(TAG, this);
+        serviceHandler.workerThreads.put(TAG + ":" +mStreamPort, this);
 
         httpServer.listen(mStreamPort);
         if(mWavProcessThread != null)

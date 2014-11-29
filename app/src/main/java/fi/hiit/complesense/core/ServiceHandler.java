@@ -16,16 +16,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
 import fi.hiit.complesense.Constants;
@@ -201,32 +194,6 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    /*
-    private void forwarRttQuery(JSONObject jsonObject, WebSocket webSocket) throws JSONException {
-
-        long startTime = jsonObject.getLong(JsonSSI.TIMESTAMP);
-        int rounds = jsonObject.getInt(JsonSSI.ROUNDS);
-        String originHost = (String)jsonObject.get(JsonSSI.ORIGIN_HOST);
-        int originPort = jsonObject.getInt(JsonSSI.ORIGIN_PORT);
-
-        Log.v(TAG, "replyRttQuery(rounds: " + rounds + " senderSocketAddrStr: " + senderSocketAddrStr + ")");
-        String localSocketAddrStr = socketChannel.socket().getLocalSocketAddress().toString();
-        Log.v(TAG, "replyRttQuery(localSocketAddrStr: " + localSocketAddrStr + ")");
-
-        if(rounds <=0 && isOrigin(originHost, originPort, webSocket.getSocket().))
-        {
-            onReceiveLastRttReply(startTime, socketChannel);
-        }
-        else
-        {
-            if(isOrigin(originHost,originPort, socketChannel.socket())){
-                --rounds;
-            }
-            JSONObject jsonForward = JsonSSI.makeRttQuery(startTime, rounds, originHost, originPort);
-            webConnection.send(socketChannel, jsonForward.toString().getBytes());
-        }
-    }
-    */
     private boolean isOrigin(String host, int port, Socket localSocket)
     {
         if(host.equalsIgnoreCase(localSocket.getLocalAddress().toString()) &&

@@ -101,6 +101,8 @@ public class ConnectorWebSocket extends AbsSystemThread
     @Override
     public void stopThread() {
         Log.i(TAG, "stopThread()");
+        serviceHandler.workerThreads.remove(TAG);
+
         if(mWebSocket!=null)
             mWebSocket.close();
     }

@@ -130,10 +130,10 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }
     }
 
-    private void startStreamingServer(WebSocket webSocket, int clientCounter) throws IOException {
+    private void startStreamingServer(WebSocket webSocket, int serverIndex) throws IOException {
         Log.i(TAG, "startStreamingServer()");
         CountDownLatch latch = new CountDownLatch(1);
-        AcceptorStreaming streamingServer = new AcceptorStreaming(this, sysConfig.reqSensorTypes(), latch);
+        AcceptorStreaming streamingServer = new AcceptorStreaming(this, sysConfig.reqSensorTypes(), serverIndex,latch);
         streamingServer.start();
 
         try {
@@ -167,6 +167,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         if(sensorSet.containsAll(availableSensorTypes)){
             JSONArray jsonArray = new JSONArray(requiredSensors.toString());
             Log.i(TAG, "sendStartStreamClientReq()-requiredSensors: " + jsonArray.toString());
+
             JSONObject jsonStartStream = JsonSSI.makeStartStreamReq(jsonArray,
                     peerList.get(key).getDelay(), streamPort );
 
@@ -174,6 +175,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }else{
             sensorSet.removeAll(availableSensorTypes);
             Log.e(TAG, "Client does not have such sensors: " + sensorSet.toString());
+            updateStatusTxt("Client does not have such sensors: " + sensorSet.toString());
         }
 
     }

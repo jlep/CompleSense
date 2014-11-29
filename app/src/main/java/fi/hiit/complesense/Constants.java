@@ -7,7 +7,7 @@ import android.os.Environment;
  */
 public class Constants
 {
-    public static final int NUM_CLIENTS = 1;
+    public static final int NUM_CLIENTS = 2;
 
     public static final int BYTES_INT = (int)(Integer.SIZE / 8);
     public static final int BYTES_SHORT = (int)(Short.SIZE / 8);
@@ -95,6 +95,11 @@ public class Constants
      * burst mode camera setup
      */
     public static final int NUM_IMG_TAKE = 10;
+
+    /**
+     * Sensor settings
+     */
+    public static final int SAMPLE_NORMAL = 50;
 
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};
