@@ -24,16 +24,18 @@ public class ConnectorStreaming extends AbsSystemThread
 {
     public static final String TAG = ConnectorStreaming.class.getSimpleName();
 
-    private final URI uri;
+    private final URI jsonStreamUri, wavStreamUri;
     private final CountDownLatch latch;
-    private WebSocket mWebSocket = null;
+    private WebSocket mJsonWebSocket = null, mWavWebSocket = null;
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
 
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
         super(TAG, serviceHandler);
-        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming_json");
+        //uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming_json");
+        jsonStreamUri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming_json");
+        wavStreamUri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming_wav");
         this.latch = latch;
 
         mStringCallback = new WebSocket.StringCallback(){
@@ -61,46 +63,79 @@ public class ConnectorStreaming extends AbsSystemThread
         serviceHandler.updateStatusTxt(txt);
         serviceHandler.workerThreads.put(TAG, this);
 
-        AsyncHttpClient.getDefaultInstance().websocket(uri.toString(),
+        AsyncHttpClient.getDefaultInstance().websocket(jsonStreamUri.toString(),
                 Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback() {
 
                     @Override
                     public void onCompleted(Exception e, WebSocket webSocket) {
-                        Log.i(TAG, "onCompleted(" + uri.toString() + ")");
+                        Log.i(TAG, "onCompleted(" + jsonStreamUri.toString() + ")");
                         if (e != null) {
                             Log.e(TAG, e.toString());
                             return;
                         }
-                        serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
+                        serviceHandler.updateStatusTxt("Connection with " + jsonStreamUri.toString() + " is established");
 
-                        mWebSocket = webSocket;
+                        mJsonWebSocket = webSocket;
                         latch.countDown();
 
-                        mWebSocket.setStringCallback(mStringCallback);
-                        mWebSocket.setDataCallback(mDataCallback);
-                        mWebSocket.setEndCallback(new CompletedCallback() {
+                        mJsonWebSocket.setStringCallback(mStringCallback);
+                        mJsonWebSocket.setDataCallback(mDataCallback);
+                        mJsonWebSocket.setEndCallback(new CompletedCallback() {
                             @Override
                             public void onCompleted(Exception e) {
                                 Log.e(TAG, e.toString());
-                                if (mWebSocket != null)
-                                    mWebSocket.close();
+                                if (mJsonWebSocket != null)
+                                    mJsonWebSocket.close();
+                            }
+                        });
+                    }
+                });
+        AsyncHttpClient.getDefaultInstance().websocket(wavStreamUri.toString(),
+                Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback() {
+
+                    @Override
+                    public void onCompleted(Exception e, WebSocket webSocket) {
+                        Log.i(TAG, "onCompleted(" + wavStreamUri.toString() + ")");
+                        if (e != null) {
+                            Log.e(TAG, e.toString());
+                            return;
+                        }
+                        serviceHandler.updateStatusTxt("Connection with " + wavStreamUri.toString() + " is established");
+
+                        mWavWebSocket = webSocket;
+                        latch.countDown();
+
+                        mWavWebSocket.setStringCallback(mStringCallback);
+                        mWavWebSocket.setDataCallback(mDataCallback);
+                        mWavWebSocket.setEndCallback(new CompletedCallback() {
+                            @Override
+                            public void onCompleted(Exception e) {
+                                Log.e(TAG, e.toString());
+                                if (mWavWebSocket != null)
+                                    mWavWebSocket.close();
                             }
                         });
                     }
                 });
     }
 
-    public WebSocket getWebSocket() {
-        return mWebSocket;
+    public WebSocket getJsonWebSocket() {
+        return mJsonWebSocket;
     }
 
+    public WebSocket getWavWebSocket() {
+        return mWavWebSocket;
+    }
 
     @Override
     public void stopThread() {
-        String txt = "Stopping ConnectorWebSocket at thread id: " + Thread.currentThread().getId();
-        Log.e(TAG, txt);
-        serviceHandler.updateStatusTxt(txt);
-        if(mWebSocket!=null)
-            mWebSocket.close();
+        //String txt = "Stopping ConnectorStreaming at thread id: " + Thread.currentThread().getId();
+        //Log.e(TAG, txt);
+        //serviceHandler.updateStatusTxt(txt);
+        Log.i(TAG, "stopThread()");
+        if(mJsonWebSocket!=null)
+            mJsonWebSocket.close();
+        if(mWavWebSocket!=null)
+            mWavWebSocket.close();
     }
 }

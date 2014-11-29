@@ -28,16 +28,15 @@ import fi.hiit.complesense.util.SystemUtil;
 /**
  * Created by hxguo on 24.11.2014.
  */
-public class TextFileWritingThread extends AbsSystemThread
+public class TextFileWritingThread extends Thread
 {
     private static final String TAG = TextFileWritingThread.class.getSimpleName();
     private final Map<Integer, FileWriter> mSensorWriters = new HashMap<Integer, FileWriter>();
     private final CountDownLatch latch;
     private ConcurrentLinkedQueue<String> buffer = new ConcurrentLinkedQueue<String>();
+    private boolean keepRunning;
 
-    public TextFileWritingThread(ServiceHandler serviceHandler, Set<Integer> requiredSensors, CountDownLatch latch) throws IOException {
-        super(TAG, serviceHandler);
-
+    public TextFileWritingThread(Set<Integer> requiredSensors, CountDownLatch latch) throws IOException {
         this.latch = latch;
         File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         localDir.mkdirs();
@@ -59,7 +58,6 @@ public class TextFileWritingThread extends AbsSystemThread
     public void run()
     {
         Log.i(TAG, "Starts TextFileWritingThread @thread id: " + Thread.currentThread().getId());
-        serviceHandler.workerThreads.put(TAG, this);
         latch.countDown();
         try {
             keepRunning = true;
@@ -86,8 +84,8 @@ public class TextFileWritingThread extends AbsSystemThread
         }
     }
 
-    @Override
-    public void stopThread() {
+    public void stopTxtWriter() {
+        Log.i(TAG, "stopTxtWriter()");
         keepRunning = false;
     }
 }

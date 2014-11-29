@@ -29,16 +29,17 @@ public class AudioStreamClient extends AbsSystemThread
 {
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
-    private final WebSocket mSyncWebSocket;
+    private final WebSocket mWebSocket;
     private final short isStringData = 0;
     private final boolean readLocal;
     private final PipedOutputStream mPipedOut;
     private final PipedInputStream mPipedIn;
     private final long delay;
+    private AudioFileWritingThread mAudioFileWriter;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket syncWS, long delay, boolean readFromLocal) throws IOException {
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, long delay, boolean readFromLocal) throws IOException {
         super(TAG, serviceHandler);
-        this.mSyncWebSocket = syncWS;
+        this.mWebSocket = webSocket;
         this.readLocal = readFromLocal;
         this.mPipedOut = new PipedOutputStream();
         this.mPipedIn = new PipedInputStream(mPipedOut);
@@ -50,7 +51,7 @@ public class AudioStreamClient extends AbsSystemThread
     {
         long threadId = Thread.currentThread().getId();
         Log.i(TAG, "Starts AudioStreamClient @thread id: " + threadId);
-        serviceHandler.workerThreads.put(AudioStreamClient.TAG, this);
+        serviceHandler.workerThreads.put(TAG, this);
 
         int bytes_read = 0, payloadSize = 0, bytes_count = 0;
         byte[] buf = new byte[Constants.BUF_SIZE];
@@ -62,8 +63,8 @@ public class AudioStreamClient extends AbsSystemThread
         final File localFile = new File(localDir, fileName);
         sendFileName2Master(fileName);
 
-        AudioFileWritingThread audioFileWriter = new AudioFileWritingThread(serviceHandler, mPipedIn, localFile);
-        audioFileWriter.start();
+        mAudioFileWriter = new AudioFileWritingThread(mPipedIn, localFile);
+        mAudioFileWriter.start();
 
         keepRunning = true;
         if(!readLocal)
@@ -91,7 +92,7 @@ public class AudioStreamClient extends AbsSystemThread
                     bb.put(buf);
                     bytes_count += bytes_read;
 
-                    mSyncWebSocket.send(bb.array());
+                    mWebSocket.send(bb.array());
                     Thread.sleep(Constants.SAMPLE_INTERVAL);
                 }
 
@@ -100,12 +101,11 @@ public class AudioStreamClient extends AbsSystemThread
             } catch (IOException e) {
                 Log.i(TAG, e.toString());
             } finally{
-                Log.i(TAG, "Recording thread stops");
+                Log.i(TAG, "Recording thread exists loop");
+                if(mAudioFileWriter != null)
+                    mAudioFileWriter.stopWavWriter();
                 if(audio_recorder!=null)
                     audio_recorder.stop();
-                if(audioFileWriter!=null)
-                    audioFileWriter.stopThread();
-
             }
         }
         else
@@ -128,7 +128,7 @@ public class AudioStreamClient extends AbsSystemThread
                             bb.putInt(SensorUtil.SENSOR_MIC);
                             bb.put(buf);
 
-                            mSyncWebSocket.send(bb.array());
+                            mWebSocket.send(bb.array());
                         }else{
                             fis.close();
                             break;
@@ -143,7 +143,10 @@ public class AudioStreamClient extends AbsSystemThread
             } catch (InterruptedException e) {
                 Log.i(TAG, e.toString());
             }finally{
-                Log.i(TAG, "Recording thread stops");
+                Log.i(TAG, "Recording thread exists loop");
+                if(mAudioFileWriter != null)
+                    mAudioFileWriter.stopWavWriter();
+
                 if(fis!=null){
                     try {
                         fis.close();
@@ -162,6 +165,7 @@ public class AudioStreamClient extends AbsSystemThread
 
     @Override
     public void stopThread() {
+        Log.i(TAG, "stopThread()");
         keepRunning = false;
     }
 }

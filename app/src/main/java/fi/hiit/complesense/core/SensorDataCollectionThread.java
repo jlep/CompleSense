@@ -108,7 +108,6 @@ public class SensorDataCollectionThread extends AbsSystemThread
     @Override
     public synchronized void start() {
         Log.i(TAG, " Starts SensorDataCollectionThread @thread id: " + Thread.currentThread().getId());
-        serviceHandler.workerThreads.put(SensorDataCollectionThread.TAG, this);
 
         super.start();
     }
@@ -138,8 +137,12 @@ public class SensorDataCollectionThread extends AbsSystemThread
 
     @Override
     public void stopThread(){
+        Log.i(TAG, "stopThread()");
+        if(mFileWritingThread!=null)
+            mFileWritingThread.stopTxtWriter();
         keepRunning = false;
         unRegisterSensors();
+        quit();
     }
 
     private void unRegisterSensors()

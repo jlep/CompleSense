@@ -16,14 +16,15 @@ import fi.hiit.complesense.util.MIME_FileWriter;
 /**
  * Created by hxguo on 24.11.2014.
  */
-public class AudioFileWritingThread extends AbsSystemThread {
+public class AudioFileWritingThread extends Thread{
 
     private static final String TAG = AudioFileWritingThread.class.getSimpleName();
     private final File outputFile;
     private final DataInputStream dis;
+    private boolean keepRunning;
 
-    public AudioFileWritingThread(ServiceHandler serviceHandler, InputStream is, File outputFile) {
-        super(TAG, serviceHandler);
+
+    public AudioFileWritingThread(InputStream is, File outputFile) {
         this.dis = new DataInputStream(is);
         this.outputFile = outputFile;
     }
@@ -33,7 +34,6 @@ public class AudioFileWritingThread extends AbsSystemThread {
     {
         long threadID = Thread.currentThread().getId();
         Log.i(TAG, "Starts AudioFileWritingThread @thread: " + threadID);
-        serviceHandler.workerThreads.put(AudioFileWritingThread.TAG, this);
 
         byte[] buf = new byte[Constants.BUF_SIZE];
         ByteBuffer bb = ByteBuffer.wrap(buf);
@@ -53,7 +53,7 @@ public class AudioFileWritingThread extends AbsSystemThread {
         } catch (IOException e) {
             Log.e(TAG, e.toString());
         }finally {
-            Log.i(TAG, "AudioFileWritingThread stop, byteCount: " + byteCount);
+            Log.i(TAG, "AudioFileWritingThread exists loop, byteCount: " + byteCount);
             if(dis!=null){
                 try {
                     dis.close();
@@ -64,8 +64,8 @@ public class AudioFileWritingThread extends AbsSystemThread {
         }
     }
 
-    @Override
-    public void stopThread() {
+    public void stopWavWriter() {
+        Log.i(TAG, "stopWavWriter()");
         keepRunning = false;
     }
 }

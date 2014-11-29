@@ -1,8 +1,10 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
+import android.hardware.SensorManager;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
@@ -35,6 +37,8 @@ public class ClientServiceHandler extends ServiceHandler
     private final InetAddress ownerAddr;
     private WebSocket mServerWebSocket;
     private LocationListener mLocationDataListener = null;
+    private Handler mHandler;
+    private SensorDataListener mSensorDataListener = null;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -44,6 +48,12 @@ public class ClientServiceHandler extends ServiceHandler
     {
         super(serviceMessenger, TAG, context, false, ownerAddr, delay);
         this.ownerAddr = ownerAddr;
+    }
+
+    @Override
+    protected void onLooperPrepared() {
+        super.onLooperPrepared();
+        mHandler = new Handler(getLooper());
     }
 
     @Override
@@ -101,45 +111,48 @@ public class ClientServiceHandler extends ServiceHandler
         Log.i(TAG, txt);
         updateStatusTxt(txt);
 
-        CountDownLatch latch = new CountDownLatch(2);
+        CountDownLatch latch = new CountDownLatch(3);
 
         ConnectorStreaming connectorStreaming = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
         connectorStreaming.start();
 
-        TextFileWritingThread fileWritingThread = new TextFileWritingThread(this, requiredSensors, latch);
+        TextFileWritingThread fileWritingThread = new TextFileWritingThread(requiredSensors, latch);
         fileWritingThread.start();
-
 
         try
         {
             latch.await();
 
-            WebSocket webSocket = connectorStreaming.getWebSocket();
-            if(webSocket!=null){
+            WebSocket jsonWebSocket = connectorStreaming.getJsonWebSocket();
+            WebSocket wavWebSocket = connectorStreaming.getJsonWebSocket();
+
+            if(wavWebSocket != null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, timeDiff, false);
+                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, wavWebSocket, timeDiff, false);
                     audioStreamClient.start();
                 }
+            }
 
-                /*
-                if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-                    startImageCapture(webSocket,timeDiff);
-                }
-                */
-
+            if(jsonWebSocket!=null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
                     LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, webSocket, timeDiff, fileWritingThread);
+                    mLocationDataListener = new LocationDataListener(this, jsonWebSocket, timeDiff, fileWritingThread);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
 
                 if(requiredSensors.size()>0){
-                    SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                            this, context, requiredSensors, timeDiff, webSocket, fileWritingThread);
-                    sensorDataCollectionThread.start();
+
+                    mSensorDataListener = new SensorDataListener(jsonWebSocket, timeDiff, fileWritingThread);
+                    SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+                    Log.i(TAG, "registerSensors():" + requiredSensors);
+
+                    for(int type : requiredSensors)
+                    {
+                        sensorManager.registerListener(mSensorDataListener,
+                                sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL, mHandler);
+                    }
                 }
             }
-
         } catch (InterruptedException e) {
             Log.e(TAG, e.toString());
         }
@@ -162,6 +175,11 @@ public class ClientServiceHandler extends ServiceHandler
             Log.i(TAG, "locationManager.removeUpdates");
             LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
             locationManager.removeUpdates(mLocationDataListener);
+        }
+        if(mSensorDataListener != null){
+            Log.i(TAG, "SensorManager.unRegister");
+            SensorManager sensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
+            sensorManager.unregisterListener(mSensorDataListener);
         }
 
         super.stopServiceHandler();

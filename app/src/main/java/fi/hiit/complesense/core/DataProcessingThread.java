@@ -4,7 +4,6 @@ import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,13 +13,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -127,9 +122,7 @@ public class DataProcessingThread extends AbsSystemThread {
 
         }catch (IOException e) {
             Log.i(TAG, e.toString());
-        } /*catch (JSONException e) {
-            Log.i(TAG,e.toString());
-        } */finally {
+        }finally {
             Log.i(TAG, "Exit loop");
             try {
                 if(fos!=null)

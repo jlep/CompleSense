@@ -33,6 +33,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     private final int mStreamPort;
     private final CountDownLatch latch;
+    private DataProcessingThread mWavProcessThread = null;
     private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
     private WebSocket mClientSocket = null;
@@ -47,7 +48,12 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         httpServer.setErrorCallback(this);
 
         if(sensorTypes.remove(SensorUtil.SENSOR_MIC)){
+            Set<Integer> wav = new HashSet<Integer>();
+            wav.add(SensorUtil.SENSOR_MIC);
 
+            mWavProcessThread = new DataProcessingThread(serviceHandler, wav);
+            StreamingCallback wavStreamingCallback = new StreamingCallback(mWavProcessThread);
+            httpServer.websocket("/streaming_wav", Constants.WEB_PROTOCOL, wavStreamingCallback);
         }
 
         if(sensorTypes.size()>0){
@@ -73,6 +79,8 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         serviceHandler.workerThreads.put(TAG, this);
 
         httpServer.listen(mStreamPort);
+        if(mWavProcessThread != null)
+            mWavProcessThread.start();
         if(mJsonProcessThread != null)
             mJsonProcessThread.start();
         latch.countDown();

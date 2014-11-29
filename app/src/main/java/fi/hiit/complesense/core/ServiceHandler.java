@@ -16,8 +16,17 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
@@ -43,7 +52,7 @@ public class ServiceHandler extends HandlerThread
     //public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
-    public Map<String, AbsSystemThread> workerThreads;
+    public ConcurrentMap<String, AbsSystemThread> workerThreads;
 
 
     public ServiceHandler(Messenger serviceMessenger, String name,
@@ -54,7 +63,7 @@ public class ServiceHandler extends HandlerThread
         this.serviceMessenger = serviceMessenger;
         this.context = context;
         //sensorUtil = new SensorUtil(context);
-        workerThreads = new HashMap<String, AbsSystemThread>();
+        workerThreads = new ConcurrentHashMap<String, AbsSystemThread>();
         peerList = new HashMap<String, AliveConnection>();
         this.isGroupOwner = isGroupOwner;
 
@@ -111,9 +120,7 @@ public class ServiceHandler extends HandlerThread
         {
             Thread.sleep(delay);
             for(String key : workerThreads.keySet())
-            {
                 workerThreads.get(key).start();
-            }
         } catch (InterruptedException e) {
             Log.e(TAG, e.toString());
         }
@@ -121,17 +128,19 @@ public class ServiceHandler extends HandlerThread
 
     public void stopServiceHandler()
     {
-        Log.i(TAG,"stopServiceHandler()");
-        for(String key : workerThreads.keySet())
-        {
+        Log.i(TAG,"stopServiceHandler(): " + workerThreads.keySet().toString());
+
+        for(String key : workerThreads.keySet()){
             Log.e(TAG, "Stop thread: " + key);
-            AbsSystemThread absSystemThread = workerThreads.get(key);
-            absSystemThread.stopThread();
+            workerThreads.get(key).stopThread();
+            /*
             try {
-                absSystemThread.join();
+                workerThreads.get(key).join();
+                Log.i(TAG, "Thread " + TAG + " has stopped");
             } catch (InterruptedException e) {
                 Log.i(TAG, e.toString());
             }
+            */
         }
         Log.e(TAG, "All threads have been stopped");
         quit();
