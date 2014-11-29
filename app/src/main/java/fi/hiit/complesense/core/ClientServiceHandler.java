@@ -128,20 +128,24 @@ public class ClientServiceHandler extends ServiceHandler
 
             if(wavWebSocket != null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, wavWebSocket, timeDiff, false);
-                    audioStreamClient.start();
+                    //AudioStreamClient audioStreamClient = new AudioStreamClient(this, wavWebSocket, timeDiff, false);
+                    //audioStreamClient.start();
+                }
+
+                if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){
+                    startImageCapture(wavWebSocket, timeDiff);
                 }
             }
 
             if(jsonWebSocket!=null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
-                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, jsonWebSocket, timeDiff, fileWritingThread);
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
+                    //LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                    //mLocationDataListener = new LocationDataListener(this, jsonWebSocket, timeDiff, fileWritingThread);
+                    //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
 
                 if(requiredSensors.size()>0){
-
+                    /*
                     mSensorDataListener = new SensorDataListener(jsonWebSocket, timeDiff, fileWritingThread);
                     SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
                     Log.i(TAG, "registerSensors():" + requiredSensors);
@@ -151,6 +155,7 @@ public class ClientServiceHandler extends ServiceHandler
                         sensorManager.registerListener(mSensorDataListener,
                                 sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL, mHandler);
                     }
+                    */
                 }
             }
         } catch (InterruptedException e) {

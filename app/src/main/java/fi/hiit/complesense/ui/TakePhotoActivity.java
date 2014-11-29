@@ -24,6 +24,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
@@ -37,7 +41,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     public static final String IMAGE_NAMES = "image_names";
     private Camera mCamera;
     private int mCameraId = 0;
-    private Button mButton;
+    private Button mPhotoButton, mFinishButton;
     private CameraPreview preview;
     private int imgCount;
     private File localDir;
@@ -47,6 +51,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     private Sensor mRotation;
     private float[] sensorVals = new float[3];
     private File txtSensorValsFile;
+    private ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,13 +60,24 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         preview = new CameraPreview(this);
         ((FrameLayout) findViewById(R.id.camera_preview)).addView(preview);
 
-        mButton = (Button)findViewById(R.id.front_take_photos);
-        mButton.setOnClickListener(new View.OnClickListener() {
+        mPhotoButton = (Button)findViewById(R.id.front_take_photos);
+        mPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 preview.mCamera.takePicture(shutterCallback, rawCallback,
                         jpegCallback);
-                mButton.setEnabled(false);
+                mPhotoButton.setEnabled(false);
+            }
+        });
+
+        mFinishButton = (Button)findViewById(R.id.go_back);
+        mFinishButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.putStringArrayListExtra(IMAGE_NAMES, imageNames);
+                setResult(Activity.RESULT_OK, intent);
+                finish();
             }
         });
 
@@ -110,12 +126,12 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     @Override
     protected void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_NORMAL);
+        //mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
     protected void onPause() {
-        mSensorManager.unregisterListener(this);
+        //mSensorManager.unregisterListener(this);
         if (mCamera != null) {
             mCamera.release();
             mCamera = null;
@@ -143,35 +159,39 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
             String fname = String.format("%d.jpg", System.currentTimeMillis());
             File imgFile = new File(localDir, fname);
 
+            imageNames.add(fname);
+            imgCount++;
+            threadPool.submit(new FileWritingCallable(data));
+            /*
             try {
                 // write to local sandbox file system
                 imageNames.add(fname);
+                imgCount++;
+                threadPool.submit(new FileWritingCallable(data));
 
-                txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
-                txtOutputStream.write(sensorVals.toString().getBytes());
-                txtOutputStream.close();
+                //txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
+                //txtOutputStream.write(sensorVals.toString().getBytes());
+                //txtOutputStream.close();
 
-                imgOutStream = new FileOutputStream(imgFile);
-                imgOutStream.write(data);
-                imgOutStream.close();
 
-                Log.i(TAG, "onPictureTaken - wrote bytes: " + data.length);
+
+                Log.i(TAG, "onPictureTaken - jpeg, wrote bytes: " + data.length);
+                Toast.makeText(getApplicationContext(), "take photo No: " + imgCount, Toast.LENGTH_SHORT).show();
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
             }
-            Log.i(TAG, "onPictureTaken - jpeg");
+            */
+
             try {
-                imgCount++;
-                camera.startPreview();
+                //camera.startPreview();
                 if (imgCount < Constants.NUM_IMG_TAKE) {
                     preview.mCamera.takePicture(shutterCallback, rawCallback,
                             jpegCallback);
                 } else {
                     imgCount = 0;
-                    mButton.setEnabled(true);
 
                     //Log.i(TAG, "imageNames: " + imageNames);
                     Intent intent = new Intent();
@@ -195,5 +215,25 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
+    }
+
+    class FileWritingCallable implements Callable<String> {
+        FileOutputStream imgOutStream = null, txtOutputStream = null;
+        String fname = String.format("%d.jpg", System.currentTimeMillis());
+        File imgFile = new File(localDir, fname);
+        byte[] data;
+
+        public FileWritingCallable(byte[] data){
+            this.data = data;
+        }
+
+        @Override
+        public String call() throws Exception {
+            imgOutStream = new FileOutputStream(imgFile);
+            imgOutStream.write(data);
+            imgOutStream.close();
+            Log.i(TAG, "onPictureTaken - jpeg, wrote bytes: " + data.length);
+            return imgOutStream.toString();
+        }
     }
 }

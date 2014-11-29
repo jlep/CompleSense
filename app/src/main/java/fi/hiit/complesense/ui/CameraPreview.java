@@ -23,7 +23,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 {
     private static final String TAG = CameraPreview.class.getSimpleName();
 
-    private final File localDir;
+    private File localDir;
     private SurfaceHolder mHolder;
     public Camera mCamera;
 
@@ -34,8 +34,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
         mCamera = openBackFacingCamera();
-        mCamera.setDisplayOrientation(90);
-        this.localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+        if(mCamera!=null){
+            mCamera.setDisplayOrientation(90);
+            localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+            return;
+        }
+
     }
 
 
@@ -72,11 +76,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        // The Surface has been created, acquire the camera and tell it where
+        // to draw.
         if (mHolder.getSurface() == null){
             // preview surface does not exist
             return;
         }
-
         // stop preview before making changes
         try {
             mCamera.stopPreview();
@@ -84,16 +89,32 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // ignore: tried to stop a non-existent preview
         }
 
-        // set preview size and make any resize, rotate or
-        // reformatting changes here
-
-        // start preview with new settings
         try {
-            mCamera.setPreviewDisplay(mHolder);
+            mCamera.setPreviewDisplay(holder);
             mCamera.startPreview();
+            /*
+            mCamera.setPreviewCallback(new Camera.PreviewCallback() {
 
-        } catch (Exception e){
-            Log.d(TAG, "Error starting camera preview: " + e.getMessage());
+                public void onPreviewFrame(byte[] data, Camera camera) {
+                    FileOutputStream outStream = null;
+                    try {
+                        String tempFile = String.format("%s/preview-%d.bmp", localDir.toString(), System.currentTimeMillis());
+                        outStream = new FileOutputStream(tempFile);
+                        outStream.write(data);
+                        outStream.close();
+                        Log.i(TAG, "onPreviewFrame - wrote bytes: " + data.length);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                    }
+                    CameraPreview.this.invalidate();
+                }
+            });
+            */
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
