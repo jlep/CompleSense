@@ -26,7 +26,7 @@ import fi.hiit.complesense.core.SystemConfig;
 
  * Created by hxguo on 27.11.2014.
  */
-public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServer.WebSocketRequestCallback, CompletedCallback {
+public class AcceptorStreaming extends AbsSystemThread implements CompletedCallback {
     private static final String TAG = AcceptorStreaming.class.getSimpleName();
 
     private final int mStreamPort;
@@ -43,7 +43,8 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
         this.latch = latch;
         mStreamPort = clientCounter + Constants.STREAM_SERVER_PORT;
         httpServer.setErrorCallback(this);
-        httpServer.websocket("/streaming", Constants.WEB_PROTOCOL, this);
+        StreamingCallback streamingCallback = new StreamingCallback();
+        httpServer.websocket("/streaming", Constants.WEB_PROTOCOL, streamingCallback);
         mDataProcessingThread = new DataProcessingThread(serviceHandler, types);
     }
 
@@ -67,64 +68,7 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
         latch.countDown();
     }
 
-    @Override
-    public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
-        String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
-        Log.i(TAG, txt);
-        serviceHandler.updateStatusTxt(txt);
-        if(mClientSocket != null){
-            Log.e(TAG, "Each Streaming server should only handle one connection");
-            return;
-        }
 
-        mClientSocket = webSocket;
-        mClientSocket.setEndCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception e) {
-                Log.e(TAG,e.toString());
-                if(mClientSocket!=null)
-                    mClientSocket.close();
-            }
-        });
-
-        //Use this to clean up any references to your websocket
-        webSocket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                try {
-                    if (ex != null)
-                        Log.e(TAG, ex.toString());
-                } finally {
-                    if(mClientSocket!=null)
-                        mClientSocket.close();
-                    serviceHandler.removeFromPeerList(mClientSocket.toString());
-                }
-            }
-        });
-
-        mClientSocket.setStringCallback(new WebSocket.StringCallback() {
-            @Override
-            public void onStringAvailable(String s) {
-                Log.i(TAG, "Streaming server should not recv String: " + s);
-            }
-        });
-
-        mClientSocket.setDataCallback(new DataCallback(){
-            @Override
-            public void onDataAvailable(DataEmitter dataEmitter,
-                                        ByteBufferList byteBufferList)
-            {
-                ByteBuffer[] data = byteBufferList.getAllArray();
-                int payloadSize = 0;
-
-                for(ByteBuffer bb : data){
-                    payloadSize += bb.remaining();
-                    mDataProcessingThread.addDataToThreadBuffer(mClientSocket, bb.array(), payloadSize);
-                }
-                byteBufferList.recycle();
-            }
-        });
-    }
 
     @Override
     public void onCompleted(Exception e) {
@@ -137,5 +81,66 @@ public class AcceptorStreaming extends AbsSystemThread implements AsyncHttpServe
 
     public int getmStreamPort() {
         return mStreamPort;
+    }
+
+    class StreamingCallback implements AsyncHttpServer.WebSocketRequestCallback{
+
+        @Override
+        public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
+            String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
+            Log.i(TAG, txt);
+            serviceHandler.updateStatusTxt(txt);
+            if(mClientSocket != null){
+                Log.e(TAG, "Each Streaming server should only handle one connection");
+                return;
+            }
+
+            mClientSocket = webSocket;
+            mClientSocket.setEndCallback(new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception e) {
+                    Log.e(TAG,e.toString());
+                    if(mClientSocket!=null)
+                        mClientSocket.close();
+                }
+            });
+
+            //Use this to clean up any references to your websocket
+            webSocket.setClosedCallback(new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    try {
+                        if (ex != null)
+                            Log.e(TAG, ex.toString());
+                    } finally {
+                        if(mClientSocket!=null)
+                            mClientSocket.close();
+                        serviceHandler.removeFromPeerList(mClientSocket.toString());
+                    }
+                }
+            });
+
+            mClientSocket.setStringCallback(new WebSocket.StringCallback() {
+                @Override
+                public void onStringAvailable(String s) {
+                    Log.i(TAG, "Streaming server should not recv String: " + s);
+                }
+            });
+
+            mClientSocket.setDataCallback(new DataCallback() {
+                @Override
+                public void onDataAvailable(DataEmitter dataEmitter,
+                                            ByteBufferList byteBufferList) {
+                    ByteBuffer[] data = byteBufferList.getAllArray();
+                    int payloadSize = 0;
+
+                    for (ByteBuffer bb : data) {
+                        payloadSize += bb.remaining();
+                        mDataProcessingThread.addDataToThreadBuffer(mClientSocket, bb.array(), payloadSize);
+                    }
+                    byteBufferList.recycle();
+                }
+            });
+        }
     }
 }

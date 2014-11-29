@@ -81,7 +81,7 @@ public class LocationDataListener implements LocationListener
             buffer.putShort(isStringData);
             buffer.put(jsonGeoCoords.toString().getBytes());
             Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
-            mWebSocket.send(buffer.array());
+             mWebSocket.send(buffer.array());
 
         } catch (JSONException e) {
             Log.i(TAG, e.toString());

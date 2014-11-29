@@ -34,7 +34,6 @@ public class ClientServiceHandler extends ServiceHandler
     private static final String TAG = "ClientServiceHandler";
     private final InetAddress ownerAddr;
     private WebSocket mServerWebSocket;
-    private LocationManager locationManager = null;
     private LocationListener mLocationDataListener = null;
 
 
@@ -129,7 +128,7 @@ public class ClientServiceHandler extends ServiceHandler
                 */
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
-                    locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
                     mLocationDataListener = new LocationDataListener(this, webSocket, timeDiff, fileWritingThread);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
@@ -159,8 +158,11 @@ public class ClientServiceHandler extends ServiceHandler
 
     @Override
     public void stopServiceHandler() {
-        if(mLocationDataListener!=null)
+        if(mLocationDataListener != null){
+            LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
             locationManager.removeUpdates(mLocationDataListener);
+        }
+
         super.stopServiceHandler();
     }
 }
