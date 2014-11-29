@@ -133,7 +133,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     private void startStreamingServer(WebSocket webSocket, int clientCounter) throws IOException {
         Log.i(TAG, "startStreamingServer()");
         CountDownLatch latch = new CountDownLatch(1);
-        AcceptorStreaming streamingServer = new AcceptorStreaming(this, clientCounter, sysConfig.reqSensorTypes(), latch);
+        AcceptorStreaming streamingServer = new AcceptorStreaming(this, sysConfig.reqSensorTypes(), latch);
         streamingServer.start();
 
         try {

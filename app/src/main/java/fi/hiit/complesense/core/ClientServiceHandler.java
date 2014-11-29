@@ -159,6 +159,7 @@ public class ClientServiceHandler extends ServiceHandler
     @Override
     public void stopServiceHandler() {
         if(mLocationDataListener != null){
+            Log.i(TAG, "locationManager.removeUpdates");
             LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
             locationManager.removeUpdates(mLocationDataListener);
         }

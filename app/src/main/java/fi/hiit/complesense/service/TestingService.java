@@ -270,7 +270,7 @@ public class TestingService extends AbstractGroupService
 
         for(int i=0;i<clientsList.size();i++)
         {
-            Log.i(TAG, "Stopping client thread");
+            Log.i(TAG, "Stopping client thread " + i);
             clientsList.get(i).stopServiceHandler();
             try {
                 clientsList.get(i).join();

@@ -33,7 +33,7 @@ public class ConnectorStreaming extends AbsSystemThread
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
         super(TAG, serviceHandler);
-        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming");
+        uri = URI.create(Constants.WEB_PROTOCOL +"://"+ ownerInetAddr.getHostAddress()+":"+ streamPort + "/streaming_json");
         this.latch = latch;
 
         mStringCallback = new WebSocket.StringCallback(){

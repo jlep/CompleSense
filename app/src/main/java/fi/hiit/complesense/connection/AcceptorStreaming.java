@@ -12,6 +12,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -21,6 +22,7 @@ import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.SystemConfig;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
 
@@ -31,21 +33,28 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     private final int mStreamPort;
     private final CountDownLatch latch;
+    private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
     private WebSocket mClientSocket = null;
-    private final DataProcessingThread mDataProcessingThread;
 
-    public AcceptorStreaming(ServiceHandler serviceHandler, int clientCounter,
-                             Set<Integer> types, CountDownLatch latch) throws IOException
+    public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, CountDownLatch latch) throws IOException
     {
         super(TAG, serviceHandler);
 
+        Set<Integer> sensorTypes = new HashSet<Integer>(types);
         this.latch = latch;
-        mStreamPort = clientCounter + Constants.STREAM_SERVER_PORT;
+        mStreamPort = Constants.STREAM_SERVER_PORT;
         httpServer.setErrorCallback(this);
-        StreamingCallback streamingCallback = new StreamingCallback();
-        httpServer.websocket("/streaming", Constants.WEB_PROTOCOL, streamingCallback);
-        mDataProcessingThread = new DataProcessingThread(serviceHandler, types);
+
+        if(sensorTypes.remove(SensorUtil.SENSOR_MIC)){
+
+        }
+
+        if(sensorTypes.size()>0){
+            mJsonProcessThread = new DataProcessingThread(serviceHandler, types);
+            StreamingCallback jsonStreamingCallback = new StreamingCallback(mJsonProcessThread);
+            httpServer.websocket("/streaming_json", Constants.WEB_PROTOCOL, jsonStreamingCallback);
+        }
     }
 
     @Override
@@ -64,7 +73,8 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         serviceHandler.workerThreads.put(TAG, this);
 
         httpServer.listen(mStreamPort);
-        mDataProcessingThread.start();
+        if(mJsonProcessThread != null)
+            mJsonProcessThread.start();
         latch.countDown();
     }
 
@@ -85,23 +95,26 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     class StreamingCallback implements AsyncHttpServer.WebSocketRequestCallback{
 
+        private final DataProcessingThread mDataProcessThread;
+        private WebSocket mWebSocket;
+
+        public StreamingCallback(DataProcessingThread dataProcessThread) {
+            this.mDataProcessThread = dataProcessThread;
+        }
+
         @Override
         public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
             String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
             Log.i(TAG, txt);
             serviceHandler.updateStatusTxt(txt);
-            if(mClientSocket != null){
-                Log.e(TAG, "Each Streaming server should only handle one connection");
-                return;
-            }
 
-            mClientSocket = webSocket;
-            mClientSocket.setEndCallback(new CompletedCallback() {
+            mWebSocket = webSocket;
+            mWebSocket.setEndCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception e) {
                     Log.e(TAG,e.toString());
-                    if(mClientSocket!=null)
-                        mClientSocket.close();
+                    if(mWebSocket!=null)
+                        mWebSocket.close();
                 }
             });
 
@@ -113,21 +126,21 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                         if (ex != null)
                             Log.e(TAG, ex.toString());
                     } finally {
-                        if(mClientSocket!=null)
-                            mClientSocket.close();
-                        serviceHandler.removeFromPeerList(mClientSocket.toString());
+                        if(mWebSocket!=null)
+                            mWebSocket.close();
+                        serviceHandler.removeFromPeerList(mWebSocket.toString());
                     }
                 }
             });
 
-            mClientSocket.setStringCallback(new WebSocket.StringCallback() {
+            mWebSocket.setStringCallback(new WebSocket.StringCallback() {
                 @Override
                 public void onStringAvailable(String s) {
                     Log.i(TAG, "Streaming server should not recv String: " + s);
                 }
             });
 
-            mClientSocket.setDataCallback(new DataCallback() {
+            mWebSocket.setDataCallback(new DataCallback() {
                 @Override
                 public void onDataAvailable(DataEmitter dataEmitter,
                                             ByteBufferList byteBufferList) {
@@ -136,7 +149,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
                     for (ByteBuffer bb : data) {
                         payloadSize += bb.remaining();
-                        mDataProcessingThread.addDataToThreadBuffer(mClientSocket, bb.array(), payloadSize);
+                        mDataProcessThread.addDataToThreadBuffer(mWebSocket, bb.array(), payloadSize);
                     }
                     byteBufferList.recycle();
                 }
