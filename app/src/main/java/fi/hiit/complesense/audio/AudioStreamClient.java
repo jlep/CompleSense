@@ -3,7 +3,6 @@ package fi.hiit.complesense.audio;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -19,10 +18,8 @@ import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
 /**
@@ -32,14 +29,14 @@ public class AudioStreamClient extends AbsSystemThread
 {
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
-    private final SyncWebSocketWriter mSyncWebSocket;
+    private final WebSocket mSyncWebSocket;
     private final short isStringData = 0;
     private final boolean readLocal;
     private final PipedOutputStream mPipedOut;
     private final PipedInputStream mPipedIn;
     private final long delay;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, SyncWebSocketWriter syncWS, long delay, boolean readFromLocal) throws IOException {
+    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket syncWS, long delay, boolean readFromLocal) throws IOException {
         super(TAG, serviceHandler);
         this.mSyncWebSocket = syncWS;
         this.readLocal = readFromLocal;

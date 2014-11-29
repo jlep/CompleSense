@@ -14,19 +14,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
 import java.util.HashMap;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
-import fi.hiit.complesense.connection.SyncWebSocketWriter;
 import fi.hiit.complesense.json.JsonSSI;
 
 /**
@@ -39,7 +32,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
 
     private final SensorManager mSensorManager;
     private final HashMap<Integer, Integer> sampleCounters;
-    private final SyncWebSocketWriter mWebSocket;
+    private final WebSocket mWebSocket;
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWritingThread;
     private final long delay;
@@ -90,7 +83,7 @@ public class SensorDataCollectionThread extends AbsSystemThread
                                       Context context,
                                       Set<Integer> requiredSensors,
                                       long delay,
-                                      SyncWebSocketWriter webSocket,
+                                      WebSocket webSocket,
                                       TextFileWritingThread out) throws JSONException, IOException {
         super(TAG, serviceHandler);
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);

@@ -1,12 +1,10 @@
 package fi.hiit.complesense.core;
 
 import android.content.Context;
-import android.content.Intent;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Message;
 import android.os.Messenger;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -15,25 +13,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.channels.Pipe;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
-import fi.hiit.complesense.connection.SyncWebSocketWriter;
-import fi.hiit.complesense.img.ImageWebSocketClient;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -129,26 +116,27 @@ public class ClientServiceHandler extends ServiceHandler
             latch.await();
 
             WebSocket webSocket = connectorStreaming.getWebSocket();
-            SyncWebSocketWriter syncWS = new SyncWebSocketWriter(webSocket);
             if(webSocket!=null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, syncWS, timeDiff, false);
+                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, webSocket, timeDiff, false);
                     audioStreamClient.start();
                 }
 
+                /*
                 if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){ //start camera collecting activity
-                    startImageCapture(syncWS,timeDiff);
+                    startImageCapture(webSocket,timeDiff);
                 }
+                */
 
                 if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
                     locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, syncWS, timeDiff, fileWritingThread);
+                    mLocationDataListener = new LocationDataListener(this, webSocket, timeDiff, fileWritingThread);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
                 }
 
                 if(requiredSensors.size()>0){
                     SensorDataCollectionThread sensorDataCollectionThread = new SensorDataCollectionThread(
-                            this, context, requiredSensors, timeDiff, syncWS, fileWritingThread);
+                            this, context, requiredSensors, timeDiff, webSocket, fileWritingThread);
                     sensorDataCollectionThread.start();
                 }
             }

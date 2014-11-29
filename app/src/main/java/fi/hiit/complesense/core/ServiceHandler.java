@@ -13,30 +13,16 @@ import com.koushikdutta.async.http.WebSocket;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
-import fi.hiit.complesense.connection.SyncWebSocketWriter;
-import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -193,7 +179,7 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    protected void startImageCapture(SyncWebSocketWriter webSocket, long delay)
+    protected void startImageCapture(WebSocket webSocket, long delay)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
