@@ -13,7 +13,6 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -21,7 +20,6 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
-import fi.hiit.complesense.core.SystemConfig;
 import fi.hiit.complesense.util.SensorUtil;
 
 /**
@@ -38,7 +36,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
     private AsyncHttpServer httpServer = new AsyncHttpServer();
     private WebSocket mClientSocket = null;
 
-    public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, int serverIndex, CountDownLatch latch) throws IOException
+    public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, int serverIndex, WebSocket webSocket, CountDownLatch latch) throws IOException
     {
         super(TAG, serviceHandler);
 
@@ -52,13 +50,13 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             wav.add(SensorUtil.SENSOR_MIC);
 
             mWavProcessThread = new DataProcessingThread(serviceHandler, wav);
-            StreamingCallback wavStreamingCallback = new StreamingCallback(mWavProcessThread);
+            StreamingCallback wavStreamingCallback = new StreamingCallback(mWavProcessThread, webSocket);
             httpServer.websocket("/streaming_wav", Constants.WEB_PROTOCOL, wavStreamingCallback);
         }
 
         if(sensorTypes.size()>0){
-            mJsonProcessThread = new DataProcessingThread(serviceHandler, types);
-            StreamingCallback jsonStreamingCallback = new StreamingCallback(mJsonProcessThread);
+            mJsonProcessThread = new DataProcessingThread(serviceHandler, sensorTypes);
+            StreamingCallback jsonStreamingCallback = new StreamingCallback(mJsonProcessThread, webSocket);
             httpServer.websocket("/streaming_json", Constants.WEB_PROTOCOL, jsonStreamingCallback);
         }
     }
@@ -105,9 +103,11 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
         private final DataProcessingThread mDataProcessThread;
         private WebSocket mWebSocket;
+        private final WebSocket cmdWebSocket;
 
-        public StreamingCallback(DataProcessingThread dataProcessThread) {
+        public StreamingCallback(DataProcessingThread dataProcessThread, WebSocket webSocket) {
             this.mDataProcessThread = dataProcessThread;
+            this.cmdWebSocket = webSocket;
         }
 
         @Override
@@ -157,7 +157,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
                     for (ByteBuffer bb : data) {
                         payloadSize += bb.remaining();
-                        mDataProcessThread.addDataToThreadBuffer(mWebSocket, bb.array(), payloadSize);
+                        mDataProcessThread.addDataToThreadBuffer(cmdWebSocket, bb.array(), payloadSize);
                     }
                     byteBufferList.recycle();
                 }

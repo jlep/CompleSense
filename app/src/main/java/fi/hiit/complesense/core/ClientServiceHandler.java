@@ -124,7 +124,7 @@ public class ClientServiceHandler extends ServiceHandler
             latch.await();
 
             WebSocket jsonWebSocket = connectorStreaming.getJsonWebSocket();
-            WebSocket wavWebSocket = connectorStreaming.getJsonWebSocket();
+            WebSocket wavWebSocket = connectorStreaming.getWavWebSocket();
 
             if(wavWebSocket != null){
                 if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
