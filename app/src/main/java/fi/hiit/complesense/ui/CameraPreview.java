@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import fi.hiit.complesense.Constants;
 
@@ -23,44 +24,18 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 {
     private static final String TAG = CameraPreview.class.getSimpleName();
 
-    private File localDir;
     private SurfaceHolder mHolder;
     public Camera mCamera;
+    private List<Camera.Size> mSupportedPreviewSizes;
 
     public CameraPreview(Context context) {
         super(context);
+        // Install a SurfaceHolder.Callback so we get notified when the
+        // underlying surface is created and destroyed.
         mHolder = getHolder();
         mHolder.addCallback(this);
+        // deprecated setting, but required on Android versions prior to 3.0
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-        mCamera = openBackFacingCamera();
-        if(mCamera!=null){
-            mCamera.setDisplayOrientation(90);
-            localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-            return;
-        }
-
-    }
-
-
-    private Camera openBackFacingCamera() {
-        int cameraCount = 0;
-        Camera cam = null;
-        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-        cameraCount = Camera.getNumberOfCameras();
-        for (int camIdx = 0; camIdx < cameraCount; camIdx++)
-        {
-            Camera.getCameraInfo(camIdx, cameraInfo);
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                try {
-                    cam = Camera.open(camIdx);
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Camera failed to open: " + e.getLocalizedMessage());
-                }
-            }
-        }
-
-        return cam;
     }
 
     @Override
@@ -76,12 +51,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-        // The Surface has been created, acquire the camera and tell it where
-        // to draw.
+        // If your preview can change or rotate, take care of those events here.
+        // Make sure to stop the preview before resizing or reformatting it.
+
         if (mHolder.getSurface() == null){
             // preview surface does not exist
             return;
         }
+
         // stop preview before making changes
         try {
             mCamera.stopPreview();
@@ -89,39 +66,24 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // ignore: tried to stop a non-existent preview
         }
 
-        try {
-            mCamera.setPreviewDisplay(holder);
-            mCamera.startPreview();
-            /*
-            mCamera.setPreviewCallback(new Camera.PreviewCallback() {
+        // set preview size and make any resize, rotate or
+        // reformatting changes here
 
-                public void onPreviewFrame(byte[] data, Camera camera) {
-                    FileOutputStream outStream = null;
-                    try {
-                        String tempFile = String.format("%s/preview-%d.bmp", localDir.toString(), System.currentTimeMillis());
-                        outStream = new FileOutputStream(tempFile);
-                        outStream.write(data);
-                        outStream.close();
-                        Log.i(TAG, "onPreviewFrame - wrote bytes: " + data.length);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
-                    }
-                    CameraPreview.this.invalidate();
-                }
-            });
-            */
-        } catch (IOException e) {
-            e.printStackTrace();
+        // start preview with new settings
+        try {
+            mCamera.setPreviewDisplay(mHolder);
+            mCamera.startPreview();
+
+        } catch (Exception e){
+            Log.d(TAG, "Error starting camera preview: " + e.getMessage());
         }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-        mCamera.stopPreview();
-        mCamera = null;
+        Log.i(TAG, "surfaceDestroyed()");
+        // Surface will be destroyed when we return, so stop the preview.
+        stopPreviewAndFreeCamera();
     }
 
     @Override
@@ -130,5 +92,47 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Paint p= new Paint(Color.RED);
         Log.d(TAG,"draw");
         canvas.drawText("PREVIEW", canvas.getWidth()/2, canvas.getHeight()/2, p );
+    }
+
+    public void setCamera(Camera camera) {
+        if (mCamera == camera) { return; }
+
+        stopPreviewAndFreeCamera();
+
+        mCamera = camera;
+
+        if (mCamera != null) {
+            List<Camera.Size> localSizes = mCamera.getParameters().getSupportedPreviewSizes();
+            mSupportedPreviewSizes = localSizes;
+            requestLayout();
+
+            try {
+                mCamera.setPreviewDisplay(mHolder);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // Important: Call startPreview() to start updating the preview
+            // surface. Preview must be started before you can take a picture.
+            mCamera.startPreview();
+        }
+    }
+
+    /**
+     * When this function returns, mCamera will be null.
+     */
+    private void stopPreviewAndFreeCamera() {
+
+        if (mCamera != null) {
+            // Call stopPreview() to stop updating the preview surface.
+            mCamera.stopPreview();
+
+            // Important: Call release() to release the camera for use by other
+            // applications. Applications should release the camera immediately
+            // during onPause() and re-open() it during onResume()).
+            mCamera.release();
+
+            mCamera = null;
+        }
     }
 }

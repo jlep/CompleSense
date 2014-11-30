@@ -24,6 +24,7 @@ import android.widget.TextView;
 import java.io.File;
 import java.io.Serializable;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 
 import fi.hiit.complesense.Constants;
@@ -179,10 +180,6 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     //imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
                     //Log.i(TAG, "imageUri: " + imageUri.toString() );
                     Intent intent = new Intent(getApplicationContext(), TakePhotoActivity.class);
-                    File imgDir = new File(Constants.ROOT_DIR, webSocketStr);
-                    imgDir.mkdirs();
-
-                    intent.putExtra(Constants.KEY_STORAGE_DIR, imgDir.toString()); // set the image file name
                     startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
 
@@ -200,20 +197,27 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         {
             if (resultCode == RESULT_OK) {
                 // Image captured and saved to imageUri specified in the Intent
-                String[] imageNames = intent.getStringArrayExtra(TakePhotoActivity.IMAGE_NAMES);
-                String txt = String.format("%d images saved to %s",imageNames.length,
-                        Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
-                if(serviceMessenger != null){
-                    Message msg = Message.obtain(null,
-                            Constants.SERVICE_MSG_TAKEN_IMG);
-                    msg.obj = imageNames;
-                    try {
-                        serviceMessenger.send(msg);
-                    } catch (RemoteException e) {
+                ArrayList<String> imageNames = intent.getStringArrayListExtra(TakePhotoActivity.IMAGE_NAMES);
+                String txt;
+                if(imageNames!=null){
+                    txt = String.format("%d images saved to %s",imageNames.size(),
+                            Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
+                    /*
+                    if(serviceMessenger != null){
+                        Message msg = Message.obtain(null,
+                                Constants.SERVICE_MSG_TAKEN_IMG);
+                        msg.obj = imageNames;
+                        try {
+                            serviceMessenger.send(msg);
+                        } catch (RemoteException e) {
+                        }
                     }
+                    */
+                }else{
+                    txt = "no images are taken";
                 }
-
                 appendStatus(txt);
+
 
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture

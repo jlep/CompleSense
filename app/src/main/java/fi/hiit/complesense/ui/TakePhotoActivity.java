@@ -42,7 +42,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     private Camera mCamera;
     private int mCameraId = 0;
     private Button mPhotoButton, mFinishButton;
-    private CameraPreview preview;
+    private CameraPreview mPreview;
     private int imgCount;
     private File localDir;
     private ArrayList<String> imageNames = new ArrayList<String>();
@@ -57,14 +57,14 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_preview);
-        preview = new CameraPreview(this);
-        ((FrameLayout) findViewById(R.id.camera_preview)).addView(preview);
+
+
 
         mPhotoButton = (Button)findViewById(R.id.front_take_photos);
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                preview.mCamera.takePicture(shutterCallback, rawCallback,
+                mPreview.mCamera.takePicture(shutterCallback, rawCallback,
                         jpegCallback);
                 mPhotoButton.setEnabled(false);
             }
@@ -81,6 +81,17 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
             }
         });
 
+        mPreview = new CameraPreview(this);
+        ((FrameLayout) findViewById(R.id.camera_preview)).addView(mPreview);
+
+        if(safeCameraOpen(Camera.CameraInfo.CAMERA_FACING_BACK)){
+            //camera = openBackFacingCamera();
+            mCamera.setDisplayOrientation(90);
+            mPreview.setCamera(mCamera);
+        }else{
+            finish();
+        }
+
         localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         txtSensorValsFile = new File(localDir, "orientations.txt");
 
@@ -88,56 +99,41 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         mRotation = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
     }
 
-    /** Check if this device has a camera */
-    private boolean checkCameraHardware() {
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            // this device has a camera
-            mCameraId = findBackFacingCamera();
-            if (mCameraId < 0) {
-                Toast.makeText(this, "No front facing camera found.",
-                        Toast.LENGTH_LONG).show();
-            } else {
-                mCamera = Camera.open(mCameraId);
-            }
-            return true;
-        } else {
-            // no camera on this device
-            Toast.makeText(this, "No camera on this device", Toast.LENGTH_LONG).show();
-            return false;
+    private boolean safeCameraOpen(int id) {
+        boolean qOpened = false;
+
+        try {
+            releaseCameraAndPreview();
+            mCamera = Camera.open(id);
+            qOpened = (mCamera != null);
+        } catch (Exception e) {
+            Log.e(getString(R.string.app_name), "failed to open Camera");
+            e.printStackTrace();
         }
+
+        return qOpened;
     }
 
-    private int findBackFacingCamera() {
-        int cameraId = -1;
-        // Search for the front facing camera
-        int numberOfCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numberOfCameras; i++) {
-            CameraInfo info = new CameraInfo();
-            Camera.getCameraInfo(i, info);
-            if (info.facing == CameraInfo.CAMERA_FACING_BACK) {
-                Log.d(TAG, "Camera found");
-                cameraId = i;
-                break;
-            }
-        }
-        return cameraId;
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        //mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_NORMAL);
-    }
-
-    @Override
-    protected void onPause() {
-        //mSensorManager.unregisterListener(this);
+    private void releaseCameraAndPreview() {
+        mPreview.setCamera(null);
         if (mCamera != null) {
             mCamera.release();
             mCamera = null;
         }
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+        mSensorManager.unregisterListener(this);
         super.onPause();
     }
+
+
 
     Camera.ShutterCallback shutterCallback = new Camera.ShutterCallback() {
         public void onShutter() {
@@ -154,41 +150,16 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
 
     Camera.PictureCallback jpegCallback = new Camera.PictureCallback()
     {
-        public void onPictureTaken(byte[] data, Camera camera) {
-            FileOutputStream imgOutStream = null, txtOutputStream = null;
+        public void onPictureTaken(byte[] data, Camera camera)
+        {
             String fname = String.format("%d.jpg", System.currentTimeMillis());
-            File imgFile = new File(localDir, fname);
-
             imageNames.add(fname);
             imgCount++;
             threadPool.submit(new FileWritingCallable(data));
-            /*
             try {
-                // write to local sandbox file system
-                imageNames.add(fname);
-                imgCount++;
-                threadPool.submit(new FileWritingCallable(data));
-
-                //txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
-                //txtOutputStream.write(sensorVals.toString().getBytes());
-                //txtOutputStream.close();
-
-
-
-                Log.i(TAG, "onPictureTaken - jpeg, wrote bytes: " + data.length);
-                Toast.makeText(getApplicationContext(), "take photo No: " + imgCount, Toast.LENGTH_SHORT).show();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-            }
-            */
-
-            try {
-                //camera.startPreview();
+                camera.startPreview();
                 if (imgCount < Constants.NUM_IMG_TAKE) {
-                    preview.mCamera.takePicture(shutterCallback, rawCallback,
+                    mPreview.mCamera.takePicture(shutterCallback, rawCallback,
                             jpegCallback);
                 } else {
                     imgCount = 0;
@@ -229,6 +200,10 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
 
         @Override
         public String call() throws Exception {
+            //txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
+            //txtOutputStream.write(sensorVals.toString().getBytes());
+            //txtOutputStream.close();
+
             imgOutStream = new FileOutputStream(imgFile);
             imgOutStream.write(data);
             imgOutStream.close();
