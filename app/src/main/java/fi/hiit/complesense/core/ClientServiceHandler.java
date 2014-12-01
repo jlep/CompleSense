@@ -152,7 +152,7 @@ public class ClientServiceHandler extends ServiceHandler
                     for(int type : requiredSensors)
                     {
                         sensorManager.registerListener(mSensorDataListener,
-                                sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_NORMAL, mHandler);
+                                sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_GAME, mHandler);
                     }
                 }
             }

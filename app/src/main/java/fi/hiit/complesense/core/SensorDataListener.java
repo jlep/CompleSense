@@ -46,7 +46,7 @@ public class SensorDataListener implements SensorEventListener
         try
         {
             //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-            jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + delay);
+            jsonSensorData.put(JsonSSI.TIMESTAMP, sensorEvent.timestamp + delay);
             jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
             JSONArray jsonArray = new JSONArray();
             for(float value:sensorEvent.values)
