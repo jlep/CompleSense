@@ -28,14 +28,14 @@ public class SensorDataListener implements SensorEventListener
     private final WebSocket mWebSocket;
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWriter;
-    private final long delay;
+    private final long mTimeDiff;
 
     private JSONObject jsonSensorData = new JSONObject();
     private Handler mHandler;
 
     public SensorDataListener(WebSocket webSocket, long timeDiff, TextFileWritingThread fileWriter){
         this.mWebSocket = webSocket;
-        this.delay = timeDiff;
+        this.mTimeDiff = timeDiff;
         this.mFileWriter = fileWriter;
     }
 
@@ -46,7 +46,7 @@ public class SensorDataListener implements SensorEventListener
         try
         {
             //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
-            jsonSensorData.put(JsonSSI.TIMESTAMP, sensorEvent.timestamp + delay);
+            jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + mTimeDiff);
             jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
             JSONArray jsonArray = new JSONArray();
             for(float value:sensorEvent.values)
