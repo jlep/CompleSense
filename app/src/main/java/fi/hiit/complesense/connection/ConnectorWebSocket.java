@@ -71,21 +71,17 @@ public class ConnectorWebSocket extends AbsSystemThread
                 mWebSocket = webSocket;
                 mWebSocket.setStringCallback(mStringCallback);
                 mWebSocket.setDataCallback(mDataCallback);
-                /*
                 mWebSocket.setClosedCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception e) {
-                        Log.e(TAG,e.toString());
-                        if(mWebSocket!=null)
-                            mWebSocket.close();
-                    }
-                });
-                */
-                mWebSocket.setEndCallback(new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception e) {
-                        Log.e(TAG,e.toString());
-                        if(mWebSocket!=null)
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("Connection with " + uri.toString() + " ends ");
+                        if (e != null){
+                            Log.e(TAG, e.toString());
+                            sb.append(e.toString());
+                        }
+                        serviceHandler.updateStatusTxt(sb.toString());
+                        if (mWebSocket != null)
                             mWebSocket.close();
                     }
                 });

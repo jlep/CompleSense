@@ -81,12 +81,16 @@ public class ConnectorStreaming extends AbsSystemThread
 
                         mJsonWebSocket.setStringCallback(mStringCallback);
                         mJsonWebSocket.setDataCallback(mDataCallback);
-                        mJsonWebSocket.setEndCallback(new CompletedCallback() {
+                        mJsonWebSocket.setClosedCallback(new CompletedCallback() {
                             @Override
                             public void onCompleted(Exception e) {
-                                Log.e(TAG, e.toString());
-                                if (mJsonWebSocket != null)
-                                    mJsonWebSocket.close();
+                                StringBuilder sb = new StringBuilder();
+                                sb.append("Connection with " + jsonStreamUri.toString() + " ends ");
+                                if (e != null){
+                                    Log.e(TAG, e.toString());
+                                    sb.append(e.toString());
+                                }
+                                serviceHandler.updateStatusTxt(sb.toString());
                             }
                         });
                     }
@@ -108,12 +112,16 @@ public class ConnectorStreaming extends AbsSystemThread
 
                         mWavWebSocket.setStringCallback(mStringCallback);
                         mWavWebSocket.setDataCallback(mDataCallback);
-                        mWavWebSocket.setEndCallback(new CompletedCallback() {
+                        mWavWebSocket.setClosedCallback(new CompletedCallback() {
                             @Override
                             public void onCompleted(Exception e) {
-                                Log.e(TAG, e.toString());
-                                if (mWavWebSocket != null)
-                                    mWavWebSocket.close();
+                                StringBuilder sb = new StringBuilder();
+                                sb.append("Connection with " + mWavWebSocket.toString() + " ends ");
+                                if (e != null){
+                                    Log.e(TAG, e.toString());
+                                    sb.append(e.toString());
+                                }
+                                serviceHandler.updateStatusTxt(sb.toString());
                             }
                         });
                     }

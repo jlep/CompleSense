@@ -145,15 +145,6 @@ public class AcceptorWebSocket extends AbsSystemThread
                 }
             }
         });
-
-        webSocket.setEndCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception e) {
-                Log.e(TAG,e.toString());
-                if(webSocket!=null)
-                    webSocket.close();
-            }
-        });
     }
 
     private void notifyServiceHandlerNewConnection(WebSocket webSocket) throws JSONException {

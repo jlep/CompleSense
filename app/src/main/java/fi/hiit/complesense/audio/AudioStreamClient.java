@@ -84,8 +84,16 @@ public class AudioStreamClient extends AbsSystemThread
                                 AudioFormat.ENCODING_PCM_16BIT) * 10);
 
                 audio_recorder.startRecording();
+                int packetsCounter = 0;
                 while(keepRunning){
                     bytes_read = audio_recorder.read(buf, 0, Constants.BUF_SIZE);
+
+                    packetsCounter++;
+                    if(packetsCounter%100 == 3){
+                        String str = String.format("Get %d Wav packets", packetsCounter);
+                        serviceHandler.updateStatusTxt(str);
+                    }
+
                     mPipedOut.write(buf, 0, bytes_read);
 
                     bb.clear();

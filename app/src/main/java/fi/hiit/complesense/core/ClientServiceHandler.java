@@ -138,7 +138,7 @@ public class ClientServiceHandler extends ServiceHandler
             }
 
             if(requiredSensors.size()>0){
-                mSensorDataListener = new SensorDataListener(connector, timeDiff, fileWritingThread);
+                mSensorDataListener = new SensorDataListener(this, connector, timeDiff, fileWritingThread);
                 SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
                 Log.i(TAG, "registerSensors():" + requiredSensors);
 

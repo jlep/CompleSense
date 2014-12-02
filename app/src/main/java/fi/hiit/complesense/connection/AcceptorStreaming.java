@@ -117,15 +117,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             serviceHandler.updateStatusTxt(txt);
 
             mWebSocket = webSocket;
-            mWebSocket.setEndCallback(new CompletedCallback() {
-                @Override
-                public void onCompleted(Exception e) {
-                    Log.e(TAG,e.toString());
-                    if(mWebSocket!=null)
-                        mWebSocket.close();
-                }
-            });
-
             //Use this to clean up any references to your websocket
             webSocket.setClosedCallback(new CompletedCallback() {
                 @Override

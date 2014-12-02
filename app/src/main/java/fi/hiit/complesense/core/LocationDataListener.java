@@ -35,11 +35,12 @@ public class LocationDataListener implements LocationListener
     private final ConnectorStreaming mConnector;
     private final long delay;
     private final TextFileWritingThread fileWritingThread;
+    private final ServiceHandler serviceHandler;
     private Location prevLocation;
     private JSONObject jsonGeoCoords = new JSONObject();
 
     //private final AsyncStreamClient asyncStreamClient;
-    private final short isStringData = 1;
+    private int packetsCounter = 0;
 
     public LocationDataListener(ServiceHandler serviceHandler,
                                 ConnectorStreaming connectorStreaming, long delay, TextFileWritingThread fileWritingThread) throws JSONException
@@ -48,6 +49,7 @@ public class LocationDataListener implements LocationListener
         this.prevLocation = null;
         this.delay = delay;
         this.fileWritingThread = fileWritingThread;
+        this.serviceHandler = serviceHandler;
     }
 
 
@@ -55,6 +57,12 @@ public class LocationDataListener implements LocationListener
     @Override
     public void onLocationChanged(Location location)
     {
+        packetsCounter++;
+        if(packetsCounter%100 == 3){
+            String str = String.format("Get %d GPS packets", packetsCounter);
+            serviceHandler.updateStatusTxt(str);
+        }
+
         try
         {
             float distance;

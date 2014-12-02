@@ -30,20 +30,27 @@ public class SensorDataListener implements SensorEventListener
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWriter;
     private final long mTimeDiff;
+    private final ServiceHandler serviceHandler;
 
     private JSONObject jsonSensorData = new JSONObject();
+    private int packetsCounter = 0;
 
-    public SensorDataListener(ConnectorStreaming connectorStreaming, long timeDiff, TextFileWritingThread fileWriter){
+    public SensorDataListener(ServiceHandler serviceHandler, ConnectorStreaming connectorStreaming, long timeDiff, TextFileWritingThread fileWriter){
         this.mConnector = connectorStreaming;
         this.mTimeDiff = timeDiff;
         this.mFileWriter = fileWriter;
-
+        this.serviceHandler = serviceHandler;
     }
 
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-        //Log.i(TAG, "onSensorChanged() @thread: " + Thread.currentThread().getId());
+        packetsCounter++;
+        if(packetsCounter%1000 == 3){
+            String str = String.format("Get %d JSON packets", packetsCounter);
+            serviceHandler.updateStatusTxt(str);
+        }
+
         try
         {
             //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
