@@ -46,8 +46,7 @@ public abstract class AbstractGroupService extends Service
 {
     private static final String TAG = "AbstractGroupService";
 
-
-    protected NotificationManager mNM;
+    protected static final int ID_NOTIFICATION = 79174;
     protected boolean isInitialized = false;
     protected WifiP2pManager manager;
     protected WifiP2pManager.Channel channel;
@@ -108,10 +107,6 @@ public abstract class AbstractGroupService extends Service
         groupOwner = null;
         context = getApplicationContext();
 
-        mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-        // Display a notification about us starting.
-        showNotification();
-
         discoveredDevices = new TreeMap<String, CompleSenseDevice>();
 
         // add necessary intent values to be matched.
@@ -146,8 +141,7 @@ public abstract class AbstractGroupService extends Service
         Log.i(TAG,"onDestroy()");
         wakeLock.release();
         stop();
-        // Cancel the persistent notification.
-        mNM.cancel(R.string.remote_service_started);
+        stopForeground(true);
 
         // Tell the user we stopped.
         Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
@@ -169,8 +163,7 @@ public abstract class AbstractGroupService extends Service
         isInitialized = false;
     }
 
-    public WifiP2pDevice getDevice()
-    {
+    public WifiP2pDevice getDevice(){
         return mDevice;
     }
 
@@ -212,7 +205,7 @@ public abstract class AbstractGroupService extends Service
 
         // Send the notification.
         // We use a string id because it is a unique number.  We use it later to cancel.
-        mNM.notify(R.string.remote_service_started, notification);
+        //mNM.notify(R.string.remote_service_started, notification);
 
     }
 

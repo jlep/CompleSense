@@ -1,5 +1,8 @@
 package fi.hiit.complesense.service;
 
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
@@ -25,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.R;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
@@ -33,6 +37,8 @@ import fi.hiit.complesense.core.GroupOwnerServiceHandler;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.ui.ClientOwnerActivity;
+import fi.hiit.complesense.ui.DemoActivity;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -199,6 +205,30 @@ public class ClientOwnerService extends AbstractGroupService
 
         mWifiConnManager = new WifiConnectionManager(ClientOwnerService.this,
                 manager, channel);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "onStartCommand(): id " + startId + ": " + intent);
+
+        CharSequence text = getText(R.string.remote_service_started);
+
+        Notification notification = new Notification(R.drawable.ic_launcher, text,
+                System.currentTimeMillis());
+
+        Intent i = new Intent(this, ClientOwnerActivity.class);
+
+        // The PendingIntent to launch our activity if the user selects this notification
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,i, 0);
+
+        // Set the info for the views that show in the notification panel.
+        notification.setLatestEventInfo(this, getText(R.string.remote_service_client),
+                text, contentIntent);
+        notification.flags|=Notification.FLAG_NO_CLEAR;
+        startForeground(ID_NOTIFICATION, notification);
+        // We want this service to continue running until it is explicitly
+        // stopped, so return sticky.
+        return START_STICKY;
     }
 
     @Override
