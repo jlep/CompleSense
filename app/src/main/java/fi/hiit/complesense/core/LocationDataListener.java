@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -31,7 +32,7 @@ public class LocationDataListener implements LocationListener
     private static final int DISTANCE = 5;
 
 
-    private final WebSocket mWebSocket;
+    private final ConnectorStreaming mConnector;
     private final long delay;
     private final TextFileWritingThread fileWritingThread;
     private Location prevLocation;
@@ -41,9 +42,9 @@ public class LocationDataListener implements LocationListener
     private final short isStringData = 1;
 
     public LocationDataListener(ServiceHandler serviceHandler,
-                                WebSocket webSocket, long delay, TextFileWritingThread fileWritingThread) throws JSONException
+                                ConnectorStreaming connectorStreaming, long delay, TextFileWritingThread fileWritingThread) throws JSONException
     {
-        this.mWebSocket = webSocket;
+        this.mConnector = connectorStreaming;
         this.prevLocation = null;
         this.delay = delay;
         this.fileWritingThread = fileWritingThread;
@@ -75,14 +76,9 @@ public class LocationDataListener implements LocationListener
             jsonArray.put(DISTANCE, distance);
 
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
+
             fileWritingThread.write(jsonGeoCoords.toString());
-
-            ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonGeoCoords.toString().getBytes().length);
-            buffer.putShort(isStringData);
-            buffer.put(jsonGeoCoords.toString().getBytes());
-            //Log.i(TAG, "Coords: " + jsonGeoCoords.toString());
-             mWebSocket.send(buffer.array());
-
+            mConnector.sendJsonData(jsonGeoCoords);
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }

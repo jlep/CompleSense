@@ -75,8 +75,7 @@ public class TestingService extends AbstractGroupService
                             (String) msg.obj);
                     break;
                 case Constants.SERVICE_MSG_STEREO_IMG_REQ:
-                    SystemUtil.sendTakeImageReq(uiMessenger,
-                            (String) msg.obj);
+                    SystemUtil.sendTakeImageReq(uiMessenger);
                     break;
                 case Constants.SERVICE_MSG_TAKEN_IMG:
                     if(msg.obj==null)

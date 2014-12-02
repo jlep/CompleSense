@@ -18,6 +18,7 @@ import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.util.SensorUtil;
@@ -29,7 +30,7 @@ public class AudioStreamClient extends AbsSystemThread
 {
     public static final String TAG = AudioStreamClient.class.getSimpleName();
 
-    private final WebSocket mWebSocket;
+    private final ConnectorStreaming mConnector;
     private final short isStringData = 0;
     private final boolean readLocal;
     private final PipedOutputStream mPipedOut;
@@ -37,9 +38,10 @@ public class AudioStreamClient extends AbsSystemThread
     private final long delay;
     private AudioFileWritingThread mAudioFileWriter;
 
-    public AudioStreamClient(ServiceHandler serviceHandler, WebSocket webSocket, long delay, boolean readFromLocal) throws IOException {
+    public AudioStreamClient(ServiceHandler serviceHandler,
+                             ConnectorStreaming connectorStreaming, long delay, boolean readFromLocal) throws IOException {
         super(TAG, serviceHandler);
-        this.mWebSocket = webSocket;
+        this.mConnector = connectorStreaming;
         this.readLocal = readFromLocal;
         this.mPipedOut = new PipedOutputStream();
         this.mPipedIn = new PipedInputStream(mPipedOut);
@@ -92,7 +94,7 @@ public class AudioStreamClient extends AbsSystemThread
                     bb.put(buf);
                     bytes_count += bytes_read;
 
-                    mWebSocket.send(bb.array());
+                    mConnector.sendBinaryData(bb.array());
                     Thread.sleep(Constants.SAMPLE_INTERVAL);
                 }
 
@@ -128,7 +130,7 @@ public class AudioStreamClient extends AbsSystemThread
                             bb.putInt(SensorUtil.SENSOR_MIC);
                             bb.put(buf);
 
-                            mWebSocket.send(bb.array());
+                            mConnector.sendBinaryData(bb.array());
                         }else{
                             fis.close();
                             break;

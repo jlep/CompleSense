@@ -168,12 +168,11 @@ public class SystemUtil {
 
     }
 
-    public static void sendTakeImageReq(Messenger uiMessenger, String webSocketStr)
+    public static void sendTakeImageReq(Messenger uiMessenger)
     {
         if(uiMessenger!=null)
         {
             Message msg = Message.obtain();
-            msg.obj = webSocketStr;
             msg.what = Constants.MSG_TAKE_IMAGE;
             try {
                 uiMessenger.send(msg);

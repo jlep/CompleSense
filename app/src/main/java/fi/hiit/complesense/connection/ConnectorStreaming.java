@@ -9,8 +9,11 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
+import org.json.JSONObject;
+
 import java.net.InetAddress;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
@@ -29,6 +32,7 @@ public class ConnectorStreaming extends AbsSystemThread
     private WebSocket mJsonWebSocket = null, mWavWebSocket = null;
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
+    private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0;
 
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
@@ -51,9 +55,6 @@ public class ConnectorStreaming extends AbsSystemThread
                 Log.i(TAG, "Streaming connect should not recv binary data: " + byteBufferList.getAll().array().length + " bytes");
             }
         };
-
-
-
     }
 
     @Override
@@ -119,12 +120,27 @@ public class ConnectorStreaming extends AbsSystemThread
                 });
     }
 
-    public WebSocket getJsonWebSocket() {
-        return mJsonWebSocket;
+    public void sendJsonData(JSONObject jsonSensorData){
+        mJsonPacketsCounter++;
+        if(mJsonPacketsCounter % 1000 == 4){
+            String str = String.format("sending %d th json packet", mJsonPacketsCounter );
+            serviceHandler.updateStatusTxt(str);
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonSensorData.toString().getBytes().length);
+        buffer.putShort((short)1);
+        buffer.put(jsonSensorData.toString().getBytes());
+
+        mJsonWebSocket.send(buffer.array());
     }
 
-    public WebSocket getWavWebSocket() {
-        return mWavWebSocket;
+    public void sendBinaryData(byte[] data){
+        mWavPacketsCounter++;
+        if(mWavPacketsCounter % 100 == 4){
+            String str = String.format("sending %d th wav packet", mWavPacketsCounter );
+            serviceHandler.updateStatusTxt(str);
+        }
+        mWavWebSocket.send(data);
     }
 
     @Override

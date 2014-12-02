@@ -169,14 +169,9 @@ public class DemoActivity extends AbstractGroupActivity
                     appendStatus((String)msg.obj);
                     break;
                 case Constants.MSG_TAKE_IMAGE:
-                    String webSocketStr = (String) msg.obj;
-                    appendStatus("Receive image taking request from " + webSocketStr);
+                    appendStatus("Receive image taking request");
 
                     Intent intent = new Intent(getApplicationContext(), TakePhotoActivity.class);
-                    File imgDir = new File(Constants.ROOT_DIR, webSocketStr);
-                    imgDir.mkdirs();
-
-                    intent.putExtra(Constants.KEY_STORAGE_DIR, imgDir.toString()); // set the image file name
                     startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
                 default:

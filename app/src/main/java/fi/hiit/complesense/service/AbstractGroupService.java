@@ -126,6 +126,14 @@ public abstract class AbstractGroupService extends Service
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("LocalService", "Received start id " + startId + ": " + intent);
+        // We want this service to continue running until it is explicitly
+        // stopped, so return sticky.
+        return START_STICKY;
+    }
+
+    @Override
     public IBinder onBind(Intent intent)
     {
         Log.i(TAG, "onBind()");

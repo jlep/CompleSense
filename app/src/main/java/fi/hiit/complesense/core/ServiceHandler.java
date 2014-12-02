@@ -181,12 +181,11 @@ public class ServiceHandler extends HandlerThread
         }
     }
 
-    protected void startImageCapture(WebSocket webSocket, long delay)
+    protected void startImageCapture(long delay)
     {
         //Log.i(TAG,"updateStatusTxt()");
         Message msg = Message.obtain();
         msg.what = Constants.SERVICE_MSG_STEREO_IMG_REQ;
-        msg.obj = webSocket.toString();
         try {
             serviceMessenger.send(msg);
         } catch (RemoteException e) {

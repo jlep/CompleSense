@@ -175,8 +175,7 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     break;
 
                 case Constants.MSG_TAKE_IMAGE:
-                    String webSocketStr = (String)msg.obj;
-                    appendStatus("Receive image taking request from " + webSocketStr );
+                    appendStatus("Receive image taking request");
                     //imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
                     //Log.i(TAG, "imageUri: " + imageUri.toString() );
                     Intent intent = new Intent(getApplicationContext(), TakePhotoActivity.class);

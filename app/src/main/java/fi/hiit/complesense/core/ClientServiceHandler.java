@@ -113,8 +113,8 @@ public class ClientServiceHandler extends ServiceHandler
 
         CountDownLatch latch = new CountDownLatch(3);
 
-        ConnectorStreaming connectorStreaming = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
-        connectorStreaming.start();
+        ConnectorStreaming connector = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
+        connector.start();
 
         TextFileWritingThread fileWritingThread = new TextFileWritingThread(requiredSensors, latch);
         fileWritingThread.start();
@@ -122,38 +122,30 @@ public class ClientServiceHandler extends ServiceHandler
         try
         {
             latch.await();
-
-            WebSocket jsonWebSocket = connectorStreaming.getJsonWebSocket();
-            WebSocket wavWebSocket = connectorStreaming.getWavWebSocket();
-
-            if(wavWebSocket != null){
-                if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
-                    AudioStreamClient audioStreamClient = new AudioStreamClient(this, wavWebSocket, timeDiff, false);
-                    audioStreamClient.start();
-                }
-
-                if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){
-                    startImageCapture(wavWebSocket, timeDiff);
-                }
+            if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
+                AudioStreamClient audioStreamClient = new AudioStreamClient(this, connector, timeDiff, false);
+                audioStreamClient.start();
             }
 
-            if(jsonWebSocket!=null){
-                if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
-                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    mLocationDataListener = new LocationDataListener(this, jsonWebSocket, timeDiff, fileWritingThread);
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
-                }
+            if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){
+                startImageCapture(timeDiff);
+            }
 
-                if(requiredSensors.size()>0){
-                    mSensorDataListener = new SensorDataListener(jsonWebSocket, timeDiff, fileWritingThread);
-                    SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-                    Log.i(TAG, "registerSensors():" + requiredSensors);
+            if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
+                LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                mLocationDataListener = new LocationDataListener(this, connector, timeDiff, fileWritingThread);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
+            }
 
-                    for(int type : requiredSensors)
-                    {
-                        sensorManager.registerListener(mSensorDataListener,
-                                sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_GAME, mHandler);
-                    }
+            if(requiredSensors.size()>0){
+                mSensorDataListener = new SensorDataListener(connector, timeDiff, fileWritingThread);
+                SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+                Log.i(TAG, "registerSensors():" + requiredSensors);
+
+                for(int type : requiredSensors)
+                {
+                    sensorManager.registerListener(mSensorDataListener,
+                            sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_GAME, mHandler);
                 }
             }
         } catch (InterruptedException e) {

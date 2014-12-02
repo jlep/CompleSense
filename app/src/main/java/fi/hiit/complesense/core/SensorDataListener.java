@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.json.JsonSSI;
 
 /**
@@ -25,18 +26,18 @@ import fi.hiit.complesense.json.JsonSSI;
 public class SensorDataListener implements SensorEventListener
 {
     private static final String TAG = SensorDataListener.class.getSimpleName();
-    private final WebSocket mWebSocket;
+    private final ConnectorStreaming mConnector;
     private final short isStringData = 1;
     private final TextFileWritingThread mFileWriter;
     private final long mTimeDiff;
 
     private JSONObject jsonSensorData = new JSONObject();
-    private Handler mHandler;
 
-    public SensorDataListener(WebSocket webSocket, long timeDiff, TextFileWritingThread fileWriter){
-        this.mWebSocket = webSocket;
+    public SensorDataListener(ConnectorStreaming connectorStreaming, long timeDiff, TextFileWritingThread fileWriter){
+        this.mConnector = connectorStreaming;
         this.mTimeDiff = timeDiff;
         this.mFileWriter = fileWriter;
+
     }
 
 
@@ -54,11 +55,7 @@ public class SensorDataListener implements SensorEventListener
             jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
 
             mFileWriter.write(jsonSensorData.toString() );
-
-            ByteBuffer buffer = ByteBuffer.allocate(Constants.BYTES_SHORT + jsonSensorData.toString().getBytes().length);
-            buffer.putShort(isStringData);
-            buffer.put(jsonSensorData.toString().getBytes());
-            mWebSocket.send(buffer.array());
+            mConnector.sendJsonData(jsonSensorData);
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }
