@@ -140,7 +140,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                 } finally {
                     if(webSocket!=null)
                         webSocket.close();
-                    serviceHandler.removeFromPeerList(webSocket.toString());
+                    serviceHandler.removeFromPeerList(webSocket);
                     _sockets.remove(webSocket);
                 }
             }

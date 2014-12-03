@@ -24,7 +24,10 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -115,44 +118,53 @@ public class ClientServiceHandler extends ServiceHandler
     private void startStreamingConnector(JSONArray sensorConfigJson, int streamPort, long timeDiff) throws IOException, JSONException
     {
         updateStatusTxt("Start Streaming client");
-        Set<Integer> requiredSensors = SystemConfig.getSensorTypesFromJson(sensorConfigJson);
-        String txt = "Required sensors: "+ requiredSensors.toString();
+        Map<Integer, SystemConfig.SensorConfig> sensorConfigs = new HashMap<Integer, SystemConfig.SensorConfig>();
+        Set<Integer> sensorTypes = new HashSet<Integer>();
+        for(int i=0;i<sensorConfigJson.length();i++){
+            SystemConfig.SensorConfig sc = new SystemConfig.SensorConfig(sensorConfigJson.getJSONObject(i));
+            //Log.i(TAG, "sc: " + sc.toString());
+            sensorConfigs.put(sc.getType(), sc);
+            sensorTypes.add(sc.getType());
+        }
+
+        String txt = "Required sensors: "+ sensorTypes.toString();
         Log.i(TAG, txt);
         updateStatusTxt(txt);
 
         CountDownLatch latch = new CountDownLatch(3);
-
         ConnectorStreaming connector = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
         connector.start();
 
-        TextFileWritingThread fileWritingThread = new TextFileWritingThread(requiredSensors, latch);
+        TextFileWritingThread fileWritingThread = new TextFileWritingThread(sensorTypes, latch);
         fileWritingThread.start();
 
         try
         {
             latch.await();
-            if(requiredSensors.remove(SensorUtil.SENSOR_MIC)){
+            SystemConfig.SensorConfig micConf = sensorConfigs.remove(SensorUtil.SENSOR_MIC);
+            if(micConf != null){
                 AudioStreamClient audioStreamClient = new AudioStreamClient(this, connector, timeDiff, false);
                 audioStreamClient.start();
             }
 
-            if(requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){
+            SystemConfig.SensorConfig camConf = sensorConfigs.remove(SensorUtil.SENSOR_CAMERA);
+            if(camConf != null){
                 startImageCapture(timeDiff);
             }
 
-            if(requiredSensors.remove(SensorUtil.SENSOR_GPS)){
+            SystemConfig.SensorConfig gpsConf = sensorConfigs.remove(SensorUtil.SENSOR_GPS);
+            if(gpsConf != null){
                 LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
                 mLocationDataListener = new LocationDataListener(this, connector, timeDiff, fileWritingThread);
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
             }
 
-            if(requiredSensors.size()>0){
-                mSensorDataListener = new SensorDataListener(this, connector, timeDiff, fileWritingThread);
+            if(sensorConfigs.size()>0){
+                mSensorDataListener = new SensorDataListener(this, connector, timeDiff, sensorConfigs, fileWritingThread);
                 SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-                Log.i(TAG, "registerSensors():" + requiredSensors);
+                Log.i(TAG, "registerSensors():" + sensorConfigs.keySet() );
 
-                for(int type : requiredSensors)
-                {
+                for(int type : sensorConfigs.keySet()) {
                     sensorManager.registerListener(mSensorDataListener,
                             sensorManager.getDefaultSensor(type), SensorManager.SENSOR_DELAY_GAME, mHandler);
                 }

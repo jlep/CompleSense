@@ -34,7 +34,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
     private DataProcessingThread mWavProcessThread = null;
     private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
-    private WebSocket mClientSocket = null;
 
     public AcceptorStreaming(ServiceHandler serviceHandler, Set<Integer> types, int serverIndex, WebSocket webSocket, CountDownLatch latch) throws IOException
     {
@@ -89,10 +88,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
     @Override
     public void onCompleted(Exception e) {
 
-    }
-
-    public WebSocket getmClientSocket() {
-        return mClientSocket;
     }
 
     public int getmStreamPort() {

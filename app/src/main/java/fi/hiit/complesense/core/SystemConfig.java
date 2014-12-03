@@ -82,6 +82,7 @@ public class SystemConfig
         Set<Integer> reqSensorTypes = new HashSet<Integer>();
         for(int i=0;i<sensorConfigJson.length();i++){
             String jsonStr = sensorConfigJson.get(i).toString();
+            //Log.i(TAG, "jsonStr: " + jsonStr);
             JSONObject jsonObject = new JSONObject(jsonStr);
             reqSensorTypes.add(jsonObject.getInt(SensorConfig.TYPE));
         }
@@ -342,13 +343,50 @@ public class SystemConfig
             return -1;
         }
 
+        private String getTypeStr(){
+            if(type == Sensor.TYPE_ACCELEROMETER)
+                return SENSOR_TYPE_ACCELEROMETER;
+            if(type == Sensor.TYPE_GYROSCOPE)
+                return SENSOR_TYPE_GYROSCOPE;
+            if(type == Sensor.TYPE_MAGNETIC_FIELD)
+                return SENSOR_TYPE_MAGNETOMETER;
+            if(type == Sensor.TYPE_PRESSURE)
+                return SENSOR_TYPE_BAROMETER;
+            if(type == SensorUtil.SENSOR_GPS)
+                return SENSOR_TYPE_GPS;
+            if(type == SensorUtil.SENSOR_MIC)
+                return SENSOR_TYPE_MICROPHONE;
+            if(type == SensorUtil.SENSOR_CAMERA)
+                return SENSOR_TYPE_CAMERA;
+
+
+            return null;
+        }
+
         @Override
         public String toString() {
             return "{" +
-                    "\""+TYPE+"\": " + type +
+                    "\""+TYPE+"\": " + getTypeStr() +
                     ", \""+SAMPLE_RATE+"\": " + sampleRate +
                     ", \""+SENSOR_SELECTION+"\": " + sensorSelection +
                     '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            SensorConfig that = (SensorConfig) o;
+
+            if (type != that.type) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return type;
         }
     }
 

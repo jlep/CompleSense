@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -105,13 +106,16 @@ public class DataProcessingThread extends AbsSystemThread {
                         String sensorData =new String(strBuf, 0, byteCount);
                         try {
                             JSONObject jsonObject = new JSONObject(sensorData);
-                            int type = jsonObject.getInt(JsonSSI.SENSOR_TYPE);
+                            JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_PACKET);
 
-                            if(mSensorWriters.get(type)!=null){
-                                String str = SystemUtil.parseJsonSensorData(jsonObject);
-                                mSensorWriters.get(type).write(str);
+                            for(int i=0;i<jsonArray.length();i++){
+                                //Log.i(TAG, "item: " + jsonArray.getJSONObject(i).toString());
+                                int type = (jsonArray.getJSONObject(i)).getInt(JsonSSI.SENSOR_TYPE);
+                                if(mSensorWriters.get(type)!=null){
+                                    String str = SystemUtil.parseJsonSensorData(jsonArray.getJSONObject(i));
+                                    mSensorWriters.get(type).write(str);
+                                }
                             }
-
                         } catch (JSONException e) {
                         }
                         //Log.i(TAG, "sensor data: " + new String(buf));
