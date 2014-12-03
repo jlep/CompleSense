@@ -201,6 +201,7 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                 if(imageNames!=null){
                     txt = String.format("%d images saved to %s",imageNames.size(),
                             Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
+                    Log.i(TAG, "imagesNames: " + imageNames.toString());
                     /*
                     if(serviceMessenger != null){
                         Message msg = Message.obtain(null,
