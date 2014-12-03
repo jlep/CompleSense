@@ -14,6 +14,8 @@ import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import fi.hiit.complesense.Constants;
@@ -23,23 +25,28 @@ import fi.hiit.complesense.json.JsonSSI;
 /**
  * Created by hxguo on 29.11.2014.
  */
-public class SensorDataListener implements SensorEventListener
+public class SensorDataListener extends CompleSenseDataListener implements SensorEventListener
 {
     private static final String TAG = SensorDataListener.class.getSimpleName();
     private final ConnectorStreaming mConnector;
-    private final short isStringData = 1;
     private final TextFileWritingThread mFileWriter;
     private final long mTimeDiff;
     private final ServiceHandler serviceHandler;
+    private final HashMap<Integer, SystemConfig.SensorConfig> sensorConfigs;
+    private SensorBuffer buffer;
 
     private JSONObject jsonSensorData = new JSONObject();
     private int packetsCounter = 0;
 
-    public SensorDataListener(ServiceHandler serviceHandler, ConnectorStreaming connectorStreaming, long timeDiff, TextFileWritingThread fileWriter){
+    public SensorDataListener(ServiceHandler serviceHandler,
+                              ConnectorStreaming connectorStreaming, long timeDiff,
+                              Map<Integer, SystemConfig.SensorConfig> sensorConfigs, TextFileWritingThread fileWriter){
         this.mConnector = connectorStreaming;
         this.mTimeDiff = timeDiff;
         this.mFileWriter = fileWriter;
         this.serviceHandler = serviceHandler;
+        this.sensorConfigs = new HashMap<Integer, SystemConfig.SensorConfig>(sensorConfigs);
+        this.buffer = new SensorBuffer(this.sensorConfigs.size());
     }
 
 
@@ -53,16 +60,22 @@ public class SensorDataListener implements SensorEventListener
 
         try
         {
-            //jsonObject.put(JsonSSI.COMMAND, JsonSSI.V);
+            int type = sensorEvent.sensor.getType();
+
             jsonSensorData.put(JsonSSI.TIMESTAMP, System.currentTimeMillis() + mTimeDiff);
-            jsonSensorData.put(JsonSSI.SENSOR_TYPE, sensorEvent.sensor.getType());
+            jsonSensorData.put(JsonSSI.SENSOR_TYPE, type);
             JSONArray jsonArray = new JSONArray();
             for(float value:sensorEvent.values)
                 jsonArray.put(value);
             jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
 
-            mFileWriter.write(jsonSensorData.toString() );
-            mConnector.sendJsonData(jsonSensorData);
+            if(buffer.putBuffer(type, jsonSensorData) == buffer.numSensors){ // enough data has filled the buffer
+                JSONObject vals = buffer.getPackedBufferValues();
+                //Log.i(TAG, "vals: " + vals.toString());
+                mFileWriter.write(vals.toString());
+                mConnector.sendJsonData(vals);
+                buffer.resetBuffer();
+            }
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }
@@ -70,6 +83,36 @@ public class SensorDataListener implements SensorEventListener
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
+
+    /**
+     * To send the sensor data as a bigger package, so that WebSocket is not overwhelmed
+     */
+    class SensorBuffer
+    {
+        public final int numSensors;
+        private Map<Integer, JSONObject> buffer = new HashMap<Integer, JSONObject>();
+
+        public SensorBuffer(int numSensors){
+            this.numSensors = numSensors;
+        }
+
+        public void resetBuffer(){
+            buffer.clear();
+        }
+
+        public int putBuffer(int type, JSONObject jsonObject) throws JSONException {
+            buffer.put(type, new JSONObject(jsonObject.toString()));
+            return buffer.size();
+        }
+
+        public JSONObject getPackedBufferValues() throws JSONException {
+            JSONObject jsonObject = new JSONObject();
+            JSONArray jsonArray = new JSONArray(buffer.values());
+            jsonObject.put(JsonSSI.SENSOR_PACKET, jsonArray);
+            return jsonObject;
+        }
 
     }
 }

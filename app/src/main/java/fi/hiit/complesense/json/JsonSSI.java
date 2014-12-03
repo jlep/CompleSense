@@ -45,7 +45,7 @@ public class JsonSSI
     private static final String TAG = JsonSSI.class.getSimpleName();
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
-
+    public static final String SENSOR_PACKET = "sensor_packet";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException

@@ -66,13 +66,18 @@ public class TextFileWritingThread extends Thread
                 if(s!=null){
                     try {
                         JSONObject jsonObject = new JSONObject(s);
-                        int type = jsonObject.getInt(JsonSSI.SENSOR_TYPE);
+                        JSONArray jsonArray = jsonObject.getJSONArray(JsonSSI.SENSOR_PACKET);
+                        //Log.i(TAG, "jsonArray: " + jsonArray.toString());
 
-                        if(mSensorWriters.get(type)!=null){
-                            String str = SystemUtil.parseJsonSensorData(jsonObject);
-                            mSensorWriters.get(type).write(str);
+                        for(int i=0;i<jsonArray.length();i++){
+                            //Log.i(TAG, "item: " + jsonArray.getJSONObject(i).toString());
+                            int type = (jsonArray.getJSONObject(i)).getInt(JsonSSI.SENSOR_TYPE);
+                            if(mSensorWriters.get(type)!=null){
+                                String str = SystemUtil.parseJsonSensorData(jsonArray.getJSONObject(i));
+                                mSensorWriters.get(type).write(str);
+                            }
                         }
-                        //Log.i(TAG, s);
+
                     } catch (JSONException e) {
                     }
                 }
