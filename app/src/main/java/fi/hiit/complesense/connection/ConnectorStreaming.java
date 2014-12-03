@@ -8,9 +8,15 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.net.InetAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -33,6 +39,7 @@ public class ConnectorStreaming extends AbsSystemThread
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
     private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0;
+    private AsyncHttpServer mHttpServer;
 
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
@@ -55,6 +62,30 @@ public class ConnectorStreaming extends AbsSystemThread
                 Log.i(TAG, "Streaming connect should not recv binary data: " + byteBufferList.getAll().array().length + " bytes");
             }
         };
+
+        mHttpServer = createHttpServer();
+    }
+
+    private AsyncHttpServer createHttpServer(){
+
+        AsyncHttpServer server = new AsyncHttpServer();
+        server.get("/images", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+                String[] imgFiles = localDir.list(new FilenameFilter() {
+                    public boolean accept(File directory, String fileName) {
+                        return fileName.endsWith(".txt");
+                    }
+                });
+                for(String s: imgFiles)
+                    Log.i(TAG, "imgFile: " + s);
+            }
+        });
+
+        // listen on port 5000
+        server.listen(5000);
+        return server;
     }
 
     @Override
@@ -77,6 +108,7 @@ public class ConnectorStreaming extends AbsSystemThread
                         serviceHandler.updateStatusTxt("Connection with " + jsonStreamUri.toString() + " is established");
 
                         mJsonWebSocket = webSocket;
+                        serviceHandler.addNewConnection(mJsonWebSocket);
                         latch.countDown();
 
                         mJsonWebSocket.setStringCallback(mStringCallback);
@@ -91,6 +123,9 @@ public class ConnectorStreaming extends AbsSystemThread
                                     sb.append(e.toString());
                                 }
                                 serviceHandler.updateStatusTxt(sb.toString());
+                                if(mJsonWebSocket!=null)
+                                    mJsonWebSocket.close();
+                                serviceHandler.removeFromPeerList(mJsonWebSocket);
                             }
                         });
                     }
@@ -108,6 +143,7 @@ public class ConnectorStreaming extends AbsSystemThread
                         serviceHandler.updateStatusTxt("Connection with " + wavStreamUri.toString() + " is established");
 
                         mWavWebSocket = webSocket;
+                        serviceHandler.addNewConnection(mWavWebSocket);
                         latch.countDown();
 
                         mWavWebSocket.setStringCallback(mStringCallback);
@@ -122,6 +158,9 @@ public class ConnectorStreaming extends AbsSystemThread
                                     sb.append(e.toString());
                                 }
                                 serviceHandler.updateStatusTxt(sb.toString());
+                                if(mWavWebSocket!=null)
+                                    mWavWebSocket.close();
+                                serviceHandler.removeFromPeerList(mWavWebSocket);
                             }
                         });
                     }

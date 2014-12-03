@@ -127,7 +127,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                     } finally {
                         if(mWebSocket!=null)
                             mWebSocket.close();
-                        serviceHandler.removeFromPeerList(mWebSocket.toString());
+                        serviceHandler.removeFromPeerList(mWebSocket);
                     }
                 }
             });

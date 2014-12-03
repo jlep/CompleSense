@@ -139,7 +139,7 @@ public class ServiceHandler extends HandlerThread
         quit();
     }
 
-    protected void addNewConnection(WebSocket webSocket)
+    public void addNewConnection(WebSocket webSocket)
     {
         String str = "addNewConnection("+ webSocket.toString() +")";
         Log.i(TAG,str);
@@ -148,12 +148,12 @@ public class ServiceHandler extends HandlerThread
         peerList.put(webSocket.toString(), aliveConnection);
     }
 
-    public void removeFromPeerList(String webSocketStr)
+    public void removeFromPeerList(WebSocket webSocket)
     {
-        String str = "removeFromPeerList("+ webSocketStr +")";
+        String str = "removeFromPeerList("+ webSocket.toString() +")";
         Log.i(TAG,str);
         updateStatusTxt(str);
-        peerList.remove(webSocketStr);
+        peerList.remove(webSocket.toString());
     }
 
     public void send2Handler(String data){
