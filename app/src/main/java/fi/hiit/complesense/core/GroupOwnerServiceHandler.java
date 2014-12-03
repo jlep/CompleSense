@@ -86,7 +86,6 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             return true;
 
                         case JsonSSI.NEW_STREAM_CONNECTION:
-
                             return true;
 
                         case JsonSSI.N:
@@ -95,7 +94,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                             return true;
                         default:
                             Log.i(TAG, "Unknown command...");
-                            break;
+                            return false;
                     }
                 }
             } catch (JSONException e) {

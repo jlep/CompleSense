@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.connection.ImageSender;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
 
@@ -46,11 +48,15 @@ import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 public class ClientServiceHandler extends ServiceHandler
 {
     private static final String TAG = "ClientServiceHandler";
+
     private final InetAddress ownerAddr;
     private WebSocket mServerWebSocket;
     private LocationListener mLocationDataListener = null;
     private Handler mHandler;
     private SensorDataListener mSensorDataListener = null;
+    private ConnectorStreaming mConnector;
+    private int mStreamPort;
+    private long mTimeDiff;
 
 
     public ClientServiceHandler(Messenger serviceMessenger,
@@ -87,18 +93,18 @@ public class ClientServiceHandler extends ServiceHandler
                             return true;
                         case JsonSSI.R:
                             JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            long timeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
-                            int streamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
-                            String txt = "Streaming port: "+ streamPort + ", timeDiff: " + timeDiff +" ms";
+                            mTimeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
+                            mStreamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+                            String txt = "Streaming port: "+ mStreamPort + ", timeDiff: " + mTimeDiff +" ms";
                             Log.i(TAG, txt);
                             updateStatusTxt(txt);
 
-                            startStreamingConnector(sensorConfigJson, streamPort, timeDiff);
+                            startStreamingConnector(sensorConfigJson, mStreamPort, mTimeDiff);
                             return true;
                         case JsonSSI.SEND_DATA:
-                            JSONArray imagesNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
-                            Log.i(TAG, "imageNames: " + imagesNames);
+                            sendImg2Server(jsonObject,mStreamPort);
                             break;
+
                         default:
                             Log.i(TAG, "Unknown command...");
                             break;
@@ -132,8 +138,8 @@ public class ClientServiceHandler extends ServiceHandler
         updateStatusTxt(txt);
 
         CountDownLatch latch = new CountDownLatch(3);
-        ConnectorStreaming connector = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
-        connector.start();
+        mConnector = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
+        mConnector.start();
 
         TextFileWritingThread fileWritingThread = new TextFileWritingThread(sensorTypes, latch);
         fileWritingThread.start();
@@ -143,7 +149,7 @@ public class ClientServiceHandler extends ServiceHandler
             latch.await();
             SystemConfig.SensorConfig micConf = sensorConfigs.remove(SensorUtil.SENSOR_MIC);
             if(micConf != null){
-                AudioStreamClient audioStreamClient = new AudioStreamClient(this, connector, timeDiff, false);
+                AudioStreamClient audioStreamClient = new AudioStreamClient(this, mConnector, timeDiff, false);
                 audioStreamClient.start();
             }
 
@@ -155,12 +161,12 @@ public class ClientServiceHandler extends ServiceHandler
             SystemConfig.SensorConfig gpsConf = sensorConfigs.remove(SensorUtil.SENSOR_GPS);
             if(gpsConf != null){
                 LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                mLocationDataListener = new LocationDataListener(this, connector, timeDiff, fileWritingThread);
+                mLocationDataListener = new LocationDataListener(this, mConnector, timeDiff, fileWritingThread);
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationDataListener);
             }
 
             if(sensorConfigs.size()>0){
-                mSensorDataListener = new SensorDataListener(this, connector, timeDiff, sensorConfigs, fileWritingThread);
+                mSensorDataListener = new SensorDataListener(this, mConnector, timeDiff, sensorConfigs, fileWritingThread);
                 SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
                 Log.i(TAG, "registerSensors():" + sensorConfigs.keySet() );
 
@@ -175,15 +181,19 @@ public class ClientServiceHandler extends ServiceHandler
 
     }
 
-    /*
-    public void sendImg2Server(File imgFile)
+    public void sendImg2Server(JSONObject jsonObject, int streamPort) throws JSONException, IOException
     {
-        Log.i(TAG, "sendImg2Server(imgFile: " + imgFile + ") @ thread id: " + Thread.currentThread().getId());
-        SocketAddress serverSocketAddr = new InetSocketAddress(ownerAddr.getHostAddress(), serverWebSocketPort);
-        ImageWebSocketClient socketClient = new ImageWebSocketClient(imgFile, serverSocketAddr, this);
-        socketClient.connect();
+        JSONArray imageNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
+        Log.i(TAG, "sendImg2Server(): " + imageNames);
+        File imgFile, localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+
+        ImageSender imageSender = new ImageSender(ownerAddr, streamPort);
+
+        for(int i=0;i<imageNames.length();i++){
+            imgFile = new File(localDir, imageNames.getString(i));
+            imageSender.sendImage(imgFile);
+        }
     }
-    */
 
     @Override
     public void stopServiceHandler() {

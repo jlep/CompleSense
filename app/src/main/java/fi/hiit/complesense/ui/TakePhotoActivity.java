@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
@@ -152,8 +153,6 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     {
         public void onPictureTaken(byte[] data, Camera camera)
         {
-            String fname = String.format("%d.jpg", System.currentTimeMillis());
-            imageNames.add(fname);
             imgCount++;
             threadPool.submit(new FileWritingCallable(data));
             try {
@@ -203,7 +202,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
             //txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
             //txtOutputStream.write(sensorVals.toString().getBytes());
             //txtOutputStream.close();
-
+            imageNames.add(fname);
             imgOutStream = new FileOutputStream(imgFile);
             imgOutStream.write(data);
             imgOutStream.close();

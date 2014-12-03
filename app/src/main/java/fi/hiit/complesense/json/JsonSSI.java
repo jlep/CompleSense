@@ -46,6 +46,12 @@ public class JsonSSI
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
     public static final String SENSOR_PACKET = "sensor_packet";
+    public static final String IMAGE_NAMES = "image_names";
+    public static final String OK_TO_SEND = "ok_to_send";
+    public static final String IMAGE_PATH = "image_path";
+    public static final String IMAGE_COMMAND = "image_command";
+    public static final String START_SEND_IMG = "start_image_send";
+    public static final String COMPLETE_SEND_IMG = "complete_image_send";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
@@ -98,4 +104,5 @@ public class JsonSSI
         jsonObject.put(DESC, "Last RTT pong message has been received");
         return jsonObject;
     }
+
 }

@@ -16,7 +16,9 @@ import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -25,6 +27,9 @@ import java.util.concurrent.CountDownLatch;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.img.ImageWebSocketServer;
+import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 27.11.2014.
@@ -35,12 +40,10 @@ public class ConnectorStreaming extends AbsSystemThread
 
     private final URI jsonStreamUri, wavStreamUri;
     private final CountDownLatch latch;
-    private WebSocket mJsonWebSocket = null, mWavWebSocket = null;
+    private WebSocket mJsonWebSocket = null, mWavWebSocket = null, mImgWebSocket = null;
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
-    private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0;
-    private AsyncHttpServer mHttpServer;
-
+    private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0, mImgPacketsCounter = 0;
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
         super(TAG, serviceHandler);
@@ -62,30 +65,6 @@ public class ConnectorStreaming extends AbsSystemThread
                 Log.i(TAG, "Streaming connect should not recv binary data: " + byteBufferList.getAll().array().length + " bytes");
             }
         };
-
-        mHttpServer = createHttpServer();
-    }
-
-    private AsyncHttpServer createHttpServer(){
-
-        AsyncHttpServer server = new AsyncHttpServer();
-        server.get("/images", new HttpServerRequestCallback() {
-            @Override
-            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                File localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-                String[] imgFiles = localDir.list(new FilenameFilter() {
-                    public boolean accept(File directory, String fileName) {
-                        return fileName.endsWith(".txt");
-                    }
-                });
-                for(String s: imgFiles)
-                    Log.i(TAG, "imgFile: " + s);
-            }
-        });
-
-        // listen on port 5000
-        server.listen(5000);
-        return server;
     }
 
     @Override
@@ -105,8 +84,9 @@ public class ConnectorStreaming extends AbsSystemThread
                             Log.e(TAG, e.toString());
                             return;
                         }
-                        serviceHandler.updateStatusTxt("Connection with " + jsonStreamUri.toString() + " is established");
-
+                        String str = "Connection with " + jsonStreamUri.toString() + " is established";
+                        serviceHandler.updateStatusTxt(str);
+                        Log.i(TAG, str);
                         mJsonWebSocket = webSocket;
                         serviceHandler.addNewConnection(mJsonWebSocket);
                         latch.countDown();
@@ -140,7 +120,9 @@ public class ConnectorStreaming extends AbsSystemThread
                             Log.e(TAG, e.toString());
                             return;
                         }
-                        serviceHandler.updateStatusTxt("Connection with " + wavStreamUri.toString() + " is established");
+                        String str = "Connection with " + wavStreamUri.toString() + " is established";
+                        serviceHandler.updateStatusTxt(str);
+                        Log.i(TAG, str);
 
                         mWavWebSocket = webSocket;
                         serviceHandler.addNewConnection(mWavWebSocket);
@@ -169,7 +151,7 @@ public class ConnectorStreaming extends AbsSystemThread
 
     public void sendJsonData(JSONObject jsonSensorData){
         mJsonPacketsCounter++;
-        if(mJsonPacketsCounter % 1000 == 4){
+        if(mImgPacketsCounter % 1000 == 4){
             String str = String.format("sending %d th json packet", mJsonPacketsCounter );
             serviceHandler.updateStatusTxt(str);
         }
@@ -181,7 +163,7 @@ public class ConnectorStreaming extends AbsSystemThread
         mJsonWebSocket.send(buffer.array());
     }
 
-    public void sendBinaryData(byte[] data){
+    public void sendWavData(byte[] data){
         mWavPacketsCounter++;
         if(mWavPacketsCounter % 100 == 4){
             String str = String.format("sending %d th wav packet", mWavPacketsCounter );

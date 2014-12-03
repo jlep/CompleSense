@@ -41,6 +41,7 @@ public class LocationDataListener implements LocationListener
 
     //private final AsyncStreamClient asyncStreamClient;
     private int packetsCounter = 0;
+    private SensorDataBuffer buffer = new SensorDataBuffer(1);
 
     public LocationDataListener(ServiceHandler serviceHandler,
                                 ConnectorStreaming connectorStreaming, long delay, TextFileWritingThread fileWritingThread) throws JSONException
@@ -84,9 +85,13 @@ public class LocationDataListener implements LocationListener
             jsonArray.put(DISTANCE, distance);
 
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
-
-            fileWritingThread.write(jsonGeoCoords.toString());
-            mConnector.sendJsonData(jsonGeoCoords);
+            if(buffer.putBuffer(SensorUtil.SENSOR_GPS, jsonGeoCoords) == buffer.numSensors){ // enough data has filled the buffer
+                JSONObject vals = buffer.getPackedBufferValues();
+                //Log.i(TAG, "vals: " + vals.toString());
+                fileWritingThread.write(vals.toString());
+                mConnector.sendJsonData(vals);
+                buffer.resetBuffer();
+            }
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
         }

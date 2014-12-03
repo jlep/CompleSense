@@ -280,6 +280,7 @@ public class SystemConfig
         private static final String SENSOR_TYPE_GYROSCOPE = "GYROSCOPE";
         private static final String SENSOR_TYPE_MAGNETOMETER = "MAGNETOMETER";
         private static final String SENSOR_TYPE_BAROMETER = "BAROMETER";
+        private static final String SENSOR_TYPE_ORIENTATION = "ORIENTATION";
         private static final String SENSOR_TYPE_GPS = "GPS";
         private static final String SENSOR_TYPE_MICROPHONE = "MICROPHONE";
         private static final String SENSOR_TYPE_CAMERA = "CAMERA";
@@ -339,7 +340,8 @@ public class SystemConfig
                 return SensorUtil.SENSOR_MIC;
             if(typeStr.equals(SENSOR_TYPE_CAMERA))
                 return SensorUtil.SENSOR_CAMERA;
-
+            if(typeStr.equals(SENSOR_TYPE_ORIENTATION))
+                return Sensor.TYPE_ROTATION_VECTOR;
             return -1;
         }
 
@@ -358,7 +360,8 @@ public class SystemConfig
                 return SENSOR_TYPE_MICROPHONE;
             if(type == SensorUtil.SENSOR_CAMERA)
                 return SENSOR_TYPE_CAMERA;
-
+            if(type == Sensor.TYPE_ROTATION_VECTOR)
+                return SENSOR_TYPE_ORIENTATION;
 
             return null;
         }

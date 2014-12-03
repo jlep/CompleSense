@@ -67,7 +67,7 @@ public class DataProcessingThread extends AbsSystemThread {
     @Override
     public void run()
     {
-        Log.i(TAG, "Start DataProcessingThread at thread: " + Thread.currentThread().getId());
+        Log.i(TAG, "Start DataProcessingThread with sensors "+ requiredSensors.toString() +" at thread: " + Thread.currentThread().getId());
         serviceHandler.workerThreads.put(DataProcessingThread.TAG +"-"+Long.toString(Thread.currentThread().getId()), this);
 
         FileOutputStream fos = null;
@@ -88,6 +88,7 @@ public class DataProcessingThread extends AbsSystemThread {
 
                     if(isStringData == 0){ // Binary data
                         mediaDataType = data.getInt();
+                        Log.i(TAG, "mediaDataType: " + mediaDataType);
                         payloadSize = data.remaining();
                         data.get(wavBuf, 0, payloadSize);
 
@@ -95,6 +96,9 @@ public class DataProcessingThread extends AbsSystemThread {
                             //Log.i(TAG, "recv mic data: " + payloadSize);
                             if(mWavFileWriter != null)
                                 mWavFileWriter.write(wavBuf, 0, payloadSize);
+                        }
+                        if(mediaDataType == SensorUtil.SENSOR_CAMERA){
+                            Log.i(TAG, "recv image data: " + payloadSize);
                         }
                         continue;
                     }
@@ -168,6 +172,12 @@ public class DataProcessingThread extends AbsSystemThread {
                     File mediaFile = new File(recvDir, Integer.toString(SensorUtil.SENSOR_MIC));
                     mWavFileWriter = new MIME_FileWriter(mediaFile, MIME_FileWriter.Format.wav);
                     String txt = "Create wav file: " + mediaFile.toString();
+                    Log.i(TAG, txt);
+                    serviceHandler.updateStatusTxt(txt);
+                }
+
+                if(this.requiredSensors.remove(SensorUtil.SENSOR_CAMERA)){
+                    String txt = "Create images files later";
                     Log.i(TAG, txt);
                     serviceHandler.updateStatusTxt(txt);
                 }

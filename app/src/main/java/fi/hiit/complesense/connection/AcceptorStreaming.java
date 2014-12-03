@@ -10,6 +10,12 @@ import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
@@ -20,7 +26,9 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
 
@@ -31,6 +39,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     private final int mStreamPort;
     private final CountDownLatch latch;
+    private DataProcessingThread mImageProcessThread = null;
     private DataProcessingThread mWavProcessThread = null;
     private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
@@ -51,6 +60,14 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             mWavProcessThread = new DataProcessingThread(serviceHandler, wav);
             StreamingCallback wavStreamingCallback = new StreamingCallback(mWavProcessThread, webSocket);
             httpServer.websocket("/streaming_wav", Constants.WEB_PROTOCOL, wavStreamingCallback);
+        }
+
+        if(sensorTypes.remove(SensorUtil.SENSOR_CAMERA)){
+            Set<Integer> cam = new HashSet<Integer>();
+            cam.add(SensorUtil.SENSOR_CAMERA);
+
+            ImageCallback imageCallback = new ImageCallback(webSocket);
+            httpServer.websocket("/streaming_images", Constants.WEB_PROTOCOL, imageCallback);
         }
 
         if(sensorTypes.size()>0){
@@ -80,6 +97,8 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             mWavProcessThread.start();
         if(mJsonProcessThread != null)
             mJsonProcessThread.start();
+        if(mImageProcessThread!=null)
+            mImageProcessThread.start();
         latch.countDown();
     }
 
@@ -87,7 +106,8 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     @Override
     public void onCompleted(Exception e) {
-
+        Log.e(TAG, "AcceptorStreaming setup fails: " + e.toString());
+        stopThread();
     }
 
     public int getmStreamPort() {
@@ -146,6 +166,103 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                         mDataProcessThread.addDataToThreadBuffer(cmdWebSocket, bb.array(), payloadSize);
                     }
                     byteBufferList.recycle();
+                }
+            });
+        }
+    }
+
+    class ImageCallback implements AsyncHttpServer.WebSocketRequestCallback{
+
+        private WebSocket mWebSocket;
+        private final WebSocket cmdWebSocket;
+        private FileOutputStream os = null;
+        private int payloadSize = 0;
+
+        public ImageCallback(WebSocket webSocket) {
+            this.cmdWebSocket = webSocket;
+        }
+
+        @Override
+        public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
+            String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
+            Log.i(TAG, txt);
+            serviceHandler.updateStatusTxt(txt);
+
+            mWebSocket = webSocket;
+            //Use this to clean up any references to your websocket
+            webSocket.setClosedCallback(new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    try {
+                        if (ex != null)
+                            Log.e(TAG, ex.toString());
+                    } finally {
+                        if(mWebSocket!=null)
+                            mWebSocket.close();
+                        serviceHandler.removeFromPeerList(mWebSocket);
+                    }
+                }
+            });
+
+            mWebSocket.setStringCallback(new WebSocket.StringCallback() {
+                @Override
+                public void onStringAvailable(String s) {
+                    try {
+                        JSONObject jsonObject = new JSONObject(s);
+                        String imgCommand = jsonObject.getString(JsonSSI.IMAGE_COMMAND);
+                        if(imgCommand.equals(JsonSSI.START_SEND_IMG)){
+                            String absPath = jsonObject.getString(JsonSSI.IMAGE_PATH);
+                            File f = new File(absPath);
+                            String imgName = f.getName();
+                            Log.i(TAG, "recv imgName: " + imgName);
+
+                            File recvDir = new File(Constants.ROOT_DIR, SystemUtil.formatWebSocketStr(cmdWebSocket));
+                            recvDir.mkdirs();
+                            File outputFile = new File(recvDir, imgName);
+                            os = new FileOutputStream(outputFile, true);
+                        }
+
+                        if(imgCommand.equals(JsonSSI.COMPLETE_SEND_IMG)){
+                            if(os!=null){
+                                try {
+                                    os.close();
+                                } catch (IOException e) {
+                                }
+                            }
+                        }
+
+                    } catch (JSONException e) {
+                        Log.i(TAG, e.toString());
+                    } catch (FileNotFoundException e) {
+                        Log.i(TAG, e.toString());
+                    }
+
+                }
+            });
+
+            mWebSocket.setDataCallback(new DataCallback() {
+                @Override
+                public void onDataAvailable(DataEmitter dataEmitter,
+                                            ByteBufferList byteBufferList) {
+                    payloadSize += byteBufferList.remaining();
+                    try {
+                        ByteBufferList.writeOutputStream(os, byteBufferList.getAll());
+                    } catch (IOException e) {
+                        Log.i(TAG, e.toString());
+                    }
+                    byteBufferList.recycle();
+                }
+            });
+
+            mWebSocket.setClosedCallback(new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception e) {
+                    if(os!=null){
+                        try {
+                            os.close();
+                        } catch (IOException ex) {
+                        }
+                    }
                 }
             });
         }

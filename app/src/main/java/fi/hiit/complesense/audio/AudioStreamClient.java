@@ -102,7 +102,7 @@ public class AudioStreamClient extends AbsSystemThread
                     bb.put(buf);
                     bytes_count += bytes_read;
 
-                    mConnector.sendBinaryData(bb.array());
+                    mConnector.sendWavData(bb.array());
                     Thread.sleep(Constants.SAMPLE_INTERVAL);
                 }
 
@@ -138,7 +138,7 @@ public class AudioStreamClient extends AbsSystemThread
                             bb.putInt(SensorUtil.SENSOR_MIC);
                             bb.put(buf);
 
-                            mConnector.sendBinaryData(bb.array());
+                            mConnector.sendWavData(bb.array());
                         }else{
                             fis.close();
                             break;

@@ -33,7 +33,7 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
     private final long mTimeDiff;
     private final ServiceHandler serviceHandler;
     private final HashMap<Integer, SystemConfig.SensorConfig> sensorConfigs;
-    private SensorBuffer buffer;
+    private SensorDataBuffer buffer;
 
     private JSONObject jsonSensorData = new JSONObject();
     private int packetsCounter = 0;
@@ -46,7 +46,7 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
         this.mFileWriter = fileWriter;
         this.serviceHandler = serviceHandler;
         this.sensorConfigs = new HashMap<Integer, SystemConfig.SensorConfig>(sensorConfigs);
-        this.buffer = new SensorBuffer(this.sensorConfigs.size());
+        this.buffer = new SensorDataBuffer(this.sensorConfigs.size());
     }
 
 
@@ -83,36 +83,6 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    /**
-     * To send the sensor data as a bigger package, so that WebSocket is not overwhelmed
-     */
-    class SensorBuffer
-    {
-        public final int numSensors;
-        private Map<Integer, JSONObject> buffer = new HashMap<Integer, JSONObject>();
-
-        public SensorBuffer(int numSensors){
-            this.numSensors = numSensors;
-        }
-
-        public void resetBuffer(){
-            buffer.clear();
-        }
-
-        public int putBuffer(int type, JSONObject jsonObject) throws JSONException {
-            buffer.put(type, new JSONObject(jsonObject.toString()));
-            return buffer.size();
-        }
-
-        public JSONObject getPackedBufferValues() throws JSONException {
-            JSONObject jsonObject = new JSONObject();
-            JSONArray jsonArray = new JSONArray(buffer.values());
-            jsonObject.put(JsonSSI.SENSOR_PACKET, jsonArray);
-            return jsonObject;
-        }
 
     }
 }
