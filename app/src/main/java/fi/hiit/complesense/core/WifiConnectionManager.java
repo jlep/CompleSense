@@ -285,8 +285,8 @@ public class WifiConnectionManager
         {
             @Override
             public void onSuccess() {
-                Log.i(TAG, "Added Local Service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
+                Log.i(TAG, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
+                SystemUtil.sendStatusTextUpdate(uiMessenger, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
             }
 
             @Override
