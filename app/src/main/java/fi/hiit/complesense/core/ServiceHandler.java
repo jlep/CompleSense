@@ -22,9 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.R;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
+import fi.hiit.complesense.json.JsonSSI;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -34,6 +36,7 @@ public class ServiceHandler extends HandlerThread
 {
     private static final String TAG = "ServiceHandler";
     public static final int JSON_RESPONSE_BYTES = 2697337;
+    public static final int JSON_SYSTEM_STATUS = 5762346;
 
     public final String startTime = Long.toString(System.currentTimeMillis());
 
@@ -90,9 +93,29 @@ public class ServiceHandler extends HandlerThread
     @Override
     public boolean handleMessage(Message msg)
     {
+        boolean ifSendToSubClass = false;
         if(msg.what == JSON_RESPONSE_BYTES)
-            return true;
-        return false;
+            ifSendToSubClass = true;
+        if(msg.what == JSON_SYSTEM_STATUS){
+            try {
+                handleSystemStatus((JSONObject)msg.obj);
+            } catch (JSONException e) {
+                Log.i(TAG, e.toString());
+            }
+        }
+        return ifSendToSubClass;
+    }
+
+    protected void handleSystemStatus(JSONObject jsonObject) throws JSONException {
+        int status = jsonObject.getInt(JsonSSI.SYSTEM_STATUS);
+
+        switch (status){
+            case JsonSSI.DISCONNECT:
+                break;
+            default:
+                Log.i(TAG, context.getString(R.string.unknown_status));
+                break;
+        }
     }
 
     public Map<String, AliveConnection> getPeerList()
@@ -156,11 +179,11 @@ public class ServiceHandler extends HandlerThread
         peerList.remove(webSocket.toString());
     }
 
-    public void send2Handler(String data){
+    public void send2Handler(String data, int messageType){
         //Log.i(TAG, "send2Handler()" + data);
         try{
             JSONObject jsonObject = new JSONObject(data);
-            Message msg = Message.obtain(handler, JSON_RESPONSE_BYTES, jsonObject);
+            Message msg = Message.obtain(handler, messageType, jsonObject);
             msg.sendToTarget();
         } catch (JSONException e) {
             Log.e(TAG, e.toString());
@@ -192,14 +215,4 @@ public class ServiceHandler extends HandlerThread
             e.printStackTrace();
         }
     }
-
-    private boolean isOrigin(String host, int port, Socket localSocket)
-    {
-        if(host.equalsIgnoreCase(localSocket.getLocalAddress().toString()) &&
-                port == localSocket.getLocalPort())
-            return true;
-
-        return false;
-    }
-
 }
