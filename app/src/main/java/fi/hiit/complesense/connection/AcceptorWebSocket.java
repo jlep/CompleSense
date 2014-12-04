@@ -135,12 +135,14 @@ public class AcceptorWebSocket extends AbsSystemThread
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(TAG + "Connection with client " + SystemUtil.formatWebSocketStr(webSocket) + " ends ");
-                serviceHandler.updateStatusTxt(sb.toString());
                 try {
-                    Log.e(TAG, ex.toString());
-                    sb.append(ex.toString());
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(TAG + " disconnects with client " + SystemUtil.formatWebSocketStr(webSocket));
+                    if(ex!=null){
+                        Log.e(TAG, ex.toString());
+                        sb.append(ex.toString());
+                    }
+                    serviceHandler.updateStatusTxt(sb.toString());
                 } finally {
                     try {
                         serviceHandler.send2Handler(SystemUtil.makeJsonDisconnect(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);

@@ -149,8 +149,13 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                 @Override
                 public void onCompleted(Exception ex) {
                     try {
-                        if (ex != null)
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(TAG + " disconnects with client " + SystemUtil.formatWebSocketStr(mWebSocket));
+                        if(ex!=null){
                             Log.e(TAG, ex.toString());
+                            sb.append(ex.toString());
+                        }
+                        serviceHandler.updateStatusTxt(sb.toString());
                     } finally {
                         if(mWebSocket!=null)
                             mWebSocket.close();

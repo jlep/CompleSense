@@ -98,7 +98,7 @@ public class ConnectorStreaming extends AbsSystemThread
                             @Override
                             public void onCompleted(Exception e) {
                                 StringBuilder sb = new StringBuilder();
-                                sb.append("Connection with " + jsonStreamUri.toString() + " ends ");
+                                sb.append(TAG + " json disconnects with master " + SystemUtil.formatWebSocketStr(mJsonWebSocket));
                                 if (e != null){
                                     Log.e(TAG, e.toString());
                                     sb.append(e.toString());
@@ -139,7 +139,7 @@ public class ConnectorStreaming extends AbsSystemThread
                             @Override
                             public void onCompleted(Exception e) {
                                 StringBuilder sb = new StringBuilder();
-                                sb.append("Connection with " + mWavWebSocket.toString() + " ends ");
+                                sb.append(TAG + " wav disconnects with master " + SystemUtil.formatWebSocketStr(mWavWebSocket));
                                 if (e != null){
                                     Log.e(TAG, e.toString());
                                     sb.append(e.toString());

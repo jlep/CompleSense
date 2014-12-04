@@ -78,7 +78,7 @@ public class ConnectorWebSocket extends AbsSystemThread
                     @Override
                     public void onCompleted(Exception e) {
                         StringBuilder sb = new StringBuilder();
-                        sb.append("Connection with master " + uri.toString() + " ends ");
+                        sb.append(TAG + " disconnects with master " + uri.toString());
                         if (e != null){
                             Log.e(TAG, e.toString());
                             sb.append(e.toString());
