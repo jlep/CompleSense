@@ -70,7 +70,7 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
                 //jsonArray.put(String.format("%.2f", value));
             jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
 
-            if(buffer.putBuffer(type, jsonSensorData)){ // buffer is full
+            if(buffer.putBuffer(jsonSensorData)){ // buffer is full
                 JSONObject vals = buffer.getPackedBufferValues();
                 //Log.i(TAG, "vals: " + vals.toString());
                 mFileWriter.write(vals.toString());

@@ -394,7 +394,7 @@ public class SystemUtil {
         return str;
     }
 
-    public static int calStrBufferSize(){
+    public static int calSensorDataSize(){
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put(JsonSSI.SENSOR_TYPE, 100);
@@ -408,6 +408,6 @@ public class SystemUtil {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return 2048;
+        return 1024;
     }
 }
