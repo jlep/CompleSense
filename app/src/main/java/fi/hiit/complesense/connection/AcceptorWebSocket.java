@@ -134,10 +134,16 @@ public class AcceptorWebSocket extends AbsSystemThread
         //Use this to clean up any references to your websocket
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
-            public void onCompleted(Exception ex) {
+            public void onCompleted(Exception e) {
                 try {
-                    if (ex != null)
-                        Log.e(TAG, ex.toString());
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(TAG + " Connection with " + SystemUtil.formatWebSocketStr(webSocket) + " ends ");
+                    if (e != null){
+                        Log.e(TAG, e.toString());
+                        sb.append(e.toString());
+                    }
+                    Log.i(TAG, sb.toString());
+                    serviceHandler.updateStatusTxt(sb.toString());
                 } finally {
                     if(webSocket!=null)
                         webSocket.close();
@@ -145,7 +151,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                     _sockets.remove(webSocket);
                     try {
                         serviceHandler.send2Handler(SystemUtil.makeJsonDisconnection(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
-                    } catch (JSONException e) {
+                    } catch (JSONException ex) {
                     }
                 }
             }

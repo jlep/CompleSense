@@ -59,7 +59,7 @@ public class ConnectorWebSocket extends AbsSystemThread
         AsyncHttpClient.getDefaultInstance().websocket(uri.toString(), Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback(){
 
             @Override
-            public void onCompleted(Exception e, WebSocket webSocket) {
+            public void onCompleted(Exception e, final WebSocket webSocket) {
                 Log.i(TAG, "onCompleted("+ uri.toString() +")");
                 if (e != null)
                 {
@@ -75,12 +75,13 @@ public class ConnectorWebSocket extends AbsSystemThread
                     @Override
                     public void onCompleted(Exception e) {
                         StringBuilder sb = new StringBuilder();
-                        sb.append("Connection with " + uri.toString() + " ends ");
+                        sb.append(TAG + " Connection with " + uri.toString() + " ends ");
                         if (e != null){
                             Log.e(TAG, e.toString());
                             sb.append(e.toString());
                         }
                         serviceHandler.updateStatusTxt(sb.toString());
+                        serviceHandler.removeFromPeerList(mWebSocket);
                         if (mWebSocket != null)
                             mWebSocket.close();
                     }
