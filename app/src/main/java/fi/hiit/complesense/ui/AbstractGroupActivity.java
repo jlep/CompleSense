@@ -51,7 +51,7 @@ public abstract class AbstractGroupActivity extends Activity
 
     protected ServiceConnection mConnection = null;
     protected Button stopButton;
-    protected ArrayList<String> imageNames;
+    protected String mImagesOrientationFile = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

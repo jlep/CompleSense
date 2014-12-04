@@ -40,16 +40,15 @@ public class JsonSSI
     public static final String SENSOR_VALUES = "sv";
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
     public static final String WEB_SOCKET_KEY = "web_socket_key";
-    public static final String IS_STRING_DATA = "is_string_data";
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
     public static final String SENSOR_PACKET = "sp";
-    public static final String IMAGE_NAMES = "image_names";
     public static final String OK_TO_SEND = "ok_to_send";
-    public static final String IMAGE_PATH = "image_path";
     public static final String IMAGE_COMMAND = "image_command";
     public static final String START_SEND_IMG = "start_image_send";
     public static final String COMPLETE_SEND_IMG = "complete_image_send";
+    public static final String IMAGE_ORIENTATIONS = "image_orientations";
+    public static final String IMAGE_NAME = "image_name";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException

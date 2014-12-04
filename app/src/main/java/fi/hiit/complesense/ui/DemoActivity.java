@@ -78,17 +78,14 @@ public class DemoActivity extends AbstractGroupActivity
                     msg.replyTo = uiMessenger;
                     serviceMessenger.send(msg);
 
-                    if(imageNames!=null && imageNames.size()>0){
-                        msg = Message.obtain(null,
-                                Constants.SERVICE_MSG_TAKEN_IMG);
-                        msg.obj = imageNames;
+                    if(mImagesOrientationFile != null){
+                        msg = Message.obtain(null, Constants.SERVICE_MSG_TAKEN_IMG);
+                        msg.obj = mImagesOrientationFile;
                         try {
                             serviceMessenger.send(msg);
                         } catch (RemoteException e) {
                         }
                     }
-
-
                 }
                 catch (RemoteException e)
                 {
@@ -188,14 +185,16 @@ public class DemoActivity extends AbstractGroupActivity
         {
             if (resultCode == RESULT_OK) {
                 // Image captured and saved to imageUri specified in the Intent
-                ArrayList<String> imageNames = intent.getStringArrayListExtra(TakePhotoActivity.IMAGE_NAMES);
-                if(imageNames != null){
-                    String txt = String.format("%d images saved to %s",imageNames.size(),
-                            Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
-                    this.imageNames = imageNames;
+                int numImages = intent.getIntExtra(TakePhotoActivity.IMAGE_NUM, 0);
 
-                    appendStatus(txt);
+                String txt;
+                if(numImages>0){
+                    mImagesOrientationFile = intent.getStringExtra(TakePhotoActivity.IMAGE_ORIENTATION_FILE);
+                    txt = String.format("%d images saved to %s", numImages, mImagesOrientationFile);
+                }else{
+                    txt = "no images are taken";
                 }
+                appendStatus(txt);
 
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture

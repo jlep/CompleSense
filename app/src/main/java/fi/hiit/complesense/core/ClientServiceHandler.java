@@ -19,7 +19,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -27,6 +30,7 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +42,7 @@ import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.connection.ImageSender;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.ui.TakePhotoActivity;
 import fi.hiit.complesense.util.SensorUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
@@ -102,7 +107,7 @@ public class ClientServiceHandler extends ServiceHandler
                             startStreamingConnector(sensorConfigJson, mStreamPort, mTimeDiff);
                             return true;
                         case JsonSSI.SEND_DATA:
-                            sendImg2Server(jsonObject,mStreamPort);
+                            sendImages(jsonObject, mStreamPort);
                             break;
 
                         default:
@@ -182,17 +187,29 @@ public class ClientServiceHandler extends ServiceHandler
 
     }
 
-    public void sendImg2Server(JSONObject jsonObject, int streamPort) throws JSONException, IOException
+    public void sendImages(JSONObject jsonObject, int streamPort) throws JSONException, IOException
     {
-        JSONArray imageNames = jsonObject.getJSONArray(JsonSSI.DATA_TO_SEND);
-        Log.i(TAG, "sendImg2Server(): " + imageNames);
+        String imageOrientationsFile = jsonObject.getString(JsonSSI.DATA_TO_SEND);
+        Log.i(TAG, "sendImages(): " + imageOrientationsFile);
         File imgFile, localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
 
-        ImageSender imageSender = new ImageSender(ownerAddr, streamPort);
+        List<JSONObject> orientations = new LinkedList<JSONObject>();
 
-        for(int i=0;i<imageNames.length();i++){
-            imgFile = new File(localDir, imageNames.getString(i));
-            imageSender.sendImage(imgFile);
+        FileReader fr = new FileReader(imageOrientationsFile);
+        BufferedReader br = new BufferedReader(fr);
+
+        String s;
+        JSONObject orientationJson;
+        while((s = br.readLine()) != null) {
+            //Log.i(TAG, "s: " + s);
+            orientationJson = new JSONObject(s);
+            orientations.add(orientationJson);
+        }
+        br.close();
+
+        ImageSender imageSender = new ImageSender(ownerAddr, streamPort);
+        for(int i=0;i<orientations.size();i++){
+            imageSender.sendImage(orientations.get(i));
         }
     }
 

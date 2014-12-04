@@ -18,6 +18,8 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -26,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -36,6 +39,7 @@ import java.util.concurrent.Future;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
+import fi.hiit.complesense.util.SensorUtil;
 
 /**
  * Created by hxguo on 24.11.2014.
@@ -43,7 +47,12 @@ import fi.hiit.complesense.R;
 public class TakePhotoActivity extends Activity implements SensorEventListener
 {
     private final static String TAG = TakePhotoActivity.class.getSimpleName();
-    public static final String IMAGE_NAMES = "image_names";
+
+    public static final String IMAGE_NUM = "image_nums";
+    public static final String IMAGE_ORIENTATION_FILE = "image_orientation_file";
+    public static final String IMAGE_NAME = "image_name";
+    public static final String IMAGE_ORIENTATION_VALS = "image_orientation_values";
+
     private Camera mCamera;
     private Button mPhotoButton, mFinishButton;
     private CameraPreview mPreview;
@@ -52,8 +61,9 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     private SensorManager mSensorManager;
     private Sensor mRotation;
     private float[] sensorVals = new float[3];
-    private Map<String, float[]> orientations = new HashMap<String, float[]>();
-    private File txtSensorValsFile;
+    //private Map<String, float[]> orientations = new HashMap<String, float[]>();
+    private List<JSONObject> orientations = new ArrayList<JSONObject>();
+    private File orientationsFile;
     private ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
     @Override
@@ -62,7 +72,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         setContentView(R.layout.activity_camera_preview);
 
         localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-        txtSensorValsFile = new File(localDir, "orientations.txt");
+        orientationsFile = new File(localDir, SensorUtil.SENSOR_CAMERA + ".txt");
 
         mPhotoButton = (Button)findViewById(R.id.front_take_photos);
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
@@ -78,8 +88,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         mFinishButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent();
-                intent.putStringArrayListExtra(IMAGE_NAMES, new ArrayList<String>(orientations.keySet()));
+                Intent intent = makeResultIntent();
                 setResult(Activity.RESULT_OK, intent);
                 writeOrientations();
                 finish();
@@ -156,9 +165,17 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         {
             imgCount++;
             String fname = String.format("%d.jpg", System.currentTimeMillis());
-            orientations.put(fname, sensorVals);
-            threadPool.submit(new FileWritingCallable(data, fname));
+            JSONObject jsonObject = new JSONObject();
             try {
+                jsonObject.put(IMAGE_NAME, fname);
+                JSONArray jsonArray = new JSONArray();
+                for(float f: sensorVals)
+                    jsonArray.put(f);
+                jsonObject.put(IMAGE_ORIENTATION_VALS, jsonArray);
+                orientations.add(jsonObject);
+
+                threadPool.submit(new FileWritingCallable(data, fname));
+
                 camera.startPreview();
                 if (imgCount < Constants.NUM_IMG_TAKE) {
                     mPreview.mCamera.takePicture(shutterCallback, rawCallback,
@@ -166,28 +183,51 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
                 } else {
                     imgCount = 0;
 
-                    //Log.i(TAG, "imageNames: " + imageNames);
-                    Intent intent = new Intent();
-                    intent.putStringArrayListExtra(IMAGE_NAMES, new ArrayList<String>(orientations.keySet()));
+                    Intent intent = makeResultIntent();
                     setResult(Activity.RESULT_OK, intent);
                     writeOrientations();
                     finish();
                 }
-            } catch (Exception e) {
+            } catch (JSONException e) {
+
+            }catch (Exception e) {
                 Log.d(TAG, "Error starting preview: " + e.toString());
             }
+
+
         }
     };
 
+    private Intent makeResultIntent() {
+        Intent intent = new Intent();
+        intent.putExtra(IMAGE_ORIENTATION_FILE, orientationsFile.toString());
+        intent.putExtra(IMAGE_NUM, orientations.size());
+        return intent;
+    }
+
     private void writeOrientations() {
-        if(txtSensorValsFile != null){
+        if(orientationsFile != null){
+            FileOutputStream fos = null;
             try {
-                FileOutputStream fos = new FileOutputStream(txtSensorValsFile,true);
-                fos.write(orientations.values().toString().getBytes());
+                fos = new FileOutputStream(orientationsFile,true);
+                Iterator<JSONObject> iter = orientations.iterator();
+                while(iter.hasNext()){
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(iter.next().toString());
+                    sb.append("\n");
+                    fos.write(sb.toString().getBytes());
+                }
             } catch (FileNotFoundException e) {
                 Log.i(TAG,e.toString());
             } catch (IOException e) {
                 Log.i(TAG, e.toString());
+            }finally {
+                if(fos != null){
+                    try {
+                        fos.close();
+                    } catch (IOException e) {
+                    }
+                }
             }
 
         }

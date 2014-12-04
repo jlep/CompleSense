@@ -10,12 +10,14 @@ import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -23,13 +25,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.DataProcessingThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.ui.TakePhotoActivity;
 import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -42,7 +48,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
     private final int mStreamPort;
     private final CountDownLatch latch;
-    private DataProcessingThread mImageProcessThread = null;
     private DataProcessingThread mWavProcessThread = null;
     private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
@@ -100,8 +105,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             mWavProcessThread.start();
         if(mJsonProcessThread != null)
             mJsonProcessThread.start();
-        if(mImageProcessThread!=null)
-            mImageProcessThread.start();
         latch.countDown();
     }
 
@@ -179,6 +182,8 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         private final WebSocket cmdWebSocket;
         private Map<String, FileOutputStream> oss = new HashMap<String, FileOutputStream>();
         private int payloadSize = 0;
+        private ExecutorService threadPools = Executors.newFixedThreadPool(5);
+
 
         public ImageCallback(WebSocket webSocket) {
             this.cmdWebSocket = webSocket;
@@ -209,21 +214,49 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                 @Override
                 public void onStringAvailable(String s) {
                     try {
-                        JSONObject jsonObject = new JSONObject(s);
+                        final JSONObject jsonObject = new JSONObject(s);
                         String imgCommand = jsonObject.getString(JsonSSI.IMAGE_COMMAND);
                         if(imgCommand.equals(JsonSSI.START_SEND_IMG)){
-                            String absPath = jsonObject.getString(JsonSSI.IMAGE_PATH);
-                            File f = new File(absPath);
-                            String imgName = f.getName();
-                            Log.i(TAG, "recv imgName: " + imgName);
-
-                            File recvDir = new File(Constants.ROOT_DIR, SystemUtil.formatWebSocketStr(cmdWebSocket));
+                            final File recvDir = new File(Constants.ROOT_DIR, SystemUtil.formatWebSocketStr(cmdWebSocket));
                             recvDir.mkdirs();
-                            File outputFile = new File(recvDir, imgName);
-                            Log.i(TAG, "outputFile: " + outputFile.toString());
 
-                            oss.put(webSocket.toString(), new FileOutputStream(outputFile, true));
-                            sendOkToSend(webSocket, absPath);
+                            final String imageName = jsonObject.getString(JsonSSI.IMAGE_NAME);
+                            String txt = "Receive imgName: " + imageName;
+                            Log.i(TAG, txt);
+                            serviceHandler.updateStatusTxt(txt);
+
+                            JSONArray orientationsJson = jsonObject.getJSONArray(JsonSSI.IMAGE_ORIENTATIONS);
+                            File orientationsFile = new File(recvDir, SensorUtil.SENSOR_CAMERA+".txt");
+                            FileWriter fw = null;
+                            FileOutputStream fos = null;
+
+                            try {
+                                fw = new FileWriter(orientationsFile, true);
+                                fw.write(imageName + ",");
+                                fw.write(orientationsJson.toString() + "\n");
+
+                                File outputFile = new File(recvDir, imageName);
+                                Log.i(TAG, "outputFile: " + outputFile.toString());
+
+                                fos = oss.get(webSocket.toString());
+                                if(fos == null){
+                                    fos = new FileOutputStream(outputFile, true);
+                                    oss.put(webSocket.toString(), fos);
+                                }
+
+                                sendOkToSend(webSocket, imageName);
+
+                            } catch (IOException e) {
+                                Log.i(TAG, e.toString());
+                                oss.remove(webSocket.toString());
+                            }finally {
+                                if(fw !=null){
+                                    try {
+                                        fw.close();
+                                    } catch (IOException e) {
+                                    }
+                                }
+                            }
                         }
 
                         if(imgCommand.equals(JsonSSI.COMPLETE_SEND_IMG)){
@@ -237,8 +270,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                             }
                         }
                     } catch (JSONException e) {
-                        Log.i(TAG, e.toString());
-                    } catch (FileNotFoundException e) {
                         Log.i(TAG, e.toString());
                     }
 
@@ -275,11 +306,13 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
             });
         }
 
-        private void sendOkToSend(WebSocket webSocket, String absPath) throws JSONException {
+        private void sendOkToSend(WebSocket webSocket, String imageName) throws JSONException {
             JSONObject okSend = new JSONObject();
             okSend.put(JsonSSI.IMAGE_COMMAND, JsonSSI.OK_TO_SEND);
-            okSend.put(JsonSSI.IMAGE_PATH, absPath);
+            okSend.put(JsonSSI.IMAGE_NAME, imageName);
             webSocket.send(okSend.toString());
         }
     }
+
+
 }

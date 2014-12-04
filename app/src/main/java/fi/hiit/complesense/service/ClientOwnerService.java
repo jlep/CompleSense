@@ -165,8 +165,7 @@ public class ClientOwnerService extends AbstractGroupService
                     SystemUtil.sendTakeImageReq(uiMessenger);
                     break;
                 case Constants.SERVICE_MSG_TAKEN_IMG:
-                    String[] imageNames = (String[])msg.obj;
-                    send2Handler(imageNames);
+                    send2Handler((String) msg.obj);
                     break;
 
                 default:
@@ -175,19 +174,19 @@ public class ClientOwnerService extends AbstractGroupService
         }
     }
 
-    public void send2Handler(String[] data){
+    public void send2Handler(String imageOrientationsFile){
         //Log.i(TAG, "send2Handler()" + data);
         try{
-            JSONArray jsonArray = new JSONArray();
-            for(String s: data)
-                jsonArray.put(s);
-
             JSONObject jsonObject = new JSONObject();
             jsonObject.put(JsonSSI.COMMAND, JsonSSI.SEND_DATA);
-            jsonObject.put(JsonSSI.DATA_TO_SEND, jsonArray);
+            jsonObject.put(JsonSSI.DATA_TO_SEND, imageOrientationsFile);
 
-            Message msg = Message.obtain(serviceHandler.getHandler(),
-                    ServiceHandler.JSON_RESPONSE_BYTES, jsonArray);
+            Message msg;
+            if(localClientServiceHandler!=null){
+                msg = Message.obtain(localClientServiceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            }else{
+                msg = Message.obtain(serviceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
+            }
             msg.sendToTarget();
         } catch (JSONException e) {
             Log.e(TAG, e.toString());

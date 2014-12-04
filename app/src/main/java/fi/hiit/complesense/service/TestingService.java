@@ -81,7 +81,7 @@ public class TestingService extends AbstractGroupService
                     if(msg.obj==null)
                         testSendImg2Server(null);
                     else
-                        testSendImg2Server((ArrayList<String>) msg.obj);
+                        testSendImg2Server((String) msg.obj);
                     hasSent = true;
                     break;
                default:
@@ -89,14 +89,14 @@ public class TestingService extends AbstractGroupService
             }
         }
 
-        private void testSendImg2Server(ArrayList<String> imageNames)
+        private void testSendImg2Server(String imageOrientationsFile)
         {
             if(hasSent)
                 return;
         /*
         * Send testing files
          */
-            if(imageNames==null)
+            if(imageOrientationsFile==null)
             {
                 File testDir = new File(Constants.ROOT_DIR, "test_pic");
                 if(testDir.exists())
@@ -126,13 +126,9 @@ public class TestingService extends AbstractGroupService
                 for(ServiceHandler serviceHandler : clientsList)
                 {
                     try{
-                        JSONArray jsonArray = new JSONArray();
-                        for(String s: imageNames)
-                            jsonArray.put(s);
-
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put(JsonSSI.COMMAND, JsonSSI.SEND_DATA);
-                        jsonObject.put(JsonSSI.DATA_TO_SEND, jsonArray);
+                        jsonObject.put(JsonSSI.DATA_TO_SEND, imageOrientationsFile);
 
                         Message msg = Message.obtain(serviceHandler.getHandler(),
                                 ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);

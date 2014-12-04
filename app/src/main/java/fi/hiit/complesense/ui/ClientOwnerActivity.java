@@ -90,6 +90,15 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                             Constants.SERVICE_MSG_INIT_SERVICE);
                     msg.replyTo = uiMessenger;
                     serviceMessenger.send(msg);
+
+                    if(mImagesOrientationFile != null){
+                        msg = Message.obtain(null, Constants.SERVICE_MSG_TAKEN_IMG);
+                        msg.obj = mImagesOrientationFile;
+                        try {
+                            serviceMessenger.send(msg);
+                        } catch (RemoteException e) {
+                        }
+                    }
                 }
                 catch (RemoteException e)
                 {
@@ -196,28 +205,16 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         {
             if (resultCode == RESULT_OK) {
                 // Image captured and saved to imageUri specified in the Intent
-                ArrayList<String> imageNames = intent.getStringArrayListExtra(TakePhotoActivity.IMAGE_NAMES);
+                int numImages = intent.getIntExtra(TakePhotoActivity.IMAGE_NUM, 0);
+
                 String txt;
-                if(imageNames!=null){
-                    txt = String.format("%d images saved to %s",imageNames.size(),
-                            Constants.ROOT_DIR + Constants.LOCAL_SENSOR_DATA_DIR);
-                    Log.i(TAG, "imagesNames: " + imageNames.toString());
-                    /*
-                    if(serviceMessenger != null){
-                        Message msg = Message.obtain(null,
-                                Constants.SERVICE_MSG_TAKEN_IMG);
-                        msg.obj = imageNames;
-                        try {
-                            serviceMessenger.send(msg);
-                        } catch (RemoteException e) {
-                        }
-                    }
-                    */
+                if(numImages>0){
+                    mImagesOrientationFile = intent.getStringExtra(TakePhotoActivity.IMAGE_ORIENTATION_FILE);
+                    txt = String.format("%d images saved to %s", numImages, mImagesOrientationFile);
                 }else{
                     txt = "no images are taken";
                 }
                 appendStatus(txt);
-
 
             } else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture
