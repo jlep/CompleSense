@@ -43,7 +43,7 @@ public class ConnectorStreaming extends AbsSystemThread
     private WebSocket mJsonWebSocket = null, mWavWebSocket = null, mImgWebSocket = null;
     private WebSocket.StringCallback mStringCallback;
     private DataCallback mDataCallback;
-    private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0, mImgPacketsCounter = 0;
+    private int mJsonPacketsCounter = 0, mWavPacketsCounter = 0;
 
     public ConnectorStreaming(ServiceHandler serviceHandler, InetAddress ownerInetAddr, int streamPort, CountDownLatch latch) {
         super(TAG, serviceHandler);
@@ -73,6 +73,7 @@ public class ConnectorStreaming extends AbsSystemThread
         Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
         serviceHandler.workerThreads.put(TAG, this);
+        latch.countDown();
 
         AsyncHttpClient.getDefaultInstance().websocket(jsonStreamUri.toString(),
                 Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback() {
@@ -89,7 +90,6 @@ public class ConnectorStreaming extends AbsSystemThread
                         Log.i(TAG, str);
                         mJsonWebSocket = webSocket;
                         serviceHandler.addNewConnection(mJsonWebSocket);
-                        latch.countDown();
 
                         mJsonWebSocket.setStringCallback(mStringCallback);
                         mJsonWebSocket.setDataCallback(mDataCallback);
@@ -126,7 +126,6 @@ public class ConnectorStreaming extends AbsSystemThread
 
                         mWavWebSocket = webSocket;
                         serviceHandler.addNewConnection(mWavWebSocket);
-                        latch.countDown();
 
                         mWavWebSocket.setStringCallback(mStringCallback);
                         mWavWebSocket.setDataCallback(mDataCallback);
@@ -151,7 +150,7 @@ public class ConnectorStreaming extends AbsSystemThread
 
     public void sendJsonData(JSONObject jsonSensorData){
         mJsonPacketsCounter++;
-        if(mImgPacketsCounter % 1000 == 4){
+        if(mJsonPacketsCounter % 1000 == 4){
             String str = String.format("sending %d th json packet", mJsonPacketsCounter );
             serviceHandler.updateStatusTxt(str);
         }

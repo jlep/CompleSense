@@ -17,8 +17,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -127,7 +130,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
 
         @Override
         public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
-            String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
+            String txt = "onConnected() webSocket: " + SystemUtil.formatWebSocketStr(webSocket);
             Log.i(TAG, txt);
             serviceHandler.updateStatusTxt(txt);
 
@@ -171,11 +174,10 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         }
     }
 
-    class ImageCallback implements AsyncHttpServer.WebSocketRequestCallback{
-
-        private WebSocket mWebSocket;
+    class ImageCallback implements AsyncHttpServer.WebSocketRequestCallback
+    {
         private final WebSocket cmdWebSocket;
-        private FileOutputStream os = null;
+        private Map<String, FileOutputStream> oss = new HashMap<String, FileOutputStream>();
         private int payloadSize = 0;
 
         public ImageCallback(WebSocket webSocket) {
@@ -183,12 +185,11 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         }
 
         @Override
-        public void onConnected(WebSocket webSocket, RequestHeaders requestHeaders) {
-            String txt = "onConnected() called@ thread id: " + Thread.currentThread().getId();
+        public void onConnected(final WebSocket webSocket, RequestHeaders requestHeaders) {
+            String txt = "onConnected() webSocket: " + SystemUtil.formatWebSocketStr(webSocket);
             Log.i(TAG, txt);
             serviceHandler.updateStatusTxt(txt);
 
-            mWebSocket = webSocket;
             //Use this to clean up any references to your websocket
             webSocket.setClosedCallback(new CompletedCallback() {
                 @Override
@@ -197,14 +198,14 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                         if (ex != null)
                             Log.e(TAG, ex.toString());
                     } finally {
-                        if(mWebSocket!=null)
-                            mWebSocket.close();
-                        serviceHandler.removeFromPeerList(mWebSocket);
+                        if(webSocket!=null)
+                            webSocket.close();
+                        serviceHandler.removeFromPeerList(webSocket);
                     }
                 }
             });
 
-            mWebSocket.setStringCallback(new WebSocket.StringCallback() {
+            webSocket.setStringCallback(new WebSocket.StringCallback() {
                 @Override
                 public void onStringAvailable(String s) {
                     try {
@@ -219,10 +220,15 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                             File recvDir = new File(Constants.ROOT_DIR, SystemUtil.formatWebSocketStr(cmdWebSocket));
                             recvDir.mkdirs();
                             File outputFile = new File(recvDir, imgName);
-                            os = new FileOutputStream(outputFile, true);
+                            Log.i(TAG, "outputFile: " + outputFile.toString());
+
+                            oss.put(webSocket.toString(), new FileOutputStream(outputFile, true));
+                            sendOkToSend(webSocket, absPath);
                         }
 
                         if(imgCommand.equals(JsonSSI.COMPLETE_SEND_IMG)){
+                            Log.i(TAG, "Image send completes");
+                            OutputStream os = oss.remove(webSocket.toString());
                             if(os!=null){
                                 try {
                                     os.close();
@@ -230,7 +236,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                                 }
                             }
                         }
-
                     } catch (JSONException e) {
                         Log.i(TAG, e.toString());
                     } catch (FileNotFoundException e) {
@@ -240,13 +245,15 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                 }
             });
 
-            mWebSocket.setDataCallback(new DataCallback() {
+            webSocket.setDataCallback(new DataCallback() {
                 @Override
                 public void onDataAvailable(DataEmitter dataEmitter,
                                             ByteBufferList byteBufferList) {
                     payloadSize += byteBufferList.remaining();
                     try {
-                        ByteBufferList.writeOutputStream(os, byteBufferList.getAll());
+                        OutputStream os = oss.get(webSocket.toString());
+                        if(os!=null)
+                            ByteBufferList.writeOutputStream(os, byteBufferList.getAll());
                     } catch (IOException e) {
                         Log.i(TAG, e.toString());
                     }
@@ -254,9 +261,10 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                 }
             });
 
-            mWebSocket.setClosedCallback(new CompletedCallback() {
+            webSocket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception e) {
+                    OutputStream os = oss.remove(webSocket.toString());
                     if(os!=null){
                         try {
                             os.close();
@@ -265,6 +273,13 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                     }
                 }
             });
+        }
+
+        private void sendOkToSend(WebSocket webSocket, String absPath) throws JSONException {
+            JSONObject okSend = new JSONObject();
+            okSend.put(JsonSSI.IMAGE_COMMAND, JsonSSI.OK_TO_SEND);
+            okSend.put(JsonSSI.IMAGE_PATH, absPath);
+            webSocket.send(okSend.toString());
         }
     }
 }

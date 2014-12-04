@@ -82,9 +82,9 @@ public class ImageSender
                             public void onStringAvailable(String s) {
                                 try {
                                     JSONObject jsonObject = new JSONObject(s);
-                                    int status = jsonObject.getInt(JsonSSI.OK_TO_SEND);
-                                    String absPath = jsonObject.getString(JsonSSI.IMAGE_PATH);
-                                    if(status==1){
+                                    String cmd = jsonObject.getString(JsonSSI.IMAGE_COMMAND);
+                                    if(cmd.equals(JsonSSI.OK_TO_SEND)){
+                                        String absPath = jsonObject.getString(JsonSSI.IMAGE_PATH);
                                         sendFile(absPath, webSocket);
                                     }
                                 } catch (JSONException e) {

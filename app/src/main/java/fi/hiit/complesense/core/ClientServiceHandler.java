@@ -137,7 +137,8 @@ public class ClientServiceHandler extends ServiceHandler
         Log.i(TAG, txt);
         updateStatusTxt(txt);
 
-        CountDownLatch latch = new CountDownLatch(3);
+        CountDownLatch latch = new CountDownLatch(2);
+
         mConnector = new ConnectorStreaming(this,ownerAddr ,streamPort, latch);
         mConnector.start();
 
