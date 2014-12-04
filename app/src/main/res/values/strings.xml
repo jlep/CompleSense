@@ -21,5 +21,6 @@
     <string name="host">universe.hiit.fi</string>
     <string name="burst_mode_camera">Take multiple photos</string>
     <string name="added_local_service">Advertising local service</string>
+    <string name="unknown_status">Unknown system status</string>
 
 </resources>

@@ -410,4 +410,11 @@ public class SystemUtil {
         }
         return 1024;
     }
+
+    public static JSONObject makeJsonDisconnection(WebSocket webSocket) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.DISCONNECT);
+        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
+        return null;
+    }
 }

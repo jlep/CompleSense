@@ -39,7 +39,7 @@ public class ConnectorWebSocket extends AbsSystemThread
             @Override
             public void onStringAvailable(String s) {
                 //Log.i(TAG, "recv String: " + s);
-                serviceHandler.send2Handler(s);
+                serviceHandler.send2Handler(s, ServiceHandler.JSON_RESPONSE_BYTES);
             }
         };
         mDataCallback = new DataCallback() {

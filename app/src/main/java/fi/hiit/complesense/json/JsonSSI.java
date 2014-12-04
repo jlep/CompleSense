@@ -25,6 +25,8 @@ public class JsonSSI
     public static final short RTT_LAST = 0x10; // rtt query
     public static final short SEND_DATA = 0x30; //Send data
 
+    public static final int DISCONNECT = 0x80;
+
     public static final String COMMAND = "command";
     public static final String DESC = "description";
     public static final String SENSOR_TYPES = "sensor_types";
@@ -50,6 +52,7 @@ public class JsonSSI
     public static final String IMAGE_COMMAND = "image_command";
     public static final String START_SEND_IMG = "start_image_send";
     public static final String COMPLETE_SEND_IMG = "complete_image_send";
+    public static final String SYSTEM_STATUS = "system_status";
 
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException

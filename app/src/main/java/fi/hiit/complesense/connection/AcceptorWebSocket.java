@@ -22,6 +22,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 29.9.2014.
@@ -85,7 +86,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                 try {
                     JSONObject jsonObject = new JSONObject(s);
                     jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-                    serviceHandler.send2Handler(jsonObject.toString());
+                    serviceHandler.send2Handler(jsonObject.toString(), ServiceHandler.JSON_RESPONSE_BYTES);
                 } catch (JSONException e) {
                     Log.e(TAG, e.toString());
                 }
@@ -140,8 +141,12 @@ public class AcceptorWebSocket extends AbsSystemThread
                 } finally {
                     if(webSocket!=null)
                         webSocket.close();
-                    serviceHandler.removeFromPeerList(webSocket);
+                    //serviceHandler.removeFromPeerList(webSocket);
                     _sockets.remove(webSocket);
+                    try {
+                        serviceHandler.send2Handler(SystemUtil.makeJsonDisconnection(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
+                    } catch (JSONException e) {
+                    }
                 }
             }
         });
@@ -153,7 +158,7 @@ public class AcceptorWebSocket extends AbsSystemThread
         jsonAccept.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
         jsonAccept.put(JsonSSI.DESC, "New Connection");
         Log.i(TAG, "jsonAccept: " + jsonAccept.toString());
-        serviceHandler.send2Handler(jsonAccept.toString());
+        serviceHandler.send2Handler(jsonAccept.toString(), ServiceHandler.JSON_RESPONSE_BYTES);
     }
 
     /**
@@ -168,7 +173,7 @@ public class AcceptorWebSocket extends AbsSystemThread
         //String remoteSocketAddr = socketChannel.socket().getRemoteSocketAddress().toString();
         try {
             serviceHandler.getPeerList().get(webSocket.toString()).setRtt(rttMeasurement);
-            serviceHandler.send2Handler(JsonSSI.makeLastRttReceived(webSocket).toString());
+            serviceHandler.send2Handler(JsonSSI.makeLastRttReceived(webSocket).toString(), ServiceHandler.JSON_RESPONSE_BYTES);
         } catch (JSONException e) {
         }
         Log.i(TAG, "RTT between " + webSocket.toString() + " : " + rttMeasurement + " ms");
