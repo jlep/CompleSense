@@ -393,4 +393,21 @@ public class SystemUtil {
         String str = String.format("%d,%d,%s\n", type, timeStamp, vals.toString().substring(1, vals.toString().length()-1));
         return str;
     }
+
+    public static int calStrBufferSize(){
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put(JsonSSI.SENSOR_TYPE, 100);
+            jsonObject.put(JsonSSI.TIMESTAMP, System.currentTimeMillis());
+            JSONArray jsonArray = new JSONArray();
+            jsonArray.put(Float.MIN_VALUE);
+            jsonArray.put(Float.MIN_VALUE);
+            jsonArray.put(Float.MIN_VALUE);
+            jsonObject.put(JsonSSI.SENSOR_VALUES, jsonArray);
+            return jsonArray.toString().length();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return 2048;
+    }
 }

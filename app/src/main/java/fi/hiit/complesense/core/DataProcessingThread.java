@@ -73,7 +73,7 @@ public class DataProcessingThread extends AbsSystemThread {
         FileOutputStream fos = null;
         ByteBuffer data;
         byte[] wavBuf = new byte[Constants.BUF_SIZE];
-        byte[] strBuf = new byte[Constants.BUF_SIZE];
+        byte[] strBuf = new byte[Constants.JSON_STR_BUF_SIZE];
         int mediaDataType, payloadSize;
         try
         {

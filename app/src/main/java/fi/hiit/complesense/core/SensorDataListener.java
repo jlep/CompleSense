@@ -46,7 +46,7 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
         this.mFileWriter = fileWriter;
         this.serviceHandler = serviceHandler;
         this.sensorConfigs = new HashMap<Integer, SystemConfig.SensorConfig>(sensorConfigs);
-        this.buffer = new SensorDataBuffer(16);
+        this.buffer = new SensorDataBuffer(20);
     }
 
 
@@ -66,7 +66,8 @@ public class SensorDataListener extends CompleSenseDataListener implements Senso
             jsonSensorData.put(JsonSSI.SENSOR_TYPE, type);
             JSONArray jsonArray = new JSONArray();
             for(float value:sensorEvent.values)
-                jsonArray.put(String.format("%.2f", value));
+                    jsonArray.put(value);
+                //jsonArray.put(String.format("%.2f", value));
             jsonSensorData.put(JsonSSI.SENSOR_VALUES, jsonArray);
 
             if(buffer.putBuffer(type, jsonSensorData)){ // buffer is full
