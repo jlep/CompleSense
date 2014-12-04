@@ -181,13 +181,10 @@ public class ClientOwnerService extends AbstractGroupService
             jsonObject.put(JsonSSI.COMMAND, JsonSSI.SEND_DATA);
             jsonObject.put(JsonSSI.DATA_TO_SEND, imageOrientationsFile);
 
-            Message msg;
-            if(localClientServiceHandler!=null){
-                msg = Message.obtain(localClientServiceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
-            }else{
-                msg = Message.obtain(serviceHandler.getHandler(), ServiceHandler.JSON_RESPONSE_BYTES, jsonObject);
-            }
-            msg.sendToTarget();
+            if(localClientServiceHandler!=null)
+                localClientServiceHandler.send2Handler(jsonObject.toString(), ServiceHandler.JSON_RESPONSE_BYTES);
+            else
+                serviceHandler.send2Handler(jsonObject.toString(), ServiceHandler.JSON_RESPONSE_BYTES);
         } catch (JSONException e) {
             Log.e(TAG, e.toString());
         }
