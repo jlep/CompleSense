@@ -23,7 +23,6 @@ public class JsonSSI
     public static final short NEW_STREAM_CONNECTION = 0x08;
     public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
     public static final short RTT_LAST = 0x10; // rtt query
-    public static final short RTT_QUERY = 0x20; // rtt query
     public static final short SEND_DATA = 0x30; //Send data
 
     public static final String COMMAND = "command";
@@ -42,7 +41,6 @@ public class JsonSSI
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
     public static final String WEB_SOCKET_KEY = "web_socket_key";
     public static final String IS_STRING_DATA = "is_string_data";
-    private static final String TAG = JsonSSI.class.getSimpleName();
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
     public static final String SENSOR_PACKET = "sensor_packet";

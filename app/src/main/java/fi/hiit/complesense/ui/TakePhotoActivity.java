@@ -18,12 +18,16 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -41,16 +45,14 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     private final static String TAG = TakePhotoActivity.class.getSimpleName();
     public static final String IMAGE_NAMES = "image_names";
     private Camera mCamera;
-    private int mCameraId = 0;
     private Button mPhotoButton, mFinishButton;
     private CameraPreview mPreview;
     private int imgCount;
     private File localDir;
-    private ArrayList<String> imageNames = new ArrayList<String>();
-
     private SensorManager mSensorManager;
     private Sensor mRotation;
     private float[] sensorVals = new float[3];
+    private Map<String, float[]> orientations = new HashMap<String, float[]>();
     private File txtSensorValsFile;
     private ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
@@ -59,8 +61,9 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_preview);
 
-
-
+        localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
+        txtSensorValsFile = new File(localDir, "orientations.txt");
+        
         mPhotoButton = (Button)findViewById(R.id.front_take_photos);
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -76,8 +79,9 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
-                intent.putStringArrayListExtra(IMAGE_NAMES, imageNames);
+                intent.putStringArrayListExtra(IMAGE_NAMES, new ArrayList<String>(orientations.keySet()));
                 setResult(Activity.RESULT_OK, intent);
+                writeOrientations();
                 finish();
             }
         });
@@ -92,9 +96,6 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         }else{
             finish();
         }
-
-        localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
-        txtSensorValsFile = new File(localDir, "orientations.txt");
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         mRotation = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
@@ -154,7 +155,9 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
         public void onPictureTaken(byte[] data, Camera camera)
         {
             imgCount++;
-            threadPool.submit(new FileWritingCallable(data));
+            String fname = String.format("%d.jpg", System.currentTimeMillis());
+            orientations.put(fname, sensorVals);
+            threadPool.submit(new FileWritingCallable(data, fname));
             try {
                 camera.startPreview();
                 if (imgCount < Constants.NUM_IMG_TAKE) {
@@ -165,8 +168,9 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
 
                     //Log.i(TAG, "imageNames: " + imageNames);
                     Intent intent = new Intent();
-                    intent.putStringArrayListExtra(IMAGE_NAMES, imageNames);
+                    intent.putStringArrayListExtra(IMAGE_NAMES, new ArrayList<String>(orientations.keySet()));
                     setResult(Activity.RESULT_OK, intent);
+                    writeOrientations();
                     finish();
                 }
             } catch (Exception e) {
@@ -174,6 +178,20 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
             }
         }
     };
+
+    private void writeOrientations() {
+        if(txtSensorValsFile != null){
+            try {
+                FileOutputStream fos = new FileOutputStream(txtSensorValsFile,true);
+                fos.write(orientations.values().toString().getBytes());
+            } catch (FileNotFoundException e) {
+                Log.i(TAG,e.toString());
+            } catch (IOException e) {
+                Log.i(TAG, e.toString());
+            }
+
+        }
+    }
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
@@ -188,21 +206,18 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
     }
 
     class FileWritingCallable implements Callable<String> {
-        FileOutputStream imgOutStream = null, txtOutputStream = null;
-        String fname = String.format("%d.jpg", System.currentTimeMillis());
-        File imgFile = new File(localDir, fname);
+        FileOutputStream imgOutStream = null;
+
+        File imgFile;
         byte[] data;
 
-        public FileWritingCallable(byte[] data){
+        public FileWritingCallable(byte[] data, String fname){
             this.data = data;
+            imgFile = new File(localDir, fname);
         }
 
         @Override
         public String call() throws Exception {
-            //txtOutputStream = new FileOutputStream(txtSensorValsFile, true);
-            //txtOutputStream.write(sensorVals.toString().getBytes());
-            //txtOutputStream.close();
-            imageNames.add(fname);
             imgOutStream = new FileOutputStream(imgFile);
             imgOutStream.write(data);
             imgOutStream.close();
