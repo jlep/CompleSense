@@ -136,7 +136,7 @@ public class AcceptorWebSocket extends AbsSystemThread
             @Override
             public void onCompleted(Exception ex) {
                 StringBuilder sb = new StringBuilder();
-                sb.append("Connection with client " + SystemUtil.formatWebSocketStr(webSocket) + " ends ");
+                sb.append(TAG + "Connection with client " + SystemUtil.formatWebSocketStr(webSocket) + " ends ");
                 serviceHandler.updateStatusTxt(sb.toString());
                 try {
                     Log.e(TAG, ex.toString());
