@@ -99,8 +99,8 @@ public class Constants
     /**
      * Sensor settings
      */
-    public static final int SAMPLE_NORMAL = 50;
-
+    public static final int SAMPLE_50_HZ = 50;
+    public static final int JSON_STR_BUF_SIZE = 1024;
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};
 }

@@ -88,7 +88,7 @@ public class DataProcessingThread extends AbsSystemThread {
 
                     if(isStringData == 0){ // Binary data
                         mediaDataType = data.getInt();
-                        Log.i(TAG, "mediaDataType: " + mediaDataType);
+                        //Log.i(TAG, "mediaDataType: " + mediaDataType);
                         payloadSize = data.remaining();
                         data.get(wavBuf, 0, payloadSize);
 
@@ -96,9 +96,6 @@ public class DataProcessingThread extends AbsSystemThread {
                             //Log.i(TAG, "recv mic data: " + payloadSize);
                             if(mWavFileWriter != null)
                                 mWavFileWriter.write(wavBuf, 0, payloadSize);
-                        }
-                        if(mediaDataType == SensorUtil.SENSOR_CAMERA){
-                            Log.i(TAG, "recv image data: " + payloadSize);
                         }
                         continue;
                     }

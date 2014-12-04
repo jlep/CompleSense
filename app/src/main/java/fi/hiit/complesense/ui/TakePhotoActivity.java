@@ -63,7 +63,7 @@ public class TakePhotoActivity extends Activity implements SensorEventListener
 
         localDir = new File(Constants.ROOT_DIR, Constants.LOCAL_SENSOR_DATA_DIR);
         txtSensorValsFile = new File(localDir, "orientations.txt");
-        
+
         mPhotoButton = (Button)findViewById(R.id.front_take_photos);
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override

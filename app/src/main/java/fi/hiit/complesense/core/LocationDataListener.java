@@ -85,7 +85,7 @@ public class LocationDataListener implements LocationListener
             jsonArray.put(DISTANCE, distance);
 
             jsonGeoCoords.put(JsonSSI.SENSOR_VALUES,jsonArray);
-            if(buffer.putBuffer(SensorUtil.SENSOR_GPS, jsonGeoCoords) == buffer.numSensors){ // enough data has filled the buffer
+            if(buffer.putBuffer(SensorUtil.SENSOR_GPS, jsonGeoCoords)){ // buffer is full
                 JSONObject vals = buffer.getPackedBufferValues();
                 //Log.i(TAG, "vals: " + vals.toString());
                 fileWritingThread.write(vals.toString());

@@ -37,13 +37,13 @@ public class JsonSSI
     public static final String SAMPLES_PER_SECOND = "samples_per_second";
     public static final String STREAM_PORT = "stream_port";
     public static final String SENSOR_TYPE = "sensor_type";
-    public static final String SENSOR_VALUES = "sensor_values";
+    public static final String SENSOR_VALUES = "sv";
     public static final String STREAM_SERVER_THREAD_ID = "stream_server_thread_id";
     public static final String WEB_SOCKET_KEY = "web_socket_key";
     public static final String IS_STRING_DATA = "is_string_data";
     public static final String DATA_TO_SEND = "data_to_send";
     public static final String LOCAL_TIME = "local_time";
-    public static final String SENSOR_PACKET = "sensor_packet";
+    public static final String SENSOR_PACKET = "sp";
     public static final String IMAGE_NAMES = "image_names";
     public static final String OK_TO_SEND = "ok_to_send";
     public static final String IMAGE_PATH = "image_path";
