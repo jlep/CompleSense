@@ -167,7 +167,12 @@ public class ClientOwnerService extends AbstractGroupService
                 case Constants.SERVICE_MSG_TAKEN_IMG:
                     send2Handler((String) msg.obj);
                     break;
-
+                case Constants.SERVICE_MSG_MASTER_DISCONNECT:
+                    String txt = "Master is gone";
+                    Log.e(TAG, txt);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                    stop();
+                    break;
                 default:
                     super.handleMessage(msg);
             }

@@ -9,12 +9,15 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
+import org.json.JSONException;
+
 import java.net.InetAddress;
 import java.net.URI;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 19.11.2014.
@@ -66,7 +69,7 @@ public class ConnectorWebSocket extends AbsSystemThread
                     Log.e(TAG, e.toString());
                     return;
                 }
-                serviceHandler.updateStatusTxt("Connection with " + uri.toString() + " is established");
+                serviceHandler.updateStatusTxt("Connection with master " + uri.toString() + " is established");
 
                 mWebSocket = webSocket;
                 mWebSocket.setStringCallback(mStringCallback);
@@ -75,7 +78,7 @@ public class ConnectorWebSocket extends AbsSystemThread
                     @Override
                     public void onCompleted(Exception e) {
                         StringBuilder sb = new StringBuilder();
-                        sb.append("Connection with " + uri.toString() + " ends ");
+                        sb.append("Connection with master " + uri.toString() + " ends ");
                         if (e != null){
                             Log.e(TAG, e.toString());
                             sb.append(e.toString());
@@ -83,6 +86,10 @@ public class ConnectorWebSocket extends AbsSystemThread
                         serviceHandler.updateStatusTxt(sb.toString());
                         if (mWebSocket != null)
                             mWebSocket.close();
+                        try {
+                            serviceHandler.send2Handler(SystemUtil.makeJsonDisconnect(mWebSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
+                        } catch (JSONException ex) {
+                        }
                     }
                 });
             }
@@ -97,10 +104,9 @@ public class ConnectorWebSocket extends AbsSystemThread
     @Override
     public void stopThread() {
         Log.i(TAG, "stopThread()");
-        serviceHandler.workerThreads.remove(TAG);
-
         if(mWebSocket!=null)
             mWebSocket.close();
+        serviceHandler.workerThreads.remove(TAG);
     }
 
 }

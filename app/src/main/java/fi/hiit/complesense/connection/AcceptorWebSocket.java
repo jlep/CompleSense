@@ -135,18 +135,22 @@ public class AcceptorWebSocket extends AbsSystemThread
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Connection with client " + SystemUtil.formatWebSocketStr(webSocket) + " ends ");
+                serviceHandler.updateStatusTxt(sb.toString());
                 try {
-                    if (ex != null)
-                        Log.e(TAG, ex.toString());
+                    Log.e(TAG, ex.toString());
+                    sb.append(ex.toString());
                 } finally {
-                    if(webSocket!=null)
-                        webSocket.close();
-                    //serviceHandler.removeFromPeerList(webSocket);
-                    _sockets.remove(webSocket);
                     try {
-                        serviceHandler.send2Handler(SystemUtil.makeJsonDisconnection(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
+                        serviceHandler.send2Handler(SystemUtil.makeJsonDisconnect(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
                     } catch (JSONException e) {
                     }
+                    if(webSocket!=null){
+                        _sockets.remove(webSocket.toString());
+                        webSocket.close();
+                    }
+
                 }
             }
         });

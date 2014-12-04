@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.R;
 import fi.hiit.complesense.audio.AudioStreamClient;
 import fi.hiit.complesense.connection.ConnectorStreaming;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
@@ -46,6 +47,7 @@ import fi.hiit.complesense.ui.TakePhotoActivity;
 import fi.hiit.complesense.util.SensorUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
+import static fi.hiit.complesense.json.JsonSSI.WAV_STREAM_DISCONNECT;
 
 /**
  * Created by rocsea0626 on 31.8.2014.
@@ -84,42 +86,68 @@ public class ClientServiceHandler extends ServiceHandler
     {
         if(super.handleMessage(msg))
         {
-            try
+            if(msg.what == JSON_RESPONSE_BYTES)
             {
-                JSONObject jsonObject = (JSONObject)msg.obj;
-                mServerWebSocket = ((ConnectorWebSocket)workerThreads.get(ConnectorWebSocket.TAG)).getWebSocket();
-                if(mServerWebSocket!=null)
-                {
-                    switch(jsonObject.getInt(COMMAND)){
-                        case JsonSSI.C:
-                            JSONObject sensorTypeList = JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context));
-                            Log.i(TAG, "sensorTypeList: " + sensorTypeList.toString());
-                            mServerWebSocket.send(sensorTypeList.toString());
-                            return true;
-                        case JsonSSI.R:
-                            JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
-                            mTimeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
-                            mStreamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
-                            String txt = "Streaming port: "+ mStreamPort + ", timeDiff: " + mTimeDiff +" ms";
-                            Log.i(TAG, txt);
-                            updateStatusTxt(txt);
+                try{
+                    JSONObject jsonObject = (JSONObject)msg.obj;
+                    mServerWebSocket = ((ConnectorWebSocket)workerThreads.get(ConnectorWebSocket.TAG)).getWebSocket();
+                    if(mServerWebSocket!=null)
+                    {
+                        switch(jsonObject.getInt(COMMAND)){
+                            case JsonSSI.C:
+                                JSONObject sensorTypeList = JsonSSI.makeSensorDiscvoeryRep(SensorUtil.getLocalSensorTypeList(context));
+                                Log.i(TAG, "sensorTypeList: " + sensorTypeList.toString());
+                                mServerWebSocket.send(sensorTypeList.toString());
+                                return true;
+                            case JsonSSI.R:
+                                JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
+                                mTimeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
+                                mStreamPort = jsonObject.getInt(JsonSSI.STREAM_PORT);
+                                String txt = "Streaming port: "+ mStreamPort + ", timeDiff: " + mTimeDiff +" ms";
+                                Log.i(TAG, txt);
+                                updateStatusTxt(txt);
 
-                            startStreamingConnector(sensorConfigJson, mStreamPort, mTimeDiff);
-                            return true;
-                        case JsonSSI.SEND_DATA:
-                            sendImages(jsonObject, mStreamPort);
-                            break;
+                                startStreamingConnector(sensorConfigJson, mStreamPort, mTimeDiff);
+                                return true;
+                            case JsonSSI.SEND_DATA:
+                                sendImages(jsonObject, mStreamPort);
+                                break;
 
-                        default:
-                            Log.i(TAG, "Unknown command...");
-                            break;
+                            default:
+                                Log.i(TAG, "Unknown command...");
+                                break;
+                        }
                     }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    Log.i(TAG, e.toString());
+                }
+                return true;
+            }
+        }
+
+        if(msg.what == JSON_SYSTEM_STATUS)
+        {
+            try{
+                JSONObject jsonObject = (JSONObject)msg.obj;
+                int status = jsonObject.getInt(JsonSSI.SYSTEM_STATUS);
+                switch (status){
+                    case JsonSSI.JSON_STREAM_DISCONNECT:
+                        unregisterSensors();
+                        break;
+                    case WAV_STREAM_DISCONNECT:
+                        if(workerThreads.get(AudioStreamClient.TAG) != null)
+                            workerThreads.get(AudioStreamClient.TAG).stopThread();
+                        break;
+                    default:
+                        Log.i(TAG, context.getString(R.string.unknown_status));
+                        return true;
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-            } catch (IOException e) {
-                Log.i(TAG, e.toString());
             }
+            return true;
         }
 
 
@@ -215,6 +243,11 @@ public class ClientServiceHandler extends ServiceHandler
 
     @Override
     public void stopServiceHandler() {
+        unregisterSensors();
+        super.stopServiceHandler();
+    }
+
+    private void unregisterSensors(){
         if(mLocationDataListener != null){
             Log.i(TAG, "locationManager.removeUpdates");
             LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -225,7 +258,5 @@ public class ClientServiceHandler extends ServiceHandler
             SensorManager sensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
             sensorManager.unregisterListener(mSensorDataListener);
         }
-
-        super.stopServiceHandler();
     }
 }

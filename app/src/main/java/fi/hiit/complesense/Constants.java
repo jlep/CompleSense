@@ -1,6 +1,7 @@
 package fi.hiit.complesense;
 
 import android.os.Environment;
+import android.os.Message;
 
 import org.json.JSONObject;
 
@@ -79,6 +80,7 @@ public class Constants
     public static final int SERVICE_MSG_STEREO_IMG_REQ = 50;
     public static final int SERVICE_MSG_TAKEN_IMG = 52;
 
+    public static final int SERVICE_MSG_MASTER_DISCONNECT = 110;
 
     /**
      * Audio setup
@@ -105,6 +107,7 @@ public class Constants
      */
     public static final int SAMPLE_50_HZ = 50;
     public static final int JSON_STR_BUF_SIZE = 4094;
+
 
     public static float[] dummyValues = {-1.0f,-1.0f,-1.0f};
 }

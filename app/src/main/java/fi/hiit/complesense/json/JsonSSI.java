@@ -26,6 +26,8 @@ public class JsonSSI
     public static final short SEND_DATA = 0x30; //Send data
 
     public static final int DISCONNECT = 0x80;
+    public static final int WAV_STREAM_DISCONNECT = 0x81;
+    public static final int JSON_STREAM_DISCONNECT = 0x82;
 
     public static final String COMMAND = "command";
     public static final String DESC = "description";
@@ -52,7 +54,6 @@ public class JsonSSI
     public static final String IMAGE_ORIENTATIONS = "image_orientations";
     public static final String IMAGE_NAME = "image_name";
     public static final String SYSTEM_STATUS = "system_status";
-
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
     {

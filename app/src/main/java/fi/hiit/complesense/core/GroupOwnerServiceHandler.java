@@ -3,6 +3,7 @@ package fi.hiit.complesense.core;
 import android.content.Context;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import fi.hiit.complesense.Constants;
+import fi.hiit.complesense.R;
 import fi.hiit.complesense.connection.AcceptorStreaming;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.json.JsonSSI;
@@ -34,9 +36,8 @@ import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 public class GroupOwnerServiceHandler extends ServiceHandler
 {
     private static final String TAG = GroupOwnerServiceHandler.class.getSimpleName();
-    private SystemConfig sysConfig = null;
-    //private Timer timer;
 
+    private SystemConfig sysConfig = null;
     private final String cloudSocketAddrStr = "http://" + Constants.URL_CLOUD +
             ":" + Constants.CLOUD_SERVER_PORT + "/";
     private Map<String, ArrayList<Integer>> availableSensors = new HashMap<String, ArrayList<Integer>>();
@@ -44,6 +45,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
 
     public GroupOwnerServiceHandler(Messenger serviceMessenger, Context context) throws IOException, JSONException {
+
         super(serviceMessenger, TAG, context, true, null, 0);
         sysConfig = SystemUtil.loadConfigFile();
         if(sysConfig!=null)
@@ -55,48 +57,65 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             }
             updateStatusTxt("Required sensors: " + reqSensorTypes.toString());
         }
-
-//        timer = new Timer();
-        //LocalRecThread localRecThread = new LocalRecThread(this);
-        //eventHandlingThreads.put(LocalRecThread.TAG, localRecThread);
     }
 
     @Override
     public boolean handleMessage(Message msg)
     {
-        if(super.handleMessage(msg)){
+        if(super.handleMessage(msg))
+        {
             try{
                 JSONObject jsonObject = (JSONObject)msg.obj;
                 Log.i(TAG, "jsonObject: " + jsonObject.toString());
                 String webSocketKey = jsonObject.getString(JsonSSI.WEB_SOCKET_KEY);
                 WebSocket webSocket = ((AcceptorWebSocket)workerThreads.get(AcceptorWebSocket.TAG)).getSocket(webSocketKey);
 
-                if(webSocket!=null)
+                if(msg.what == JSON_RESPONSE_BYTES)
                 {
-                    switch(jsonObject.getInt(COMMAND))
+                    if(webSocket!=null)
                     {
-                        case JsonSSI.RTT_LAST:
-                            webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
-                            return true;
-                        case JsonSSI.NEW_CONNECTION:
-                            addNewConnection(webSocket);
-                            JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
-                                    Constants.RTT_ROUNDS);
-                            webSocket.ping(jsonRtt.toString());
-                            return true;
+                        switch(jsonObject.getInt(COMMAND))
+                        {
+                            case JsonSSI.RTT_LAST:
+                                webSocket.send(JsonSSI.makeSensorDiscvoeryReq().toString());
+                                return true;
+                            case JsonSSI.NEW_CONNECTION:
+                                addNewConnection(webSocket);
+                                JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
+                                        Constants.RTT_ROUNDS);
+                                webSocket.ping(jsonRtt.toString());
+                                return true;
 
-                        case JsonSSI.NEW_STREAM_CONNECTION:
-                            return true;
+                            case JsonSSI.NEW_STREAM_CONNECTION:
+                                return true;
 
-                        case JsonSSI.N:
-                            handleSensorTypesReply(jsonObject, webSocket);
-                            startStreamingServer(webSocket, indexStreamServer++);
-                            return true;
+                            case JsonSSI.N:
+                                handleSensorTypesReply(jsonObject, webSocket);
+                                startStreamingServer(webSocket, indexStreamServer++);
+                                return true;
+                            default:
+                                Log.i(TAG, "Unknown command...");
+                                return false;
+                        }
+                    }
+                }
+
+                if(msg.what == JSON_SYSTEM_STATUS){
+                    int status = jsonObject.getInt(JsonSSI.SYSTEM_STATUS);
+                    switch (status){
+                        case JsonSSI.DISCONNECT:
+                            removeFromPeerList(webSocketKey);
+                            String key = stopStreamingAcceptor(webSocketKey);
+
+                            String txt = "Stop " + key;
+                            Log.i(TAG, txt);
+                            updateStatusTxt(txt);
                         default:
-                            Log.i(TAG, "Unknown command...");
+                            Log.i(TAG, context.getString(R.string.unknown_status));
                             return false;
                     }
                 }
+
             } catch (JSONException e) {
                 Log.i(TAG, e.toString());
             }catch (IOException e) {
@@ -104,6 +123,15 @@ public class GroupOwnerServiceHandler extends ServiceHandler
             }
         }
         return false;
+    }
+
+    private String stopStreamingAcceptor(String webSocketKey) {
+        String str = AcceptorStreaming.TAG + ":" +webSocketKey;
+        for(String key : workerThreads.keySet()){
+            if(key.equals(str))
+                return key;
+        }
+        return null;
     }
 
     private void handleSensorTypesReply(JSONObject jsonObject, WebSocket webSocket) throws JSONException

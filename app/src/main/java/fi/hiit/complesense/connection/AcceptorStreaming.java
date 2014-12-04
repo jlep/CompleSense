@@ -44,10 +44,11 @@ import fi.hiit.complesense.util.SystemUtil;
  * Created by hxguo on 27.11.2014.
  */
 public class AcceptorStreaming extends AbsSystemThread implements CompletedCallback {
-    private static final String TAG = AcceptorStreaming.class.getSimpleName();
+    public static final String TAG = AcceptorStreaming.class.getSimpleName();
 
     private final int mStreamPort;
     private final CountDownLatch latch;
+    private final WebSocket mWebSocket;
     private DataProcessingThread mWavProcessThread = null;
     private DataProcessingThread mJsonProcessThread = null;
     private AsyncHttpServer httpServer = new AsyncHttpServer();
@@ -60,6 +61,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         this.latch = latch;
         mStreamPort = Constants.STREAM_SERVER_PORT + serverIndex;
         httpServer.setErrorCallback(this);
+        mWebSocket = webSocket;
 
         if(sensorTypes.remove(SensorUtil.SENSOR_MIC)){
             Set<Integer> wav = new HashSet<Integer>();
@@ -90,6 +92,10 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
     {
         if(httpServer!=null)
             httpServer.stop();
+        if(mWavProcessThread != null)
+            mWavProcessThread.stopThread();
+        if(mJsonProcessThread != null)
+            mJsonProcessThread.stopThread();
     }
 
     @Override
@@ -98,7 +104,7 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
         String txt = "Start AcceptorStreaming at port "+ mStreamPort +" thread id: " + Thread.currentThread().getId();
         Log.e(TAG, txt);
         serviceHandler.updateStatusTxt(txt);
-        serviceHandler.workerThreads.put(TAG + ":" +mStreamPort, this);
+        serviceHandler.workerThreads.put(TAG + ":" +mWebSocket.toString(), this);
 
         httpServer.listen(mStreamPort);
         if(mWavProcessThread != null)
@@ -148,7 +154,10 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                     } finally {
                         if(mWebSocket!=null)
                             mWebSocket.close();
-                        serviceHandler.removeFromPeerList(mWebSocket);
+                        if(mDataProcessThread!=null && mDataProcessThread.isAlive()){
+                            mDataProcessThread.stopThread();
+                        }
+
                     }
                 }
             });
@@ -205,7 +214,6 @@ public class AcceptorStreaming extends AbsSystemThread implements CompletedCallb
                     } finally {
                         if(webSocket!=null)
                             webSocket.close();
-                        serviceHandler.removeFromPeerList(webSocket);
                     }
                 }
             });

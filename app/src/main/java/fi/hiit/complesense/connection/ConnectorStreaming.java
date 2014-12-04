@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.img.ImageWebSocketServer;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 27.11.2014.
@@ -89,7 +91,6 @@ public class ConnectorStreaming extends AbsSystemThread
                         serviceHandler.updateStatusTxt(str);
                         Log.i(TAG, str);
                         mJsonWebSocket = webSocket;
-                        serviceHandler.addNewConnection(mJsonWebSocket);
 
                         mJsonWebSocket.setStringCallback(mStringCallback);
                         mJsonWebSocket.setDataCallback(mDataCallback);
@@ -103,18 +104,24 @@ public class ConnectorStreaming extends AbsSystemThread
                                     sb.append(e.toString());
                                 }
                                 serviceHandler.updateStatusTxt(sb.toString());
-                                if(mJsonWebSocket!=null)
+                                if(mJsonWebSocket!=null){
                                     mJsonWebSocket.close();
-                                serviceHandler.removeFromPeerList(mJsonWebSocket);
+                                    try {
+                                        serviceHandler.send2Handler(SystemUtil.makeJsonJsonStreamDisconnet(mJsonWebSocket).toString()
+                                                ,ServiceHandler.JSON_SYSTEM_STATUS);
+                                    } catch (JSONException e1) {
+                                    }
+                                }
                             }
                         });
+
                     }
                 });
         AsyncHttpClient.getDefaultInstance().websocket(wavStreamUri.toString(),
                 Constants.WEB_PROTOCOL, new AsyncHttpClient.WebSocketConnectCallback() {
 
                     @Override
-                    public void onCompleted(Exception e, WebSocket webSocket) {
+                    public void onCompleted(Exception e, final WebSocket webSocket) {
                         Log.i(TAG, "onCompleted(" + wavStreamUri.toString() + ")");
                         if (e != null) {
                             Log.e(TAG, e.toString());
@@ -125,7 +132,6 @@ public class ConnectorStreaming extends AbsSystemThread
                         Log.i(TAG, str);
 
                         mWavWebSocket = webSocket;
-                        serviceHandler.addNewConnection(mWavWebSocket);
 
                         mWavWebSocket.setStringCallback(mStringCallback);
                         mWavWebSocket.setDataCallback(mDataCallback);
@@ -139,9 +145,15 @@ public class ConnectorStreaming extends AbsSystemThread
                                     sb.append(e.toString());
                                 }
                                 serviceHandler.updateStatusTxt(sb.toString());
-                                if(mWavWebSocket!=null)
+                                if(mWavWebSocket!=null){
                                     mWavWebSocket.close();
-                                serviceHandler.removeFromPeerList(mWavWebSocket);
+                                    try {
+                                        serviceHandler.send2Handler(SystemUtil.makeJsonWavStreamDisconnet(mWavWebSocket).toString()
+                                                ,ServiceHandler.JSON_SYSTEM_STATUS);
+                                    } catch (JSONException e1) {
+                                    }
+                                }
+
                             }
                         });
                     }

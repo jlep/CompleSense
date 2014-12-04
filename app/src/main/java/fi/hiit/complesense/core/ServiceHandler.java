@@ -45,7 +45,6 @@ public class ServiceHandler extends HandlerThread
     private Handler handler;
     protected Map<String, AliveConnection> peerList; // Store all the alive connections
 
-    //public final SensorUtil sensorUtil;
     public final long delay;
     private boolean isGroupOwner;
     public ConcurrentMap<String, AbsSystemThread> workerThreads;
@@ -98,7 +97,7 @@ public class ServiceHandler extends HandlerThread
             ifSendToSubClass = true;
         if(msg.what == JSON_SYSTEM_STATUS){
             try {
-                handleSystemStatus((JSONObject)msg.obj);
+                ifSendToSubClass = handleSystemStatus((JSONObject)msg.obj);
             } catch (JSONException e) {
                 Log.i(TAG, e.toString());
             }
@@ -106,16 +105,23 @@ public class ServiceHandler extends HandlerThread
         return ifSendToSubClass;
     }
 
-    protected void handleSystemStatus(JSONObject jsonObject) throws JSONException {
+    protected boolean handleSystemStatus(JSONObject jsonObject) throws JSONException {
         int status = jsonObject.getInt(JsonSSI.SYSTEM_STATUS);
 
-        switch (status){
-            case JsonSSI.DISCONNECT:
-                break;
-            default:
-                Log.i(TAG, context.getString(R.string.unknown_status));
-                break;
+        if(status == JsonSSI.DISCONNECT){
+            if(!isGroupOwner){
+                // shutdown all connetion
+                Message msg = Message.obtain(null,
+                        Constants.SERVICE_MSG_MASTER_DISCONNECT);
+                try {
+                    serviceMessenger.send(msg);
+                } catch (RemoteException e) {
+                    Log.e(TAG, e.toString());
+                }
+                return false;
+            }
         }
+        return true;
     }
 
     public Map<String, AliveConnection> getPeerList()
@@ -162,7 +168,7 @@ public class ServiceHandler extends HandlerThread
         quit();
     }
 
-    public void addNewConnection(WebSocket webSocket)
+    protected void addNewConnection(WebSocket webSocket)
     {
         String str = "addNewConnection("+ webSocket.toString() +")";
         Log.i(TAG,str);
@@ -171,12 +177,12 @@ public class ServiceHandler extends HandlerThread
         peerList.put(webSocket.toString(), aliveConnection);
     }
 
-    public void removeFromPeerList(WebSocket webSocket)
+    protected void removeFromPeerList(String webSocketStr)
     {
-        String str = "removeFromPeerList("+ webSocket.toString() +")";
+        String str = "removeFromPeerList("+ webSocketStr +")";
         Log.i(TAG,str);
         updateStatusTxt(str);
-        peerList.remove(webSocket.toString());
+        peerList.remove(webSocketStr);
     }
 
     public void send2Handler(String data, int messageType){

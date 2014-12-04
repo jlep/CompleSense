@@ -239,7 +239,7 @@ public class SystemUtil {
 
     public static int getPort(String socketAddrStr)
     {
-        int port = Integer.parseInt(socketAddrStr.substring(socketAddrStr.lastIndexOf(":")+1));
+        int port = Integer.parseInt(socketAddrStr.substring(socketAddrStr.lastIndexOf(":") + 1));
         return port;
     }
 
@@ -411,10 +411,24 @@ public class SystemUtil {
         return 1024;
     }
 
-    public static JSONObject makeJsonDisconnection(WebSocket webSocket) throws JSONException {
+    public static JSONObject makeJsonDisconnect(WebSocket webSocket) throws JSONException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.DISCONNECT);
         jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-        return null;
+        return jsonObject;
+    }
+
+    public static JSONObject makeJsonWavStreamDisconnet(WebSocket webSocket) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.WAV_STREAM_DISCONNECT);
+        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
+        return jsonObject;
+    }
+
+    public static JSONObject makeJsonJsonStreamDisconnet(WebSocket webSocket) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.JSON_STREAM_DISCONNECT);
+        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
+        return jsonObject;
     }
 }

@@ -128,7 +128,7 @@ public class DataProcessingThread extends AbsSystemThread {
         }catch (IOException e) {
             Log.i(TAG, e.toString());
         }finally {
-            Log.i(TAG, "Exit loop");
+            Log.i(TAG, "DataProcessingThread exits loop");
             try {
                 if(fos!=null)
                     fos.close();
