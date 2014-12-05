@@ -107,7 +107,7 @@ public class ConnectorStreaming extends AbsSystemThread
                                 if(mJsonWebSocket!=null){
                                     mJsonWebSocket.close();
                                     try {
-                                        serviceHandler.send2Handler(SystemUtil.makeJsonJsonStreamDisconnet(mJsonWebSocket).toString()
+                                        serviceHandler.send2Handler(JsonSSI.makeJsonJsonStreamDisconnet(mJsonWebSocket).toString()
                                                 ,ServiceHandler.JSON_SYSTEM_STATUS);
                                     } catch (JSONException e1) {
                                     }
@@ -148,7 +148,7 @@ public class ConnectorStreaming extends AbsSystemThread
                                 if(mWavWebSocket!=null){
                                     mWavWebSocket.close();
                                     try {
-                                        serviceHandler.send2Handler(SystemUtil.makeJsonWavStreamDisconnet(mWavWebSocket).toString()
+                                        serviceHandler.send2Handler(JsonSSI.makeJsonWavStreamDisconnet(mWavWebSocket).toString()
                                                 ,ServiceHandler.JSON_SYSTEM_STATUS);
                                     } catch (JSONException e1) {
                                     }

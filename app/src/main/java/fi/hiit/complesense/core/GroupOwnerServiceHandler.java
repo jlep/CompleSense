@@ -130,7 +130,7 @@ public class GroupOwnerServiceHandler extends ServiceHandler
     }
 
     private void requestBatteryLevel(WebSocket webSocket) throws JSONException {
-        JSONObject jsonObject = SystemUtil.makeJsonBatteryQuery();
+        JSONObject jsonObject = JsonSSI.makeJsonBatteryQuery();
         webSocket.send(jsonObject.toString());
     }
 
@@ -145,14 +145,14 @@ public class GroupOwnerServiceHandler extends ServiceHandler
 
         if(currentSecondaryMaster == null){
             if(!potentialNewSecondaryMaster.isLocal())
-                potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+                potentialNewSecondaryMaster.getWebSocket().send(JsonSSI.makeJsonAssignSecondaryMaster(true).toString());
         }
 
 
         if(currentSecondaryMaster != null && potentialNewSecondaryMaster != null){
             if(currentSecondaryMaster.getBatteryLevel() < potentialNewSecondaryMaster.getBatteryLevel()){
-                currentSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(false).toString());
-                potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+                currentSecondaryMaster.getWebSocket().send(JsonSSI.makeJsonAssignSecondaryMaster(false).toString());
+                potentialNewSecondaryMaster.getWebSocket().send(JsonSSI.makeJsonAssignSecondaryMaster(true).toString());
             }
 
         }

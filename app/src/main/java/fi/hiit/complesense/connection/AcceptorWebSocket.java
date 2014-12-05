@@ -145,7 +145,7 @@ public class AcceptorWebSocket extends AbsSystemThread
                     serviceHandler.updateStatusTxt(sb.toString());
                 } finally {
                     try {
-                        serviceHandler.send2Handler(SystemUtil.makeJsonDisconnect(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
+                        serviceHandler.send2Handler(JsonSSI.makeJsonDisconnect(webSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
                     } catch (JSONException e) {
                     }
                     if(webSocket!=null){

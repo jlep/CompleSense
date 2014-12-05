@@ -17,6 +17,7 @@ import java.net.URI;
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.core.AbsSystemThread;
 import fi.hiit.complesense.core.ServiceHandler;
+import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -87,7 +88,7 @@ public class ConnectorWebSocket extends AbsSystemThread
                         if (mWebSocket != null)
                             mWebSocket.close();
                         try {
-                            serviceHandler.send2Handler(SystemUtil.makeJsonDisconnect(mWebSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
+                            serviceHandler.send2Handler(JsonSSI.makeJsonDisconnect(mWebSocket).toString(),ServiceHandler.JSON_SYSTEM_STATUS);
                         } catch (JSONException ex) {
                         }
                     }

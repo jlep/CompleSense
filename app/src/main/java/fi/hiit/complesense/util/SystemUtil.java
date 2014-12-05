@@ -414,27 +414,6 @@ public class SystemUtil {
         return 1024;
     }
 
-    public static JSONObject makeJsonDisconnect(WebSocket webSocket) throws JSONException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.DISCONNECT);
-        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-        return jsonObject;
-    }
-
-    public static JSONObject makeJsonWavStreamDisconnet(WebSocket webSocket) throws JSONException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.WAV_STREAM_DISCONNECT);
-        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-        return jsonObject;
-    }
-
-    public static JSONObject makeJsonJsonStreamDisconnet(WebSocket webSocket) throws JSONException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.JSON_STREAM_DISCONNECT);
-        jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
-        return jsonObject;
-    }
-
     public static float getBatteryLevel(Context context)
     {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -465,18 +444,4 @@ public class SystemUtil {
         return batteryPct;
     }
 
-    public static JSONObject makeJsonBatteryQuery() throws JSONException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(JsonSSI.COMMAND, JsonSSI.Q);
-        jsonObject.put(JsonSSI.QUERY_CONTENT, JsonSSI.BATTERY_LEVEL);
-        return jsonObject;
-    }
-
-    public static JSONObject makeJsonAssignSecondaryMaster(boolean isSecondaryMaster) throws JSONException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(JsonSSI.COMMAND, JsonSSI.S);
-        jsonObject.put(JsonSSI.CONF_CONTENT, JsonSSI.SECONDARY_MASTER);
-        jsonObject.put(JsonSSI.CONF_VAL, isSecondaryMaster);
-        return jsonObject;
-    }
 }
