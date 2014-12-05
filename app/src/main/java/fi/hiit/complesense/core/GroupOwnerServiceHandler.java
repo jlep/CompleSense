@@ -3,7 +3,6 @@ package fi.hiit.complesense.core;
 import android.content.Context;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -12,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +25,7 @@ import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.connection.AcceptorStreaming;
 import fi.hiit.complesense.connection.AcceptorWebSocket;
+import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.util.SystemUtil;
 
@@ -81,11 +82,14 @@ public class GroupOwnerServiceHandler extends ServiceHandler
                                 return true;
                             case JsonSSI.NEW_CONNECTION:
                                 addNewConnection(webSocket);
+                                requestBatteryLevel(webSocket);
                                 JSONObject jsonRtt = JsonSSI.makeRttQuery(System.currentTimeMillis(),
                                         Constants.RTT_ROUNDS);
                                 webSocket.ping(jsonRtt.toString());
                                 return true;
-
+                            case JsonSSI.A:
+                                reassignSecondaryMaster(jsonObject, webSocket);
+                                return true;
                             case JsonSSI.NEW_STREAM_CONNECTION:
                                 return true;
 
@@ -124,6 +128,48 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         }
         return false;
     }
+
+    private void requestBatteryLevel(WebSocket webSocket) throws JSONException {
+        JSONObject jsonObject = SystemUtil.makeJsonBatteryQuery();
+        webSocket.send(jsonObject.toString());
+    }
+
+    private void reassignSecondaryMaster(JSONObject jsonObject, WebSocket webSocket) throws JSONException {
+        double battery = jsonObject.getDouble(JsonSSI.BATTERY_LEVEL);
+        boolean isClientLocal = jsonObject.getBoolean(JsonSSI.IS_CLIENT_LOCAL);
+
+        AliveConnection currentSecondaryMaster = findCurrentSecondaryMaster();
+        AliveConnection potentialNewSecondaryMaster = peerList.get(webSocket.toString());
+        potentialNewSecondaryMaster.setBatteryLevel(battery);
+        potentialNewSecondaryMaster.setLocal(isClientLocal);
+
+        if(currentSecondaryMaster == null)
+            potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+
+        if(currentSecondaryMaster != null && potentialNewSecondaryMaster != null){
+            if(currentSecondaryMaster.getBatteryLevel() < potentialNewSecondaryMaster.getBatteryLevel()){
+                currentSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(false).toString());
+                potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+            }
+
+        }
+
+    }
+
+    private AliveConnection findCurrentSecondaryMaster() {
+        double maxBattery = Double.MIN_VALUE;
+        AliveConnection secondaryMaster = null;
+        for(AliveConnection ac : peerList.values()){
+            if(ac.isLocal())
+                continue;
+            if(ac.getBatteryLevel() > maxBattery){
+                maxBattery = ac.getBatteryLevel();
+                secondaryMaster = ac;
+            }
+        }
+        return secondaryMaster;
+    }
+
 
     private String stopStreamingAcceptor(String webSocketKey) {
         String str = AcceptorStreaming.TAG + ":" +webSocketKey;

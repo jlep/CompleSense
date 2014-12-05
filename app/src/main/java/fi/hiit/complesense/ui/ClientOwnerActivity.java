@@ -39,7 +39,10 @@ import fi.hiit.complesense.util.SystemUtil;
 public class ClientOwnerActivity extends AbstractGroupActivity
 {
 
-    private static final String TAG = "ClientOwnerActivity";
+    public static final String TAG = "ClientOwnerActivity";
+    public static final int START_AS_UNKNOWN = 0;
+    public static final int START_AS_MASTER = 2;
+    public static final int START_AS_CIENT = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -56,17 +59,14 @@ public class ClientOwnerActivity extends AbstractGroupActivity
         stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(serviceMessenger!=null)
-                {
-                    try
-                    {
+                if(serviceMessenger!=null) {
+                    try {
                         Message msg = Message.obtain(null,
                                 Constants.SERVICE_MSG_STOP);
                         msg.replyTo = uiMessenger;
                         serviceMessenger.send(msg);
                     }
-                    catch (RemoteException e)
-                    {
+                    catch (RemoteException e){
                     }
                     finish();
                 }
@@ -84,8 +84,7 @@ public class ClientOwnerActivity extends AbstractGroupActivity
             {
                 serviceMessenger = new Messenger(service);
                 Log.i(TAG, "onServiceConnected()");
-                try
-                {
+                try {
                     Message msg = Message.obtain(null,
                             Constants.SERVICE_MSG_INIT_SERVICE);
                     msg.replyTo = uiMessenger;
@@ -158,13 +157,15 @@ public class ClientOwnerActivity extends AbstractGroupActivity
 
     class IncomingHandler extends Handler implements Serializable
     {
+        private int startState = START_AS_UNKNOWN;
+
         @Override
         public void handleMessage(Message msg)
         {
             switch (msg.what)
             {
                 case Constants.MSG_SERVICE_INIT_DONE:
-                    startServiceWork();
+                    startServiceWork(startState);
                     break;
 
                 case Constants.MSG_UPDATE_STATUS_TXT:
@@ -177,12 +178,9 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                 case Constants.MSG_DNS_SERVICE_FOUND:
                     updateServersListFragment(msg);
                     break;
-
-
                 case Constants.MSG_SELF_INFO_UPDATE:
                     updateSelfInfoFragment(msg);
                     break;
-
                 case Constants.MSG_TAKE_IMAGE:
                     appendStatus("Receive image taking request");
                     //imageUri = SystemUtil.getOutputMediaFileUri(Constants.MEDIA_TYPE_IMAGE);
@@ -191,8 +189,52 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
 
+                case Constants.MSG_MASTER_DIES:
+                    String txt = "Master is gone";
+                    Log.e(TAG, txt);
+                    appendStatus(txt);
+                    boolean startAsMaster = (Boolean)msg.obj;
+                    startState = (startAsMaster) ? START_AS_MASTER:START_AS_CIENT;
+                    restartService();
+
+                    break;
+
                 default:
                     super.handleMessage(msg);
+            }
+        }
+    }
+
+    private void restartService() {
+        RestartServiceRunnable runnable = new RestartServiceRunnable();
+        new Thread(runnable).start();
+
+    }
+
+    class RestartServiceRunnable implements Runnable{
+
+        @Override
+        public void run() {
+            doUnbindService();
+            stopService(new Intent(getApplicationContext(), ClientOwnerService.class));
+
+            try {
+                for(int i=0;i<10;i++){
+                    appendStatus(getString(R.string.restart_serivce));
+                    Thread.sleep(10000);
+                    String serviceName = ClientOwnerService.class.getCanonicalName();
+                    if(!SystemUtil.isServiceRunning(serviceName, getApplicationContext()))
+                    {
+                        Log.i(TAG,"service is not running");
+                        startService(new Intent(getApplicationContext(), ClientOwnerService.class));
+                        Thread.sleep(1000);
+                        doBindService();
+                        break;
+                    }
+                    else
+                        Log.i(TAG,"service is running");
+                }
+            } catch (InterruptedException e) {
             }
         }
     }

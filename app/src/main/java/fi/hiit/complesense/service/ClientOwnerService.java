@@ -3,23 +3,20 @@ package fi.hiit.complesense.service;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +26,6 @@ import java.util.concurrent.Future;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
-import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.core.ClientServiceHandler;
 import fi.hiit.complesense.core.CompleSenseDevice;
 import fi.hiit.complesense.core.GroupBroadcastReceiver;
@@ -38,7 +34,6 @@ import fi.hiit.complesense.core.ServiceHandler;
 import fi.hiit.complesense.core.WifiConnectionManager;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.ui.ClientOwnerActivity;
-import fi.hiit.complesense.ui.DemoActivity;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -59,13 +54,16 @@ public class ClientOwnerService extends AbstractGroupService
                         String fullDomain, Map record, WifiP2pDevice device)
                 {
                     Log.i(TAG, "DnsSdTxtRecord available from " + device.deviceAddress +": " + record.toString());
-                    //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
+                    String txt = device.deviceName + " is "+ record.get(Constants.TXTRECORD_PROP_VISIBILITY);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                    Log.i(TAG, txt);
                     //SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
                     //        Constants.TXTRECORD_SENSOR_TYPE_LIST));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
-                            Constants.TXTRECORD_NETWORK_INFO));
-                    float batteryDiff = getBatteryLevel() - Float.parseFloat((String)record.get(Constants.TXTRECORD_BATTERY_LEVEL));
-                    SystemUtil.sendStatusTextUpdate(uiMessenger, " battery diff with " + device.deviceAddress + " is :" +batteryDiff);
+                    //SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
+                    //        Constants.TXTRECORD_NETWORK_INFO));
+                    float batteryDiff = SystemUtil.getBatteryLevel(getApplicationContext())
+                            - Float.parseFloat((String)record.get(Constants.TXTRECORD_BATTERY_LEVEL));
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, "Battery diff with " + device.deviceAddress + " is :" +batteryDiff);
                     discoveredDevices.put(device.deviceAddress, new CompleSenseDevice(device, record) );
                     //Log.i(TAG,"compleSenseDevices.size():" + nearbyDevices.size() );
 
@@ -79,16 +77,23 @@ public class ClientOwnerService extends AbstractGroupService
                             SystemUtil.sendStatusTextUpdate(uiMessenger, "Cannot find valid group owner");
                             return;
                         }
-                        Log.i(TAG,"Group Owner Addr: " + groupOwner.deviceAddress + " own addr: " + getDevice().deviceAddress);
+                        txt = "Group Owner Addr: " + groupOwner.deviceAddress + " own addr: " + getDevice().deviceAddress;
+                        Log.i(TAG,txt);
+                        SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
 
-                        if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) )
-                        {
-                            Log.i(TAG,"Try to connect as group owner with highest priority");
+                        if(groupOwner.deviceAddress.equals(mDevice.deviceAddress) ) {
+                            txt = "Try to connect as group owner with highest priority";
+                            Log.i(TAG, txt);
+                            SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+
                             mWifiConnManager.connectP2p(device, 10);
                         }
                         else
                         {
-                            Log.i(TAG,"Try to connect as group client");
+                            txt = "Try to connect as group client";
+                            Log.i(TAG, txt);
+                            SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+
                             mWifiConnManager.connectP2p(groupOwner, 2);
                             mWifiConnManager.clearServiceAdvertisement();
                         }
@@ -123,11 +128,11 @@ public class ClientOwnerService extends AbstractGroupService
         @Override
         public void handleMessage(Message msg)
         {
+            String txt;
             switch (msg.what)
             {
                 case Constants.SERVICE_MSG_INIT_SERVICE:
-                    if(!isInitialized)
-                    {
+                    if(!isInitialized) {
                         uiMessenger = msg.replyTo;
                         SystemUtil.sendSelfInfoUpdate(uiMessenger, mDevice);
                         mWifiConnManager.setUiMessenger(uiMessenger);
@@ -138,7 +143,8 @@ public class ClientOwnerService extends AbstractGroupService
 
                     break;
                 case Constants.SERVICE_MSG_START:
-                    start();
+                    int state = msg.arg1;
+                    start(state);
                     break;
                 case Constants.SERVICE_MSG_STOP:
                     stopSelf();
@@ -167,17 +173,66 @@ public class ClientOwnerService extends AbstractGroupService
                 case Constants.SERVICE_MSG_TAKEN_IMG:
                     send2Handler((String) msg.obj);
                     break;
-                case Constants.SERVICE_MSG_MASTER_DISCONNECT:
-                    String txt = "Master is gone";
+                case Constants.SERVICE_MSG_SECONDARY_MASTER:
+                    mIsSecondaryMaster = (msg.arg1==1) ? true:false;
+                    if(mIsSecondaryMaster)
+                        txt = getString(R.string.new_secondary_master);
+                    else
+                        txt = getString(R.string.get_new_secondary_master);
                     Log.e(TAG, txt);
                     SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
-                    stop();
+                    break;
+                case Constants.SERVICE_MSG_MASTER_DISCONNECT:
+                    //SystemUtil.sendMasterDies(uiMessenger, mIsSecondaryMaster);
+                    restartLocalService();
                     break;
                 default:
                     super.handleMessage(msg);
             }
         }
     }
+
+    private void restartLocalService() {
+        if(serviceHandler!=null)
+            serviceHandler.stopServiceHandler();
+
+        if(localClientServiceHandler !=null)
+            localClientServiceHandler.stopServiceHandler();
+
+        mDevice = null;
+        groupOwner = null;
+        serviceHandler = null;
+        localClientServiceHandler = null;
+
+        if(mIsSecondaryMaster){
+            mIsSecondaryMaster = false;
+            Map<String, String> record =  SystemUtil.generateTxtRecord(this);
+            WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(WifiConnectionManager.SERVICE_INSTANCE,
+                    WifiConnectionManager.SERVICE_REG_TYPE, record);
+            mWifiConnManager.updateLocalService(serviceInfo);
+            mWifiConnManager.findService(servListener, txtListener);
+        }else{
+            new FindServiceThread().start();
+        }
+    }
+
+    class FindServiceThread extends Thread{
+
+        @Override
+        public void run() {
+            long sleepTime = 2000;
+            try {
+                String txt = "FindServiceThread() in " + sleepTime + " ms";
+                Log.i(TAG, txt);
+                SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            mWifiConnManager.findService();
+        }
+    }
+
 
     public void send2Handler(String imageOrientationsFile){
         //Log.i(TAG, "send2Handler()" + data);
@@ -241,11 +296,30 @@ public class ClientOwnerService extends AbstractGroupService
     }
 
     @Override
-    protected void start()
+    protected void start(int state)
     {
         Log.i(TAG,"start()");
-        if(mWifiConnManager!=null)
-            mWifiConnManager.startRegistrationAndDiscovery(servListener, txtListener);
+        if(mWifiConnManager!=null){
+            String txt = "rebuilding group: ";
+            switch (state){
+                case ClientOwnerActivity.START_AS_UNKNOWN:
+                    mWifiConnManager.startRegistrationAndDiscovery(servListener, txtListener);
+                    break;
+                case ClientOwnerActivity.START_AS_CIENT:
+                    txt += context.getString(R.string.finding_new_master);
+                    Log.e(TAG, txt);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                    mWifiConnManager.findService();
+                    break;
+                case ClientOwnerActivity.START_AS_MASTER:
+                    txt += context.getString(R.string.myself_is_new_master);
+                    Log.e(TAG, txt);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                    mWifiConnManager.advertiseLocalService();
+                    break;
+            }
+        }
+
         else
             Log.e(TAG,"mWifiConnManager is null");
 
@@ -262,9 +336,8 @@ public class ClientOwnerService extends AbstractGroupService
         if(localClientServiceHandler !=null)
             localClientServiceHandler.stopServiceHandler();
 
-        if (manager != null && channel != null)
-        {
-            mWifiConnManager.stopGroupOwner();
+        if (mWifiConnManager != null){
+            mWifiConnManager.cancelConnect();
             mWifiConnManager.clearServiceAdvertisement();
         }
 
@@ -273,9 +346,7 @@ public class ClientOwnerService extends AbstractGroupService
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo p2pInfo)
     {
-        Log.i(TAG,"onConnectionInfoAvailable("+ p2pInfo.groupFormed
-                +", "+ p2pInfo.groupOwnerAddress + ", "+ p2pInfo.isGroupOwner +")");
-
+        Log.i(TAG,"onConnectionInfoAvailable("+ p2pInfo.groupFormed +", "+ p2pInfo.groupOwnerAddress + ", "+ p2pInfo.isGroupOwner +")");
         if(mMessenger==null)
             Log.e(TAG,"mMessenger is null");
 
@@ -309,7 +380,7 @@ public class ClientOwnerService extends AbstractGroupService
 
                             if(localHost!=null){
                                 Log.i(TAG, "localhost: " + localHost.toString());
-                                localClientServiceHandler = new ClientServiceHandler(mMessenger, context, localHost, 0);
+                                localClientServiceHandler = new ClientServiceHandler(mMessenger, context, localHost, 0, true);
                                 localClientServiceHandler.start();
                             }
 
@@ -340,9 +411,9 @@ public class ClientOwnerService extends AbstractGroupService
                 if(serviceHandler == null)
                 {
                     mWifiConnManager.clearServiceAdvertisement();
-
+                    //mWifiConnManager.removeLocalService();
                     //serviceHandler = new ClientManager(mMessenger, context, false);
-                    serviceHandler = new ClientServiceHandler(mMessenger, context, p2pInfo.groupOwnerAddress, 0);
+                    serviceHandler = new ClientServiceHandler(mMessenger, context, p2pInfo.groupOwnerAddress, 0, false);
 
                     Log.i(TAG,"GroupOwner InetAddress: " + p2pInfo.groupOwnerAddress.toString());
                     serviceHandler.start();

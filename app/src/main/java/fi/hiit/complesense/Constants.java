@@ -55,6 +55,7 @@ public class Constants
     public static final int MSG_SELF_INFO_UPDATE = 1;
     public static final int MSG_SERVICE_INIT_DONE = 2;
     public static final int MSG_DNS_SERVICE_FOUND = 3;
+    public static final int MSG_MASTER_DIES = 4;
     public static final int MSG_UPDATE_STATUS_TXT = 7;
     public static final int MSG_SERVER_INFO = 8;
     public static final int MSG_CLIENTS_LISTS_UPDATE = 9;
@@ -81,6 +82,7 @@ public class Constants
     public static final int SERVICE_MSG_TAKEN_IMG = 52;
 
     public static final int SERVICE_MSG_MASTER_DISCONNECT = 110;
+    public static final int SERVICE_MSG_SECONDARY_MASTER = 109;
 
     /**
      * Audio setup

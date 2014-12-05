@@ -2,7 +2,6 @@ package fi.hiit.complesense.service;
 
 import android.app.Service;
 import android.content.Intent;
-import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -10,16 +9,12 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
-import com.koushikdutta.async.http.WebSocket;
-
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
@@ -205,7 +200,7 @@ public class TestingService extends AbstractGroupService
                 int delay = (int)(1000 * Math.random());
 
                 ClientServiceHandler client = new ClientServiceHandler(mMessenger,
-                        getApplicationContext(), localHost, delay);
+                        getApplicationContext(), localHost, delay, true);
                 clientsList.add(client);
             }
 
@@ -252,7 +247,7 @@ public class TestingService extends AbstractGroupService
 
 
     @Override
-    protected void start()
+    protected void start(int state)
     {
 
     }

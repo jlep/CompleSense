@@ -7,6 +7,7 @@ import android.location.LocationManager;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.koushikdutta.async.http.WebSocket;
@@ -45,6 +46,7 @@ import fi.hiit.complesense.connection.ImageSender;
 import fi.hiit.complesense.json.JsonSSI;
 import fi.hiit.complesense.ui.TakePhotoActivity;
 import fi.hiit.complesense.util.SensorUtil;
+import fi.hiit.complesense.util.SystemUtil;
 
 import static fi.hiit.complesense.json.JsonSSI.COMMAND;
 import static fi.hiit.complesense.json.JsonSSI.WAV_STREAM_DISCONNECT;
@@ -57,6 +59,7 @@ public class ClientServiceHandler extends ServiceHandler
     private static final String TAG = "ClientServiceHandler";
 
     private final InetAddress ownerAddr;
+    private final boolean mIsLocal;
     private WebSocket mServerWebSocket;
     private LocationListener mLocationDataListener = null;
     private Handler mHandler;
@@ -68,11 +71,12 @@ public class ClientServiceHandler extends ServiceHandler
 
     public ClientServiceHandler(Messenger serviceMessenger,
                                 Context context,
-                                InetAddress ownerAddr, int delay)
+                                InetAddress ownerAddr, int delay, boolean isLocal)
 
     {
         super(serviceMessenger, TAG, context, false, ownerAddr, delay);
         this.ownerAddr = ownerAddr;
+        this.mIsLocal = isLocal;
     }
 
     @Override
@@ -108,6 +112,24 @@ public class ClientServiceHandler extends ServiceHandler
                                 updateStatusTxt(txt);
 
                                 startStreamingConnector(sensorConfigJson, mStreamPort, mTimeDiff);
+                                return true;
+                            case JsonSSI.Q:
+                                double battery = SystemUtil.getBatteryLevel(context);
+                                JSONObject jsonBattery = JsonSSI.makeBatteryRep(battery, mIsLocal);
+                                mServerWebSocket.send(jsonBattery.toString());
+                                return true;
+                            case JsonSSI.S:
+                                String conf = jsonObject.getString(JsonSSI.CONF_CONTENT);
+                                if(conf.equals(JsonSSI.SECONDARY_MASTER)){
+                                    Message serviceMessage = Message.obtain();
+                                    serviceMessage.what = Constants.SERVICE_MSG_SECONDARY_MASTER;
+                                    serviceMessage.arg1 = (jsonObject.getBoolean(JsonSSI.CONF_VAL))?1:0;
+                                    try {
+                                        serviceMessenger.send(serviceMessage);
+                                    } catch (RemoteException e) {
+                                        Log.e(TAG, e.toString());
+                                    }
+                                }
                                 return true;
                             case JsonSSI.SEND_DATA:
                                 sendImages(jsonObject, mStreamPort);

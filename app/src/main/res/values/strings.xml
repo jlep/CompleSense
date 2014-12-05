@@ -22,5 +22,13 @@
     <string name="burst_mode_camera">Take multiple photos</string>
     <string name="added_local_service">Advertising local service</string>
     <string name="unknown_status">Unknown system status</string>
+    <string name="finding_new_master">Searching for new master</string>
+    <string name="myself_is_new_master">I am the new group master</string>
+    <string name="new_secondary_master">I am selected as the new secondary master</string>
+    <string name="local_dns_service_stops">Local DNS service is stopped</string>
+    <string name="disconnect_succeed">Disconnect succeedd</string>
+    <string name="restart_serivce">Restarting service</string>
+    <string name="old_service_removed">Previous registered service is removed</string>
+    <string name="get_new_secondary_master">I am not the secondary master anymore</string>
 
 </resources>

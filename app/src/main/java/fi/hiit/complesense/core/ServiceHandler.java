@@ -27,6 +27,7 @@ import fi.hiit.complesense.connection.AcceptorWebSocket;
 import fi.hiit.complesense.connection.AliveConnection;
 import fi.hiit.complesense.connection.ConnectorWebSocket;
 import fi.hiit.complesense.json.JsonSSI;
+import fi.hiit.complesense.util.SystemUtil;
 
 /**
  * Created by hxguo on 20.8.2014.
@@ -63,10 +64,11 @@ public class ServiceHandler extends HandlerThread
         this.isGroupOwner = isGroupOwner;
 
         this.delay = delay;
-        init(ownerInetAddr);
+
+        initWebSocket(ownerInetAddr);
     }
 
-    protected void init(InetAddress ownerInetAddr)
+    protected void initWebSocket(InetAddress ownerInetAddr)
     {
         try{
             if(isGroupOwner){

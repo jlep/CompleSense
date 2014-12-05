@@ -10,6 +10,8 @@ import org.json.JSONObject;
 
 import java.util.List;
 
+import fi.hiit.complesense.util.SystemUtil;
+
 /**
  * Created by hxguo on 24.10.2014.
  */
@@ -19,6 +21,9 @@ public class JsonSSI
     public static final short V = 0x56; //Sensor data response
     public static final short C = 0x43; //Discover sensors
     public static final short N = 0x4E; //Discover reply
+    public static final short Q = 0x51; //Query
+    public static final short A = 0x41;
+    public static final short S = 0x53;
 
     public static final short NEW_STREAM_CONNECTION = 0x08;
     public static final short NEW_CONNECTION = 0x09; // Accept new connection at server
@@ -54,6 +59,13 @@ public class JsonSSI
     public static final String IMAGE_ORIENTATIONS = "image_orientations";
     public static final String IMAGE_NAME = "image_name";
     public static final String SYSTEM_STATUS = "system_status";
+    public static final String BATTERY_LEVEL = "battery_level";
+    public static final String QUERY_CONTENT = "query_content";
+    public static final String CONF_CONTENT = "configuration_content";
+    public static final String SECONDARY_MASTER = "secondary_master";
+    public static final String IS_CLIENT_LOCAL = "is_client_local";
+    public static final String CONF_VAL = "conf_val";
+
 
     public static JSONObject makeSensorDiscvoeryReq() throws JSONException
     {
@@ -106,4 +118,13 @@ public class JsonSSI
         return jsonObject;
     }
 
+    public static JSONObject makeBatteryRep(double battery, boolean mIsLocal) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put(COMMAND, A);
+        jsonObject.put(BATTERY_LEVEL, battery);
+        jsonObject.put(IS_CLIENT_LOCAL, mIsLocal);
+        jsonObject.put(DESC, "Battery level");
+        return jsonObject;
+    }
 }

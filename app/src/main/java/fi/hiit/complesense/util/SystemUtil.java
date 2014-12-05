@@ -2,12 +2,15 @@ package fi.hiit.complesense.util;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
@@ -95,7 +98,7 @@ public class SystemUtil {
 
         //-------- get battery level
         record.put(Constants.TXTRECORD_BATTERY_LEVEL,
-                Float.toString(abstractGroupService.getBatteryLevel()));
+                Float.toString(getBatteryLevel(abstractGroupService)));
         Log.i(TAG, "TXTRecord: " + record);
 
         return record;
@@ -430,5 +433,63 @@ public class SystemUtil {
         jsonObject.put(JsonSSI.SYSTEM_STATUS, JsonSSI.JSON_STREAM_DISCONNECT);
         jsonObject.put(JsonSSI.WEB_SOCKET_KEY, webSocket.toString());
         return jsonObject;
+    }
+
+    public static float getBatteryLevel(Context context)
+    {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = context.registerReceiver(null, ifilter);
+
+        //are we charging / charged?
+        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL;
+
+        //how are we charging
+        int chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
+        boolean acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
+
+        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        Log.i(TAG, "Batteray level: " + level);
+        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        Log.i(TAG, "Batteray scale: " + scale);
+
+        float batteryPct = level / (float)scale;
+        //get battery temperatur
+        int temp = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+
+        //get battery voltage
+        int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+
+        return batteryPct;
+    }
+
+    public static JSONObject makeJsonBatteryQuery() throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(JsonSSI.COMMAND, JsonSSI.Q);
+        jsonObject.put(JsonSSI.QUERY_CONTENT, JsonSSI.BATTERY_LEVEL);
+        return jsonObject;
+    }
+
+    public static JSONObject makeJsonAssignSecondaryMaster(boolean isSecondaryMaster) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(JsonSSI.COMMAND, JsonSSI.S);
+        jsonObject.put(JsonSSI.CONF_CONTENT, JsonSSI.SECONDARY_MASTER);
+        jsonObject.put(JsonSSI.CONF_VAL, isSecondaryMaster);
+        return jsonObject;
+    }
+
+    public static void sendMasterDies(Messenger uiMessenger, boolean mIsSecondaryMaster) {
+        if(uiMessenger!=null) {
+            Message msg = Message.obtain();
+            msg.obj = mIsSecondaryMaster;
+            msg.what = Constants.MSG_MASTER_DIES;
+            try {
+                uiMessenger.send(msg);
+            } catch (RemoteException e) {
+                Log.i(TAG,e.toString());
+            }
+        }
     }
 }

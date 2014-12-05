@@ -57,6 +57,7 @@ public abstract class AbstractGroupService extends Service
     protected Context context;
 
     protected WifiP2pDevice mDevice, groupOwner;
+    protected boolean mIsSecondaryMaster = false;
 
     /**
      * Target we publish for clients to send messages to IncomingHandler.
@@ -65,7 +66,7 @@ public abstract class AbstractGroupService extends Service
     protected final IntentFilter intentFilter = new IntentFilter();
 
     //protected Map<String, CompleSenseDevice> nearbyDevices;
-    protected Map<String, CompleSenseDevice> discoveredDevices;
+    protected Map<String, CompleSenseDevice> discoveredDevices = new TreeMap<String, CompleSenseDevice>();
     protected PowerManager.WakeLock wakeLock;
 
     /**
@@ -107,18 +108,15 @@ public abstract class AbstractGroupService extends Service
         groupOwner = null;
         context = getApplicationContext();
 
-        discoveredDevices = new TreeMap<String, CompleSenseDevice>();
-
         // add necessary intent values to be matched.
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        // Register BroadcastReceiver to track connection changes.
-        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         SystemUtil.cleanRootDir();
     }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -148,7 +146,7 @@ public abstract class AbstractGroupService extends Service
         super.onDestroy();
     }
 
-    protected abstract void start();
+    protected abstract void start(int state);
 
     protected abstract void stop();
 
@@ -160,6 +158,7 @@ public abstract class AbstractGroupService extends Service
         uiMessenger = null;
         groupOwner = null;
         serviceHandler = null;
+        mIsSecondaryMaster = false;
         isInitialized = false;
     }
 
@@ -209,36 +208,6 @@ public abstract class AbstractGroupService extends Service
 
     }
 
-    public float getBatteryLevel()
-    {
-        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = this.registerReceiver(null, ifilter);
-
-        //are we charging / charged?
-        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                status == BatteryManager.BATTERY_STATUS_FULL;
-
-        //how are we charging
-        int chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
-        boolean usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
-        boolean acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
-
-        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-        Log.i(TAG, "Batteray level: " + level);
-        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-        Log.i(TAG, "Batteray scale: " + scale);
-
-        float batteryPct = level / (float)scale;
-        //get battery temperatur
-        int temp = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
-
-        //get battery voltage
-        int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-
-        return batteryPct;
-    }
-
     protected void sendServiceInitComplete()
     {
         Message msg = Message.obtain();
@@ -250,6 +219,11 @@ public abstract class AbstractGroupService extends Service
         }
     }
 
+    public WifiP2pDevice getGroupOwner() {
+        return groupOwner;
+    }
 
-
+    public void setGroupOwner(WifiP2pDevice groupOwner) {
+        this.groupOwner = groupOwner;
+    }
 }

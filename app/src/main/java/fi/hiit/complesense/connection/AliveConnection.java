@@ -15,12 +15,21 @@ public class AliveConnection
 {
     private static final String TAG = "AliveConnection";
     public final WebSocket webSocket;
-    public final long startTime;
 
-    public static final long VALID_TIME = 1000000, COUNT_DOWN_INTERVAL = 1000;
-    private long nextCheckTime;
     private long delay = 0;
     private long rtt = 0;
+    private double batteryLevel = Double.MIN_VALUE;
+
+    public void setLocal(boolean isLocal) {
+        this.isLocal = isLocal;
+    }
+
+    public boolean isLocal() {
+
+        return isLocal;
+    }
+
+    private boolean isLocal = false;
 
     public void setRtt(long rtt) {
         this.rtt = rtt;
@@ -32,10 +41,15 @@ public class AliveConnection
 
     public AliveConnection(final WebSocket webSocket)
     {
-
         this.webSocket = webSocket;
-        startTime = System.currentTimeMillis();
-        nextCheckTime = VALID_TIME;
+    }
+
+    public void setBatteryLevel(double batteryLevel) {
+        this.batteryLevel = batteryLevel;
+    }
+
+    public double getBatteryLevel() {
+        return batteryLevel;
     }
 
     public void setDelay(long delay)

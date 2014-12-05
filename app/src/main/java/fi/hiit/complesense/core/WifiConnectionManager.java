@@ -1,8 +1,5 @@
 package fi.hiit.complesense.core;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -12,15 +9,11 @@ import android.os.Messenger;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import fi.hiit.complesense.Constants;
 import fi.hiit.complesense.R;
 import fi.hiit.complesense.service.AbstractGroupService;
-import fi.hiit.complesense.util.SensorUtil;
 import fi.hiit.complesense.util.SystemUtil;
 
 /**
@@ -38,6 +31,7 @@ public class WifiConnectionManager
     public static final String SERVICE_REG_TYPE = "_presence._tcp";
     private Messenger uiMessenger;
     private WifiP2pDnsSdServiceRequest serviceRequest;
+    private WifiP2pDnsSdServiceInfo mServiceInfo;
 
 
     public WifiConnectionManager( AbstractGroupService abstractGroupService,
@@ -54,40 +48,26 @@ public class WifiConnectionManager
     /**
      * Register a local service, waiting for service discovery initiated by other nearby devices
      */
-    public void registerService()
+    public void advertiseLocalService()
     {
-        Log.i(TAG, "registerService()");
-        Map<String, String> record = new HashMap<String, String>();
-        record.put(Constants.TXTRECORD_PROP_VISIBILITY, "visible");
-
-        WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
+        Log.i(TAG,"advertiseLocalService()");
+        //-------- put own TxtRecord into advertisement
+        Map<String, String> record = abstractGroupService.getDiscoveredDevices().
+                get(abstractGroupService.getDevice().deviceAddress).getTxtRecord();
+        mServiceInfo = WifiP2pDnsSdServiceInfo.newInstance(
                 SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
-        manager.addLocalService(channel, service, new WifiP2pManager.ActionListener() {
 
+        manager.addLocalService(channel, mServiceInfo, new WifiP2pManager.ActionListener()
+        {
             @Override
             public void onSuccess() {
-                Log.i(TAG,"Added Local Service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
-
-                manager.createGroup(channel, new WifiP2pManager.ActionListener()
-                {
-                    @Override
-                    public void onSuccess(){
-                        SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                "Group creation succeed");
-                    }
-
-                    @Override
-                    public void onFailure(int reason){
-                        SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                "Group creation failed: " + SystemUtil.parseErrorCode(reason));
-                    }
-                });
+                Log.i(TAG, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
+                SystemUtil.sendStatusTextUpdate(uiMessenger, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
             }
 
             @Override
             public void onFailure(int error) {
-                Log.i(TAG,"Failed to add a service");
+                Log.i(TAG, "Failed to add a service");
                 SystemUtil.sendStatusTextUpdate(uiMessenger,
                         "Adding Service failed: " + SystemUtil.parseErrorCode(error));
             }
@@ -97,7 +77,7 @@ public class WifiConnectionManager
     public void findService(WifiP2pManager.DnsSdServiceResponseListener servListener,
                             WifiP2pManager.DnsSdTxtRecordListener txtListener)
     {
-        Log.i(TAG,"findService()");
+        Log.i(TAG,"findService() without known master");
         if (!isWifiP2pEnabled)
         {
             Toast.makeText(abstractGroupService,
@@ -157,9 +137,8 @@ public class WifiConnectionManager
      */
     public void findService()
     {
-        Log.i(TAG,"findService()");
-        if (!isWifiP2pEnabled)
-        {
+        Log.i(TAG,"findService() with known master");
+        if (!isWifiP2pEnabled) {
             Toast.makeText(abstractGroupService,
                     R.string.p2p_off_warning, Toast.LENGTH_SHORT).show();
         }
@@ -173,8 +152,7 @@ public class WifiConnectionManager
                                                             String registrationType, WifiP2pDevice srcDevice)
                         {
                             // A service has been discovered. Is this our app?
-                            if (instanceName.equalsIgnoreCase(SERVICE_INSTANCE))
-                            {
+                            if (instanceName.equalsIgnoreCase(SERVICE_INSTANCE)) {
                                 Log.i(TAG, "onDnsSdServiceAvailable()");
                                 // update the UI and add the item the discovered device.
                                 if(uiMessenger!=null)
@@ -182,13 +160,23 @@ public class WifiConnectionManager
                                             instanceName);
                             }
                         }
-                    }, new WifiP2pManager.DnsSdTxtRecordListener()
-                    {
+                    }, new WifiP2pManager.DnsSdTxtRecordListener() {
                         @Override
-                        public void onDnsSdTxtRecordAvailable(
-                                String fullDomainName, Map<String, String> record,
-                                WifiP2pDevice device) {
-                            Log.i(TAG, device.deviceName + " is "+ record.get(Constants.TXTRECORD_PROP_VISIBILITY));
+                        public void onDnsSdTxtRecordAvailable(String fullDomainName,
+                                                              Map<String, String> record, WifiP2pDevice device) {
+                            String txt = "DnsSdTxtRecord available from " + device.deviceAddress +": " + record.toString();
+                            SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
+                            Log.i(TAG, txt);
+                            //Log.i(TAG, device.deviceName + " is "+ record.get(TXTRECORD_PROP_AVAILABLE));
+                            //SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_sensors: "+ (String)record.get(
+                            //        Constants.TXTRECORD_SENSOR_TYPE_LIST));
+                            SystemUtil.sendStatusTextUpdate(uiMessenger, "from "+ device.deviceAddress +" recv TxtRecord_connection: "+ (String)record.get(
+                                    Constants.TXTRECORD_NETWORK_INFO));
+                            abstractGroupService.getDiscoveredDevices().put(device.deviceAddress, new CompleSenseDevice(device, record) );
+                            abstractGroupService.setGroupOwner(device);
+
+                            stopFindingService();
+                            connectP2p(device, 2);
                         }
                     });
 
@@ -275,74 +263,54 @@ public class WifiConnectionManager
                                               WifiP2pManager.DnsSdTxtRecordListener txtListener)
     {
         Log.i(TAG,"startRegistrationAndDiscovery()");
-        //-------- put own TxtRecord into advertisement
-        Map<String, String> record = abstractGroupService.getDiscoveredDevices().
-                get(abstractGroupService.getDevice().deviceAddress).getTxtRecord();
-        WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
-                SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
-
-        manager.addLocalService(channel, service, new WifiP2pManager.ActionListener()
-        {
-            @Override
-            public void onSuccess() {
-                Log.i(TAG, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
-                SystemUtil.sendStatusTextUpdate(uiMessenger, abstractGroupService.getApplicationContext().getString(R.string.added_local_service));
-            }
-
-            @Override
-            public void onFailure(int error) {
-                Log.i(TAG, "Failed to add a service");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Adding Service failed: " + SystemUtil.parseErrorCode(error));
-            }
-        });
-
+        advertiseLocalService();
         findService(servListener, txtListener);
     }
 
     /**
      * update the TxtRecord attached to the registered service
      */
-    public void updateTxtRecord()
+    public void updateLocalService(final WifiP2pDnsSdServiceInfo serviceInfo)
     {
-        manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess()
-            {
-                String str = "Old Registered service removed";
-                Log.i(TAG, str);
-                SystemUtil.sendStatusTextUpdate(uiMessenger, str);
+        if(manager!=null && channel !=null && mServiceInfo !=null) {
 
-                Map<String, String> record = abstractGroupService.getDiscoveredDevices().
-                        get(abstractGroupService.getDevice().deviceAddress).getTxtRecord();
-                WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
-                        SERVICE_INSTANCE, SERVICE_REG_TYPE, record);
+            manager.removeLocalService(channel, mServiceInfo, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    mServiceInfo = serviceInfo;
+                    String str = abstractGroupService.getString(R.string.old_service_removed);
+                    Log.i(TAG, str);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, str);
+                    advertiseLocalService();
+                }
 
-                manager.addLocalService(channel, service, new WifiP2pManager.ActionListener()
-                {
-                    @Override
-                    public void onSuccess() {
-                        Log.i(TAG, "Added Local Service");
-                        SystemUtil.sendStatusTextUpdate(uiMessenger, "Added Local Service");
-                    }
+                @Override
+                public void onFailure(int i) {
 
-                    @Override
-                    public void onFailure(int error) {
-                        Log.i(TAG, "Failed to add a service");
-                        SystemUtil.sendStatusTextUpdate(uiMessenger,
-                                "Adding Service failed: " + SystemUtil.parseErrorCode(error));
-                    }
-                });
-            }
+                }
+            });
+        }
+    }
 
-            @Override
-            public void onFailure(int reason) {
-                Log.i(TAG,"Stopping service DNS fails");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Stopping service DNS fails");
-            }
-        });
+    public void removeLocalService(){
+        if(manager!=null && channel !=null && mServiceInfo !=null) {
 
+            manager.removeLocalService(channel, mServiceInfo, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    mServiceInfo = null;
+                    String str = abstractGroupService.getString(R.string.old_service_removed);
+                    Log.i(TAG, str);
+                    SystemUtil.sendStatusTextUpdate(uiMessenger, str);
+                    advertiseLocalService();
+                }
+
+                @Override
+                public void onFailure(int i) {
+
+                }
+            });
+        }
     }
 
     public WifiP2pDevice decideGroupOnwer(Map<String, CompleSenseDevice> compleSenseDevices)
@@ -397,13 +365,11 @@ public class WifiConnectionManager
 
         if (manager != null)
         {
-            WifiP2pDevice mDevice = abstractGroupService.getDevice();
-            if (mDevice == null
-                    || mDevice.status == WifiP2pDevice.CONNECTED) {
+            WifiP2pDevice device = abstractGroupService.getDevice();
+            if (device == null || device.status == WifiP2pDevice.CONNECTED) {
                 disconnect();
             }
-            else if (mDevice.status == WifiP2pDevice.AVAILABLE
-                    || mDevice.status == WifiP2pDevice.INVITED)
+            else if (device.status == WifiP2pDevice.AVAILABLE || device.status == WifiP2pDevice.INVITED)
             {
                 manager.cancelConnect(channel, new WifiP2pManager.ActionListener() {
                     @Override
@@ -423,11 +389,10 @@ public class WifiConnectionManager
         }
     }
 
-    public void disconnect()
+    private void disconnect()
     {
         Log.i(TAG,"disconnect()");
-        manager.removeGroup(channel, new WifiP2pManager.ActionListener()
-        {
+        manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onFailure(int reasonCode) {
                 Log.d(TAG, "Disconnect failed. Reason :" +
@@ -437,31 +402,8 @@ public class WifiConnectionManager
             @Override
             public void onSuccess()
             {
-                Log.d(TAG, "Disconnect succeed");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,"Disconnect succeed");
-            }
-
-        });
-    }
-
-    public void stopGroupOwner()
-    {
-        Log.i(TAG,"stopGroupOwner()");
-        manager.removeGroup(channel, new WifiP2pManager.ActionListener()
-        {
-            @Override
-            public void onFailure(int reasonCode)
-            {
-                Log.e(TAG, "Server stop failed. Reason :" + reasonCode);
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Group removal stop failed. Reason :" + reasonCode);
-            }
-
-            @Override
-            public void onSuccess() {
-                Log.i(TAG, "Group removal completes");
-                SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Group removal completes");
+                Log.d(TAG, abstractGroupService.getString(R.string.disconnect_succeed));
+                SystemUtil.sendStatusTextUpdate(uiMessenger,abstractGroupService.getString(R.string.disconnect_succeed));
             }
 
         });
@@ -472,9 +414,9 @@ public class WifiConnectionManager
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.i(TAG, "Service DNS stops");
+                Log.i(TAG, abstractGroupService.getString(R.string.local_dns_service_stops));
                 SystemUtil.sendStatusTextUpdate(uiMessenger,
-                        "Service DNS stops");
+                        abstractGroupService.getString(R.string.local_dns_service_stops));
             }
 
             @Override

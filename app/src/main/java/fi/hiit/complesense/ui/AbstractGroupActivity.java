@@ -159,13 +159,14 @@ public abstract class AbstractGroupActivity extends Activity
         selfInfoFragment.updateUI(device);
     }
 
-    protected void startServiceWork()
+    protected void startServiceWork(int state)
     {
         Log.i(TAG,"startServiceWork()");
         try
         {
             Message reply = Message.obtain();
             reply.what = Constants.SERVICE_MSG_START;
+            reply.arg1 = state;
             reply.replyTo = uiMessenger;
             serviceMessenger.send(reply);
         }
