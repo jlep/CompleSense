@@ -183,7 +183,6 @@ public class ClientOwnerService extends AbstractGroupService
                     SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
                     break;
                 case Constants.SERVICE_MSG_MASTER_DISCONNECT:
-                    //SystemUtil.sendMasterDies(uiMessenger, mIsSecondaryMaster);
                     restartLocalService();
                     break;
                 default:

@@ -189,52 +189,8 @@ public class ClientOwnerActivity extends AbstractGroupActivity
                     startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
                     break;
 
-                case Constants.MSG_MASTER_DIES:
-                    String txt = "Master is gone";
-                    Log.e(TAG, txt);
-                    appendStatus(txt);
-                    boolean startAsMaster = (Boolean)msg.obj;
-                    startState = (startAsMaster) ? START_AS_MASTER:START_AS_CIENT;
-                    restartService();
-
-                    break;
-
                 default:
                     super.handleMessage(msg);
-            }
-        }
-    }
-
-    private void restartService() {
-        RestartServiceRunnable runnable = new RestartServiceRunnable();
-        new Thread(runnable).start();
-
-    }
-
-    class RestartServiceRunnable implements Runnable{
-
-        @Override
-        public void run() {
-            doUnbindService();
-            stopService(new Intent(getApplicationContext(), ClientOwnerService.class));
-
-            try {
-                for(int i=0;i<10;i++){
-                    appendStatus(getString(R.string.restart_serivce));
-                    Thread.sleep(10000);
-                    String serviceName = ClientOwnerService.class.getCanonicalName();
-                    if(!SystemUtil.isServiceRunning(serviceName, getApplicationContext()))
-                    {
-                        Log.i(TAG,"service is not running");
-                        startService(new Intent(getApplicationContext(), ClientOwnerService.class));
-                        Thread.sleep(1000);
-                        doBindService();
-                        break;
-                    }
-                    else
-                        Log.i(TAG,"service is running");
-                }
-            } catch (InterruptedException e) {
             }
         }
     }

@@ -479,17 +479,4 @@ public class SystemUtil {
         jsonObject.put(JsonSSI.CONF_VAL, isSecondaryMaster);
         return jsonObject;
     }
-
-    public static void sendMasterDies(Messenger uiMessenger, boolean mIsSecondaryMaster) {
-        if(uiMessenger!=null) {
-            Message msg = Message.obtain();
-            msg.obj = mIsSecondaryMaster;
-            msg.what = Constants.MSG_MASTER_DIES;
-            try {
-                uiMessenger.send(msg);
-            } catch (RemoteException e) {
-                Log.i(TAG,e.toString());
-            }
-        }
-    }
 }

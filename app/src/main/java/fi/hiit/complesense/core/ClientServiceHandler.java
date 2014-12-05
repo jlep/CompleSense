@@ -103,6 +103,7 @@ public class ClientServiceHandler extends ServiceHandler
                                 Log.i(TAG, "sensorTypeList: " + sensorTypeList.toString());
                                 mServerWebSocket.send(sensorTypeList.toString());
                                 return true;
+
                             case JsonSSI.R:
                                 JSONArray sensorConfigJson = jsonObject.getJSONArray(JsonSSI.SENSOR_TYPES);
                                 mTimeDiff = jsonObject.getLong(JsonSSI.TIME_DIFF);
@@ -118,6 +119,7 @@ public class ClientServiceHandler extends ServiceHandler
                                 JSONObject jsonBattery = JsonSSI.makeBatteryRep(battery, mIsLocal);
                                 mServerWebSocket.send(jsonBattery.toString());
                                 return true;
+
                             case JsonSSI.S:
                                 String conf = jsonObject.getString(JsonSSI.CONF_CONTENT);
                                 if(conf.equals(JsonSSI.SECONDARY_MASTER)){
