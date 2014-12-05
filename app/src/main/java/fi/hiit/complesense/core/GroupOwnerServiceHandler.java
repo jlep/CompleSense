@@ -143,8 +143,11 @@ public class GroupOwnerServiceHandler extends ServiceHandler
         potentialNewSecondaryMaster.setBatteryLevel(battery);
         potentialNewSecondaryMaster.setLocal(isClientLocal);
 
-        if(currentSecondaryMaster == null)
-            potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+        if(currentSecondaryMaster == null){
+            if(!potentialNewSecondaryMaster.isLocal())
+                potentialNewSecondaryMaster.getWebSocket().send(SystemUtil.makeJsonAssignSecondaryMaster(true).toString());
+        }
+
 
         if(currentSecondaryMaster != null && potentialNewSecondaryMaster != null){
             if(currentSecondaryMaster.getBatteryLevel() < potentialNewSecondaryMaster.getBatteryLevel()){

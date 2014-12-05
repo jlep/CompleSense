@@ -152,9 +152,9 @@ public class ClientOwnerService extends AbstractGroupService
                 case Constants.SERVICE_MSG_CONNECT:
                     mWifiConnManager.connectP2p((WifiP2pDevice)msg.obj, 1);
                     break;
-                case Constants.SERVICE_MSG_FIND_SERVICE:
-                    mWifiConnManager.findService(servListener, txtListener);
-                    break;
+                //case Constants.SERVICE_MSG_FIND_SERVICE:
+                //    mWifiConnManager.findService(servListener, txtListener);
+                //    break;
                 case Constants.SERVICE_MSG_STOP_CLIENT_SERVICE:
                     mWifiConnManager.stopFindingService();
                     stopSelf();
@@ -193,6 +193,7 @@ public class ClientOwnerService extends AbstractGroupService
     }
 
     private void restartLocalService() {
+        Log.i(TAG, "restartLocalService()");
         if(serviceHandler!=null)
             serviceHandler.stopServiceHandler();
 

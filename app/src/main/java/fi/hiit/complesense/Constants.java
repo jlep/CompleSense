@@ -70,7 +70,7 @@ public class Constants
     public static final int SERVICE_MSG_STOP = 22;
 
     public static final int SERVICE_MSG_REGISTER_SERVICE = 23;
-    public static final int SERVICE_MSG_FIND_SERVICE = 24;
+    //public static final int SERVICE_MSG_FIND_SERVICE = 24;
 
     public static final int SERVICE_MSG_CANCEL_CONNECT = 25;
     public static final int SERVICE_MSG_CONNECT = 26;
