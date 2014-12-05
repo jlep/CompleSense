@@ -341,6 +341,7 @@ public class ClientOwnerService extends AbstractGroupService
             mWifiConnManager.cancelConnect();
             mWifiConnManager.clearServiceAdvertisement();
         }
+        resetData();
 
     }
 
