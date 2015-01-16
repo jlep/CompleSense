@@ -71,13 +71,19 @@ public class ClientOwnerService extends AbstractGroupService
                     {
                         mWifiConnManager.stopFindingService();
                         groupOwner = mWifiConnManager.decideGroupOnwer(discoveredDevices);
-                        if(groupOwner == null)
-                        {
+                        if(groupOwner == null) {
                             Log.i(TAG,"groupOwner is null");
                             SystemUtil.sendStatusTextUpdate(uiMessenger, "Cannot find valid group owner");
                             return;
                         }
-                        txt = "Group Owner Addr: " + groupOwner.deviceAddress + " own addr: " + getDevice().deviceAddress;
+
+                        String addr = "";
+                        WifiP2pDevice dev = getDevice();
+                        if (dev != null) {
+                            addr = " own addr: " + dev.deviceAddress;
+                        }
+                        txt = "Group Owner Addr: " + groupOwner.deviceAddress + addr;
+
                         Log.i(TAG,txt);
                         SystemUtil.sendStatusTextUpdate(uiMessenger, txt);
 

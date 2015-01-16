@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
@@ -20,7 +21,8 @@
             class="fi.hiit.complesense.ui.SelfInfoFragment"
             android:id="@+id/self_info_frag_client_owner"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            tools:layout="@layout/frag_me_info">
             <!-- Preview: layout=@layout/row_devices -->
         </fragment>
 
@@ -34,7 +36,8 @@
             class="fi.hiit.complesense.ui.PeersListFragment"
             android:id="@+id/available_peers_list"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            tools:layout="@layout/list_frag_group_client">
             <!-- Preview: layout=@layout/row_devices -->
         </fragment>
         <!--
