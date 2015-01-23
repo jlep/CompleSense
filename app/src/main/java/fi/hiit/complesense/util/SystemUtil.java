@@ -355,6 +355,14 @@ public class SystemUtil {
         return mediaFile;
     }
 
+    /**
+     * FIXME: Concatenating config files probably won't work because the result is not valid JSON
+     * Reads all files under ROOT/config and parses them.
+     *
+     * @return system configuration object
+     * @throws IOException
+     * @throws JSONException
+     */
     public static SystemConfig loadConfigFile() throws IOException, JSONException {
         File configDir = new File(Constants.ROOT_DIR, "config");
         configDir.mkdirs();

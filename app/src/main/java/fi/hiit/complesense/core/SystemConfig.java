@@ -18,6 +18,14 @@ import fi.hiit.complesense.util.SensorUtil;
 /**
  * Created by hxguo on 10.11.2014.
  * Parse the JSON config file
+ *
+ * Parameter
+ * Group
+ * DataDeliver
+ * SensorSelection
+ * InformationGain  // empty
+ * Thresholds       // empty
+ * SensorConfig
  */
 public class SystemConfig
 {
